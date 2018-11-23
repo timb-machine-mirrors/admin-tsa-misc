@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# Start a tmux session to run a given command on many hosts
+#######################################################################
+
+# Copyright (c) 2011, 2012, 2013, 2014 Peter Palfrader <peter@palfrader.org>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+if [ "$#" -lt 3 ]; then
+	echo >&2 "Usage: $0 <sessiontag> <run-script> <host> [<host> ..]"
+	exit 1
+fi
+
+sessiontag="$1"; shift
+script="$1"; shift
+session="run-$sessiontag"
+
+if tmux list-session > /dev/null 2>&1 ; then
+	if tmux has-session -t "$session" 2>/dev/null ; then
+		echo >&2 "session $session already exists."
+		exit 1
+	fi
+fi
+
+h="$1"; shift
+tmux new-session -d -s "$session" -n "$h" "$script $h '${EXTRAARGS:-}'; sleep 5"
+(
+while [ "$#" -gt 0 ] ; do
+	h="$1"; shift
+	sleep 3
+	tmux new-window -d -t "$session:" -n "$h" "$script $h '${EXTRAARGS:-}'; sleep 15" || exit 1
+done
+) &
+subshell=$!
+
+trap "kill -HUP $subshell" EXIT
+
+tmux attach -t "$session"
+
+wait
+trap - EXIT

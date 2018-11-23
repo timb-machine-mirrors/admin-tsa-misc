@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -z "$HOSTS" ]; then
+  HOSTS=$(ssh alberti.torproject.org "ldapsearch -h db.torproject.org -x -ZZ -b dc=torproject,dc=org -LLL '(&(hostname=*.torproject.org)(distribution=Debian))' hostname" | awk '$1 == "hostname:" {print $2}' | sort -R)
+fi
+
+set -e
+b=$(basename $(readlink -f $0))
+d=$(dirname $(readlink -f $0))
+EXTRAARGS="$*" "$d/Genric-run-multi" "$b" "$d/One-$b" $HOSTS
+

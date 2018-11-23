@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# Fetch a list of all pending updates, prompt the user for each unique one,
+# and prepare a list of checksums to pass to debian-upgrade.
+#######################################################################
+
+# Copyright (c) 2014 Peter Palfrader <peter@palfrader.org>
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+if [ -z "$HOSTS" ]; then
+  HOSTS=$(ssh alberti.torproject.org "ldapsearch -h db.torproject.org -x -ZZ -b dc=torproject,dc=org -LLL '(&(hostname=*.torproject.org)(distribution=Debian))' hostname" | awk '$1 == "hostname:" {print $2}' | sort)
+fi
+
+set -e
+set -u
+
+d=$(mktemp -d)
+trap "cd / && rm -rf '$d'" EXIT
+cd "$d"
+
+for h in $HOSTS; do
+  timeout 90 sh -c "ssh '$h' 'sudo apt-get update > /dev/null && apt-get -s -oAPT::Get::Show-User-Simulation-Note=no dist-upgrade | sed -e \"s/\$(dpkg --print-architecture)/-x-/g\"' 2>&1 > '$h' | sed -e 's/^/$h: /'" &
+done
+wait
+
+sha1sum * | sort > _list
+echo "0 fencepost" >> _list
+
+failed=""
+curhosts=""
+prevdigest=""
+nothingtodo=""
+accept=""
+prevhost=""
+while read digest host <&3; do
+  [ "$host" = "_list" ] && continue # ignore digest of the empty string
+  if [ "$digest" = "da39a3ee5e6b4b0d3255bfef95601890afd80709" ]; then # digest of the empty string
+    failed="$failed $host"
+    continue
+  elif [ "$digest" = "a632c1cd5a160c8c2a42f7cd7bb50845282c38c7" ]; then # digest of the "nothing to upgrade"
+    nothingtodo="$nothingtodo $host"
+    continue
+  elif [ "$digest" = "809c06ad93c7882aa42041df27b4d9c1e048724e" ]; then # digest of the "nothing to upgrade" for stretch
+    nothingtodo="$nothingtodo $host"
+    continue
+  elif [ -n "$prevdigest" ] && [ "$digest" != "$prevdigest" ]; then
+    echo "------------------------------------------------------------"
+    echo "Upgrade available on$curhosts:"
+    echo
+    cat "$prevhost"
+    echo
+    echo -n "Accept [y/N]? "
+    read ans
+    if [ "$ans" = "y" ]; then
+      if [ -z "$accept" ]; then
+        accept="$prevdigest"
+      else
+        accept="$accept|$prevdigest"
+      fi
+    fi
+    curhosts=""
+  fi
+  curhosts="$curhosts $host"
+  prevhost="$host"
+  prevdigest="$digest"
+done 3< _list
+
+echo "============================================================"
+echo "Failed: $failed"
+echo "No updates on: $nothingtodo"
+echo "Accepted changes:"
+echo "  torproject-upgrade '$accept'"
