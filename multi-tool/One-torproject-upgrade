@@ -65,6 +65,7 @@ ssh -S none -l root $host -t '
 		grep --color < "$t" "root:[^:]*sshd [^:)]*[ (]`cat /var/run/sshd.pid`[,)]" && service ssh restart && sleep 3
 		grep --color < "$t" "buildd:[^:]*ssh " && sudo -H -i -u buildd ssh -S build/buildd.debian.org.ssh buildd.debian.org -O exit && sleep 3
 		grep --color < "$t" "buildd2:[^:]*ssh " && sudo -H -i -u buildd2 ssh -S build/buildd.debian.org.ssh buildd.debian.org -O exit && sleep 3
+		grep --color < "$t" "root:[^:]*ssh " && grep --color -F "($(pgrep -f "ssh: /var/run/.ud-replicate.ssh.socket"))" "$t" && ssh -S /var/run/.ud-replicate.ssh.socket dummy -O exit && sleep 3
 		grep --color < "$t" "munin-async: sshd " && pkill -HUP -u munin-async sshd
 		grep --color < "$t" "debian-tor:[^:]* tor " && service tor restart && ( if [ -e /etc/onionbalance ]; then sleep 15 && service onionbalance restart; fi ) && sleep 3
 		#
