@@ -53,6 +53,7 @@ ssh -S none -l root $host -t '
 		grep --color < "$t" lldpd && service lldpd restart && sleep 3
 		grep --color < "$t" libvirtd && service libvirt-bin restart && sleep 3
 		grep --color < "$t" libvirtd && service libvirtd restart && sleep 3
+		grep --color < "$t" haproxy && service haproxy restart && sleep 3
 		grep --color < "$t" virtlogd && pkill -u root -USR1 -f /usr/sbin/virtlogd && sleep 3
 		grep --color < "$t" samhain && service samhain restart && sleep 3
 		grep --color < "$t" uptimed && service uptimed restart && sleep 3
