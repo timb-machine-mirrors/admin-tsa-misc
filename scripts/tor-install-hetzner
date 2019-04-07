@@ -1,0 +1,342 @@
+#!/bin/bash
+
+# create a VM image using debootstrap
+#
+# Copyright 2013, 2014, 2015, 2019 Peter Palfrader <peter@palfrader.org>
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   You probably already have access to a copy of the GNU General Public
+#   License or you can find one on the Internet; if not, write to the
+#   copyright holder or to the Free Software Foundation, Inc., 59 Temple
+#   Place, Suite 330, Boston, MA 02111-1307 USA.
+
+set -e
+set -u
+
+SUITE=stretch
+
+MIRROR=https://mirror.hetzner.de/debian/packages/
+KEYRING=/root/debian-archive-keyring.gpg
+
+AUTHKEYS_SOURCE=/root/.ssh/authorized_keys
+if ! [ -e "$AUTHKEYS_SOURCE" ] ; then
+  echo >&2 "We need a source for ssh authorized keys, and $AUTHKEYS_SOURCE seems to not be it."
+  exit 1
+fi
+echo "Using $AUTHKEYS_SOURCE"
+
+rootpassphrase="$(head -c 30 /dev/urandom | base64 | tr -d +/ | cut -b 1-24)"
+rootpw="$(head -c 18 /dev/urandom | base64 | tr -d +/ | cut -b 1-16)"
+
+echo "encrypted root filesystem passphrase: $rootpassphrase"
+echo "and root password will be           : $rootpw"
+
+ipaddr=$(ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+
+echo -n "Really overwrite /dev/sda? [y/*]: "
+read ans
+if [ "$ans" != "y" ]; then
+  echo "Good thing I asked.  Exiting."
+  exit 1
+fi
+
+check_installed() {
+  local p
+  for p in "$@"; do
+    if ! dpkg -l "$p" 2>/dev/null | grep -q '^ii'; then
+      echo >&2 "Error: package $p not installed:"
+      echo >&2 "  apt-get install $*"
+      exit 1
+    fi
+  done
+}
+get_sshkey_fprs() {
+  local f
+  for f in etc/ssh/ssh_host*_key.pub; do
+    echo -n "  "
+    ssh-keygen -l -f "$f"
+  done
+  echo
+  for f in etc/ssh/ssh_host*_key.pub; do
+    echo -n "  "
+    ssh-keygen -r '' -f "$f"
+  done
+}
+get_dropbear_sshke() {
+  local f
+  for f in etc/dropbear-initramfs/dropbear_*host_key; do
+    echo -n "  "
+    chroot . dropbearkey -y -f "$f"
+  done
+}
+
+do_cleanup() {
+  local cnt
+  cnt=$((${#cleanup[*]}-1))
+  for i in $(seq ${cnt} -1 0); do
+    echo "* ${cleanup[$i]}"
+    eval "${cleanup[$i]}" || true
+  done
+  echo "done."
+}
+
+if [ -e /etc/debian_version ]; then
+  check_installed debootstrap debian-archive-keyring kpartx qemu-utils
+else
+  if ! [ -e `which debootstrap >/dev/null 2>&1` ]; then echo >&2 "E: could not find debootstrap binary"; exit 1; fi
+  if ! [ -e `which kpartx >/dev/null 2>&1` ]; then echo >&2 "E: could not find kpartx binary"; exit 1; fi
+  if ! [ -e $KEYRING ]; then echo >&2 "E: could not find keyring in $KEYRING"; exit 1; fi
+fi
+
+declare -a cleanup
+cleanup+=(":")
+trap do_cleanup EXIT
+
+echo -n "New VM's FQDN: "
+if [ -n "${1:-}" ]; then echo "$1"; fqdn="$1"; shift; else read fqdn; fi
+echo
+guest="${fqdn%%.*}"
+domainname="${fqdn#*.}"
+
+echo -n "i6paddr (e.g. 2a01:4f8:c2c:3f73::1) : ";
+if [ -n "${1:-}" ]; then echo "$1"; ip6addr="$1"; shift; else read ip6addr; fi
+
+
+rootdev=/dev/sda
+
+(echo '2048,974848,L,*';
+ echo '976896,,L') | sfdisk --force -u S "$rootdev"
+sleep 2
+part1="${rootdev}1"
+part2="${rootdev}2"
+mkfs.ext4 "$part1"
+
+echo -n "$rootpassphrase" | cryptsetup luksFormat ${part2} --key-file=-
+echo -n "$rootpassphrase" | cryptsetup luksOpen ${part2} croot --key-file=-
+cleanup+=("cryptsetup luksClose croot")
+crootdev="/dev/mapper/croot"
+
+mkfs.ext4 "$crootdev"
+
+target="/mnt/target"
+
+mkdir "$target"
+cleanup+=("rmdir '$target'")
+mount "$crootdev" "$target"
+cleanup+=("umount '$target'")
+cd "$target"
+cleanup+=("cd /")
+
+mkdir "boot"
+mount "$part1" "$target/boot"
+cleanup+=("umount '$target/boot'")
+
+debootstrap --arch=amd64 --variant=minbase --keyring="$KEYRING" "$SUITE" . "$MIRROR"
+
+mount -o bind /proc "$target/proc"
+cleanup+=("umount '$target/proc'")
+
+mount -o bind /sys "$target/sys"
+cleanup+=("umount '$target/sys'")
+
+mount -o bind /dev "$target/dev"
+cleanup+=("umount '$target/dev'")
+
+### Set up swap and fstab
+dd if=/dev/zero of=swapfile bs=1M count=1024
+chmod 0 swapfile
+mkswap "swapfile"
+
+uuidp1=$(blkid -s UUID -o value ${part1}) &&
+uuidp2=$(blkid -s UUID -o value ${part2}) &&
+
+cat > etc/fstab << EOF
+/dev/mapper/croot / ext4 errors=remount-ro 0 1
+UUID=$uuidp1 /boot ext4 defaults 0 2
+
+/swapfile none swap sw 0 0
+tmpfs /tmp tmpfs defaults,size=512m 0 0
+EOF
+cat > etc/crypttab << EOF
+croot UUID=$uuidp2 none luks
+EOF
+
+### Set up basic networking stuff
+echo "$guest" > etc/hostname
+cat > etc/hosts << EOF
+127.0.0.1 localhost
+$ipaddr $fqdn $guest
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+ff02::3 ip6-allhosts
+EOF
+rm -fv etc/udev/rules.d/70-persistent-*
+mkdir -p etc/udev/rules.d/
+touch etc/udev/rules.d/75-persistent-net-generator.rules
+
+chroot . apt-get install -y isc-dhcp-client
+mkdir -p etc/network
+cat > etc/network/interfaces << EOF
+auto lo
+iface lo inet loopback
+
+allow-hotplug eth0
+iface eth0 inet6 static
+  accept_ra 0
+  address $ip6addr/64
+  gateway fe80::1
+iface eth0 inet dhcp
+EOF
+
+cat > etc/resolv.conf << EOF
+nameserver 8.8.8.8
+search $domainname
+EOF
+
+### A couple packages
+mv etc/apt/sources.list etc/apt/sources.list.d/debian.list
+echo "deb http://security.debian.org/ ${SUITE}/updates main" > etc/apt/sources.list.d/security.list
+echo "deb $MIRROR ${SUITE}-updates main" > etc/apt/sources.list.d/updates.list
+chroot . apt-get update
+echo "Apt::Install-Recommends 0;" > etc/apt/apt.conf.d/local-recommends
+chroot . apt-get install -y locales-all net-tools iproute ifupdown dialog vim netbase udev psmisc usbutils pciutils
+chroot . apt-get install -y iputils-ping telnet bind9-host cryptsetup
+
+# init stuff
+DEBIAN_FRONTEND=noninteractive chroot . apt-get install -y systemd systemd-sysv initscripts kbd console-setup
+
+chroot . apt-get install -y dropbear-initramfs
+sed -e '/^ssh-/ s#^#no-port-forwarding,no-agent-forwarding,no-X11-forwarding,command="/bin/cryptroot-unlock" #' "$AUTHKEYS_SOURCE" > etc/dropbear-initramfs/authorized_keys
+cat > etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw << 'EOF'
+#!/bin/sh
+
+PREREQ=""
+prereqs() {
+  echo "$PREREQ"
+}
+
+case $1 in
+  prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /scripts/functions
+
+configure_networking
+
+log_begin_msg "Checking if we find the initramfs config and network info."
+if [ -e /conf/initramfs.conf ]; then
+  . /conf/initramfs.conf
+fi
+if [ -z "$DEVICE" ]; then
+  log_begin_msg "No networking device set."
+  exit
+fi
+
+if [ -e /run/net-$DEVICE.conf ]; then
+  log_begin_msg "No /run/net-$DEVICE.conf found."
+  . /run/net-$DEVICE.conf
+fi
+
+if [ -z "$IPV4GATEWAY" ]; then
+  log_begin_msg "No ipv4 gateway info found."
+  exit
+fi
+
+log_begin_msg "Adding a host route to the ipv4 gateway $IPV4GATEWAY on $DEVICE"
+ip route add "$IPV4GATEWAY"/32 dev "$DEVICE"
+log_begin_msg "Setting default route"
+ip route add default via "$IPV4GATEWAY" dev "$DEVICE"
+EOF
+chmod +x etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw
+sed -i -e 's/^DEVICE=$/DEVICE=eth0/'  etc/initramfs-tools/initramfs.conf
+
+dropbbearsshkeys=$(get_dropbear_sshke)
+
+### Set up kernel and bootloader
+chroot . apt-get install -y busybox-static
+chroot . apt-get install -y linux-image-amd64
+DEBIAN_FRONTEND=noninteractive chroot . apt-get install -y grub2
+
+chroot . grub-install "$rootdev"
+mkdir etc/default/grub.d
+echo 'GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX net.ifnames=0"' > etc/default/grub.d/local-ifnames.cfg
+chroot . update-grub
+
+echo "root:$rootpw" | chroot . chpasswd
+
+### install ssh
+UCF_FORCE_CONFFOLD=1 chroot . apt-get install -y ssh
+sed -i -e "s/`hostname`\$/$guest/" etc/ssh/ssh_host*_key.pub
+sshkeys="$(get_sshkey_fprs)"
+rsahostkey="$(cat etc/ssh/ssh_host_rsa_key.pub)"
+[ -e etc/ssh/ssh_host_ed25519_key.pub ] && ed25519hostkey="$(cat etc/ssh/ssh_host_ed25519_key.pub)"
+echo 'AuthorizedKeysFile /etc/ssh/userkeys/%u' >> etc/ssh/sshd_config
+mkdir etc/ssh/userkeys
+cp -v "$AUTHKEYS_SOURCE" etc/ssh/userkeys/root
+
+### unattended upgrades
+chroot . apt-get install -y unattended-upgrades
+cat > etc/apt/apt.conf.d/20auto-upgrades << EOF
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+### more packages
+chroot . apt-get install -y acpi-support-base lldpd libpam-systemd dbus cron logrotate rsyslog
+
+### clean up
+chroot . apt-get clean
+
+# and done
+trap - EXIT
+do_cleanup
+
+echo "======================"
+echo "$guest's root fs LUKS passphrase is $rootpassphrase"
+echo "$guest's root password is $rootpw"
+echo "SSH host key fingerprints are:"
+echo "$sshkeys"
+echo "initramfs SSH host key fingerprints are:"
+echo "$dropbbearsshkeys"
+echo "IP addresses:"
+echo "  $ipaddr"
+echo
+echo "ud-ldap ldapvi snippet:"
+cat << EOF
+add host=$guest,ou=hosts,dc=torproject,dc=org
+host: $guest
+hostname: $fqdn
+objectClass: top
+objectClass: debianServer
+l: Falkenstein, Saxony, Germany
+distribution: Debian
+access: restricted
+admin: torproject-admin@torproject.org
+architecture: amd64
+sshRSAHostKey: $rsahostkey
+physicalHost: hetzner
+description: XXX
+purpose: XXX
+ipHostNumber: $ipaddr
+ipHostNumber: $ip6addr
+EOF
+[ -n "${ed25519hostkey:-}" ] && echo "sshRSAHostKey: $ed25519hostkey"
+echo
+echo
