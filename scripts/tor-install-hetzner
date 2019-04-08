@@ -22,7 +22,7 @@
 set -e
 set -u
 
-SUITE=stretch
+SUITE=buster
 
 MIRROR=https://mirror.hetzner.de/debian/packages/
 KEYRING=/root/debian-archive-keyring.gpg
@@ -71,7 +71,7 @@ get_sshkey_fprs() {
     ssh-keygen -r '' -f "$f"
   done
 }
-get_dropbear_sshke() {
+get_dropbear_sshkey() {
   local f
   for f in etc/dropbear-initramfs/dropbear_*host_key; do
     echo -n "  "
@@ -213,7 +213,7 @@ echo "deb http://security.debian.org/ ${SUITE}/updates main" > etc/apt/sources.l
 echo "deb $MIRROR ${SUITE}-updates main" > etc/apt/sources.list.d/updates.list
 chroot . apt-get update
 echo "Apt::Install-Recommends 0;" > etc/apt/apt.conf.d/local-recommends
-chroot . apt-get install -y locales-all net-tools iproute ifupdown dialog vim netbase udev psmisc usbutils pciutils
+chroot . apt-get install -y locales-all net-tools iproute2 ifupdown dialog vim netbase udev psmisc usbutils pciutils
 chroot . apt-get install -y iputils-ping telnet bind9-host cryptsetup
 
 # init stuff
@@ -267,7 +267,8 @@ EOF
 chmod +x etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw
 sed -i -e 's/^DEVICE=$/DEVICE=eth0/'  etc/initramfs-tools/initramfs.conf
 
-dropbbearsshkeys=$(get_dropbear_sshke)
+dropbbearsshkeys=$(get_dropbear_sshkey)
+dropbbearsshkeysfor_ldap=$( get_dropbear_sshkey  | egrep '^(ssh-rsa|ecdsa-sha2)' | sed -e 's/^/sshRSAHostKey: /; s/$/ (initramfs)/' )
 
 ### Set up kernel and bootloader
 chroot . apt-get install -y busybox-static
@@ -275,7 +276,7 @@ chroot . apt-get install -y linux-image-amd64
 DEBIAN_FRONTEND=noninteractive chroot . apt-get install -y grub2
 
 chroot . grub-install "$rootdev"
-mkdir etc/default/grub.d
+mkdir -p etc/default/grub.d
 echo 'GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX net.ifnames=0"' > etc/default/grub.d/local-ifnames.cfg
 chroot . update-grub
 
@@ -338,5 +339,6 @@ ipHostNumber: $ipaddr
 ipHostNumber: $ip6addr
 EOF
 [ -n "${ed25519hostkey:-}" ] && echo "sshRSAHostKey: $ed25519hostkey"
+echo $dropbbearsshkeysfor_ldap
 echo
 echo
