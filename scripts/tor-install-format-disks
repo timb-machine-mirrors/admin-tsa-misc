@@ -103,5 +103,8 @@ Next steps are probably:
 mount /dev/mapper/$pvname-root /mnt/
 mkdir /mnt/boot
 mount $hdd_array /mnt/boot
-grml-debootstrap --grub /dev/sda --efi /dev/sda1 --target /mnt --hostname $hostname --debopt="--include dropbear-initramfs"
+grml-debootstrap --grub /dev/sda --target /mnt --hostname $hostname --release buster \
+                 --mirror https://mirror.hetzner.de/debian/packages/ \
+                 --bootappend "net.ifnames=0" --remove-configs
 EOF
+# + root password
