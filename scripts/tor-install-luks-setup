@@ -4,16 +4,17 @@
 MNTPOINT=${MNTPOINT:-${1:-.}}
 AUTHKEYS_SOURCE=${AUTHKEYS_SOURCE:-$HOME/.ssh/authorized_keys}
 
-UUID=$(blkid -s UUID -o value $(findmnt -o SOURCE -l -n $MNTPOINT))
+PVNAME=$(lvs --noheadings -o vg_name $(findmnt -o SOURCE -l -n $MNTPOINT) | sed 's/^ *//')
+UUID=$(blkid -s UUID -o value $(cryptsetup status $PVNAME | sed -n '/device:/{s/.*: *//;p}'))
 
 if ! [ -f $AUTHKEYS_SOURCE ] || ! [ -s $AUTHKEYS_SOURCE ]; then
-    echo "$AUTHKEYS_SOURCE missing or empty"
+    echo "$AUTHKEYS_SOURCE missing or empty" >&2
     AUTHKEYS_SOURCE=$(mktemp)
     printf "enter valid SSH authorized keys string followed by control-d: "
     cat > $AUTHKEYS_SOURCE
 fi
 
-chroot "$MNTPOINT" apt-get install -y dropbear-initramfs
+DEBIAN_FRONTEND=noninteractive chroot "$MNTPOINT" apt-get install -y dropbear-initramfs cryptsetup console-setup
 sed -e '/^ssh-/ s#^#no-port-forwarding,no-agent-forwarding,no-X11-forwarding,command="/bin/cryptroot-unlock" #' "$AUTHKEYS_SOURCE" > "$MNTPOINT/etc/dropbear-initramfs/authorized_keys"
 
 # unsure why this is necessary, or how this works
@@ -64,7 +65,14 @@ chmod +x "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-defa
 sed -i -e 's/^DEVICE=$/DEVICE=eth0/' "$MNTPOINT/etc/initramfs-tools/initramfs.conf"
 
 cat > "$MNTPOINT/etc/crypttab" << EOF
-croot UUID=$UUID none luks
+$PVNAME UUID=$UUID none luks
 EOF
 
-update-grub
+for fs in dev proc run sys  ; do
+    mount -o bind /$fs "$MNTPOINT/$fs"
+done
+chroot $MNTPOINT update-initramfs -u -k all
+chroot $MNTPOINT update-grub
+for fs in dev proc run sys ; do
+    umount "$MNTPOINT/$fs"
+done
