@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# mountpoint from grml or first argument or current directory
+MNTPOINT=${MNTPOINT:-${1:-.}}
+AUTHKEYS_SOURCE=${AUTHKEYS_SOURCE:-$HOME/.ssh/authorized_keys}
+
+UUID=$(blkid -s UUID -o value $(findmnt -o SOURCE -l -n $MNTPOINT))
+
+if ! [ -f $AUTHKEYS_SOURCE ] || ! [ -s $AUTHKEYS_SOURCE ]; then
+    echo "$AUTHKEYS_SOURCE missing or empty"
+    AUTHKEYS_SOURCE=$(mktemp)
+    printf "enter valid SSH authorized keys string followed by control-d: "
+    cat > $AUTHKEYS_SOURCE
+fi
+
+chroot "$MNTPOINT" apt-get install -y dropbear-initramfs
+sed -e '/^ssh-/ s#^#no-port-forwarding,no-agent-forwarding,no-X11-forwarding,command="/bin/cryptroot-unlock" #' "$AUTHKEYS_SOURCE" > "$MNTPOINT/etc/dropbear-initramfs/authorized_keys"
+
+# unsure why this is necessary, or how this works
+cat > "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw" << 'EOF'
+#!/bin/sh
+
+PREREQ=""
+prereqs() {
+  echo "$PREREQ"
+}
+
+case $1 in
+  prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /scripts/functions
+
+configure_networking
+
+log_begin_msg "Checking if we find the initramfs config and network info."
+if [ -e /conf/initramfs.conf ]; then
+  . /conf/initramfs.conf
+fi
+if [ -z "$DEVICE" ]; then
+  log_begin_msg "No networking device set."
+  exit
+fi
+
+if [ -e /run/net-$DEVICE.conf ]; then
+  log_begin_msg "No /run/net-$DEVICE.conf found."
+  . /run/net-$DEVICE.conf
+fi
+
+if [ -z "$IPV4GATEWAY" ]; then
+  log_begin_msg "No ipv4 gateway info found."
+  exit
+fi
+
+log_begin_msg "Adding a host route to the ipv4 gateway $IPV4GATEWAY on $DEVICE"
+ip route add "$IPV4GATEWAY"/32 dev "$DEVICE"
+log_begin_msg "Setting default route"
+ip route add default via "$IPV4GATEWAY" dev "$DEVICE"
+EOF
+chmod +x "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw"
+sed -i -e 's/^DEVICE=$/DEVICE=eth0/' "$MNTPOINT/etc/initramfs-tools/initramfs.conf"
+
+cat > "$MNTPOINT/etc/crypttab" << EOF
+croot UUID=$UUID none luks
+EOF
+
+update-grub
