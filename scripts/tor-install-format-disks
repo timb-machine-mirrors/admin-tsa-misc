@@ -1,0 +1,107 @@
+#!/bin/sh
+
+# Copyright 2019 Antoine Beaupré <anarcat@torproject.org>
+#
+# Prepare a set of disks for installation or backup restore.
+#
+# This script shouldn't exist. Instead we should use d-i or FAI or
+# some other standard installer. Unfortunately, they are all quite
+# difficult to deploy and we don't have enough control over our
+# infrastructure to do this ourselves.
+#
+# It should also be merged with tor-install-hetzner but is currently
+# separate because the latter is only for virtual machines.
+#
+# This script was used to initialize the archive.tpo replacement as
+# part of #tor-install-archive-tpo# 29697.
+
+set -e
+set -u
+
+disks=/dev/sd[abcd]
+boot_disks=/dev/sd[abcd]2
+hdd_disks=/dev/sd[abcd]3
+raid_level=10
+hostname=${HOSTNAME:-$(hostname)}
+pvname=${PVNAME:-${hostname}hdd}
+root_size=30G
+swap_size=1G
+luks_passphrase=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30)
+
+cat <<EOF
+Configuration:
+disks=$disks
+boot_disks=$boot_disks
+hdd_disks=$hdd_disks
+raid_level=$raid_level
+pvname=$pvname
+root_size=$root_size
+swap_size=$swap_size
+luks_passphrase=$luks_passphrase
+EOF
+printf "about to overwrite $disks, go ahead? [y/N] "
+read ans
+if [ "$ans" != "y" ]; then
+    echo "Exiting."
+    exit 1
+fi
+
+for disk in $disks; do
+    echo "I: partitionning disk $disk..."
+    parted --align optimal $disk <<EOF
+mklabel gpt
+mkpart primary 0% 8MB
+set 1 bios_grub on
+set 1 boot on
+mkpart primary 8MB 508MB
+mkpart primary 508MB 100%
+EOF
+done
+boot_array=/dev/md0
+hdd_array=/dev/md1
+if [ -b $boot_array ]; then
+    echo "W: $boot_disks already configured ($boot_array exists), skipping"
+else
+    echo "I: creating /boot RAID-$raid_level array with $boot_disks"
+    mdadm --create --verbose $boot_array --level=$raid_level --raid-devices=$(echo $boot_disks | wc -w) $boot_disks
+    echo "I: formatting /boot ($boot_array)"
+    mkfs $boot_array
+fi
+if [ -b $hdd_array ]; then
+    echo "W: $hdd_disks already configured ($hdd_array exists), skipping"
+else
+    echo "I: creating main RAID-$raid_level array with $hdd_disks"
+    mdadm --create --verbose $hdd_array --level=$raid_level --raid-devices=$(echo $hdd_disks | wc -w) $hdd_disks
+    echo "I: formatting $hdd_array as LUKS partition"
+    cryptsetup luksFormat $hdd_array --key-file=- <<EOF
+$luks_passphrase
+EOF
+fi
+if [ -b /dev/mapper/$pvname ]; then
+    echo "W: /dev/mapper/$pvname already present"
+else
+    echo "I: unlocking $hdd_array"
+    cryptsetup luksOpen $hdd_array "$pvname" --key-file=- <<EOF
+$luks_passphrase
+EOF
+    echo "I: creating physical and volume group $pvname"
+    pvcreate "/dev/mapper/$pvname"
+    vgcreate $pvname /dev/mapper/$pvname
+    echo "I: creating $root_size root partition"
+    lvcreate -L$root_size -n root $pvname
+    mkfs /dev/$pvname/root
+    echo "I: creating $swap_size swap partition"
+    lvcreate -L$swap_size -n swap $pvname
+    mkswap /dev/$pvname/swap
+fi
+echo "I: all done"
+lsblk
+vgdisplay -C
+lvdisplay -C
+cat <<EOF
+Next steps are probably:
+mount /dev/mapper/$pvname-root /mnt/
+mkdir /mnt/boot
+mount $hdd_array /mnt/boot
+grml-debootstrap --grub /dev/sda --efi /dev/sda1 --target /mnt --hostname $hostname --debopt="--include dropbear-initramfs"
+EOF
