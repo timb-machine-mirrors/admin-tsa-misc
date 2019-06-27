@@ -110,4 +110,20 @@ Next steps:
 ROOTPASSWORD=\$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30) grml-debootstrap --grub /dev/sda --target /mnt --hostname $hostname --release buster \
                  --mirror https://mirror.hetzner.de/debian/packages/ \
                  --remove-configs --defaultinterfaces
+editor /mnt/etc/fstab
+editor /mnt/etc/network/interfaces
 EOF
+
+# example fstab
+#
+# /dev/mapper/archive01-hdd       /       ext4    defaults,errors=remount-ro      0       1
+# UUID=aef7c53c-ed2e-4b9e-b23a-b70a701a2dcb /boot ext4    defaults        0       2
+# /dev/mapper/archive01-swap      none    swap    defaults        0       0 
+# proc           /proc        proc    defaults                      0   0
+#
+# example network/interfaces:
+#
+# iface lo inet loopback
+#
+# allow-hotplug eth0
+# iface eth0 inet dhcp
