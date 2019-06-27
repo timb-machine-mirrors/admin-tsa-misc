@@ -19,10 +19,10 @@ set -e
 set -u
 
 disks=/dev/sd[abcd]
-boot_disks=/dev/sd[abcd]2
+boot_parts=/dev/sd[abcd]2
 boot_raid_level=10
-hdd_disks=/dev/sd[abcd]3
-# ssd_disks=...
+hdd_parts=/dev/sd[abcd]3
+# ssd_parts=...
 hdd_raid_level=10
 hostname=${HOSTNAME:-$(hostname)}
 hdd_pvname=${HDD_PVNAME:-${hostname}hdd}
@@ -33,9 +33,9 @@ luks_passphrase=${LUKS_PASSPHRASE:-$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c
 cat <<EOF
 Configuration:
 disks=$disks
-boot_disks=$boot_disks
+boot_parts=$boot_parts
 boot_raid_level=$boot_raid_level
-hdd_disks=$hdd_disks
+hdd_parts=$hdd_parts
 hdd_raid_level=$hdd_raid_level
 hdd_pvname=$hdd_pvname
 root_size=$root_size
@@ -66,18 +66,18 @@ done
 boot_array=/dev/md0
 hdd_array=/dev/md1
 if [ -b $boot_array ]; then
-    echo "W: $boot_disks already configured ($boot_array exists), skipping"
+    echo "W: $boot_parts already configured ($boot_array exists), skipping"
 else
-    echo "I: creating /boot RAID-$boot_raid_level array with $boot_disks"
-    mdadm --create --verbose $boot_array --level=$boot_raid_level --raid-devices=$(echo $boot_disks | wc -w) $boot_disks
+    echo "I: creating /boot RAID-$boot_raid_level array with $boot_parts"
+    mdadm --create --verbose $boot_array --level=$boot_raid_level --raid-devices=$(echo $boot_parts | wc -w) $boot_parts
     echo "I: formatting /boot ($boot_array)"
     mkfs $boot_array
 fi
 if [ -b $hdd_array ]; then
-    echo "W: $hdd_disks already configured ($hdd_array exists), skipping"
+    echo "W: $hdd_parts already configured ($hdd_array exists), skipping"
 else
-    echo "I: creating main RAID-$hdd_raid_level array with $hdd_disks"
-    mdadm --create --verbose $hdd_array --level=$hdd_raid_level --raid-devices=$(echo $hdd_disks | wc -w) $hdd_disks
+    echo "I: creating main RAID-$hdd_raid_level array with $hdd_parts"
+    mdadm --create --verbose $hdd_array --level=$hdd_raid_level --raid-devices=$(echo $hdd_parts | wc -w) $hdd_parts
     echo "I: formatting $hdd_array as LUKS partition"
     echo -n "$luks_passphrase" | cryptsetup luksFormat $hdd_array --key-file=-
 fi
