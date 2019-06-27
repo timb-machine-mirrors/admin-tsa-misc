@@ -61,6 +61,8 @@ set 1 bios_grub on
 mkpart primary 8MB 508MB
 mkpart primary 508MB 100%
 EOF
+        # mark partitions as "Linux RAID" (id 29)
+        sfdisk --part-type $disk 2 29
     fi
 done
 boot_array=/dev/md0
