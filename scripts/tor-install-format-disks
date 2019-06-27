@@ -50,8 +50,11 @@ if [ "$ans" != "y" ]; then
 fi
 
 for disk in $disks; do
-    echo "I: partitionning disk $disk..."
-    parted --align optimal $disk <<EOF
+    if parted --machine $disk print | grep -q :primary: ; then
+        echo "W: $disk is already partitioned: primary partition detected"
+    else
+        echo "I: partitionning disk $disk..."
+        parted --align optimal $disk <<EOF
 mklabel gpt
 mkpart primary 0% 8MB
 set 1 bios_grub on
@@ -59,6 +62,7 @@ set 1 boot on
 mkpart primary 8MB 508MB
 mkpart primary 508MB 100%
 EOF
+    fi
 done
 boot_array=/dev/md0
 hdd_array=/dev/md1
