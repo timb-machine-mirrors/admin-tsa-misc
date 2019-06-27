@@ -95,18 +95,19 @@ else
     echo "I: creating $swap_size swap partition"
     lvcreate -L$swap_size -n swap $hdd_pvname
     mkswap /dev/$hdd_pvname/swap
+    echo "I: mounting everything"
+    mount /dev/mapper/$hdd_pvname-root /mnt/
+    mkdir /mnt/boot
+    mount $hdd_array /mnt/boot
 fi
 echo "I: all done"
 lsblk
 vgdisplay -C
 lvdisplay -C
+df -h /mnt /mnt/boot
 cat <<EOF
-Next steps are probably:
-mount /dev/mapper/$hdd_pvname-root /mnt/
-mkdir /mnt/boot
-mount $hdd_array /mnt/boot
+Next steps:
 ROOTPASSWORD=\$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30) grml-debootstrap --grub /dev/sda --target /mnt --hostname $hostname --release buster \
                  --mirror https://mirror.hetzner.de/debian/packages/ \
                  --bootappend "net.ifnames=0" --remove-configs
 EOF
-# + root password
