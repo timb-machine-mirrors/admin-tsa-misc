@@ -58,7 +58,6 @@ for disk in $disks; do
 mklabel gpt
 mkpart primary 0% 8MB
 set 1 bios_grub on
-set 1 boot on
 mkpart primary 8MB 508MB
 mkpart primary 508MB 100%
 EOF
