@@ -80,17 +80,13 @@ else
     echo "I: creating main RAID-$hdd_raid_level array with $hdd_disks"
     mdadm --create --verbose $hdd_array --level=$hdd_raid_level --raid-devices=$(echo $hdd_disks | wc -w) $hdd_disks
     echo "I: formatting $hdd_array as LUKS partition"
-    cryptsetup luksFormat $hdd_array --key-file=- <<EOF
-$luks_passphrase
-EOF
+    echo -n "$luks_passphrase" | cryptsetup luksFormat $hdd_array --key-file=-
 fi
 if [ -b /dev/mapper/$hdd_pvname ]; then
     echo "W: /dev/mapper/$hdd_pvname already present"
 else
     echo "I: unlocking $hdd_array"
-    cryptsetup luksOpen $hdd_array "$pvname" --key-file=- <<EOF
-$luks_passphrase
-EOF
+    echo -n "$luks_passphrase" | cryptsetup luksOpen $hdd_array "$hdd_pvname" --key-file=-
     echo "I: creating physical and volume group $hdd_pvname"
     pvcreate "/dev/mapper/$hdd_pvname"
     vgcreate $hdd_pvname /dev/mapper/$hdd_pvname
