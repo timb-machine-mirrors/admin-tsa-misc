@@ -20,10 +20,12 @@ set -u
 
 disks=/dev/sd[abcd]
 boot_disks=/dev/sd[abcd]2
+boot_raid_level=10
 hdd_disks=/dev/sd[abcd]3
-raid_level=10
+# ssd_disks=...
+hdd_raid_level=10
 hostname=${HOSTNAME:-$(hostname)}
-pvname=${PVNAME:-${hostname}hdd}
+hdd_pvname=${HDD_PVNAME:-${hostname}hdd}
 root_size=30G
 swap_size=1G
 luks_passphrase=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30)
@@ -32,9 +34,10 @@ cat <<EOF
 Configuration:
 disks=$disks
 boot_disks=$boot_disks
+boot_raid_level=$boot_raid_level
 hdd_disks=$hdd_disks
-raid_level=$raid_level
-pvname=$pvname
+hdd_raid_level=$hdd_raid_level
+hdd_pvname=$hdd_pvname
 root_size=$root_size
 swap_size=$swap_size
 luks_passphrase=$luks_passphrase
@@ -62,37 +65,37 @@ hdd_array=/dev/md1
 if [ -b $boot_array ]; then
     echo "W: $boot_disks already configured ($boot_array exists), skipping"
 else
-    echo "I: creating /boot RAID-$raid_level array with $boot_disks"
-    mdadm --create --verbose $boot_array --level=$raid_level --raid-devices=$(echo $boot_disks | wc -w) $boot_disks
+    echo "I: creating /boot RAID-$boot_raid_level array with $boot_disks"
+    mdadm --create --verbose $boot_array --level=$boot_raid_level --raid-devices=$(echo $boot_disks | wc -w) $boot_disks
     echo "I: formatting /boot ($boot_array)"
     mkfs $boot_array
 fi
 if [ -b $hdd_array ]; then
     echo "W: $hdd_disks already configured ($hdd_array exists), skipping"
 else
-    echo "I: creating main RAID-$raid_level array with $hdd_disks"
-    mdadm --create --verbose $hdd_array --level=$raid_level --raid-devices=$(echo $hdd_disks | wc -w) $hdd_disks
+    echo "I: creating main RAID-$hdd_raid_level array with $hdd_disks"
+    mdadm --create --verbose $hdd_array --level=$hdd_raid_level --raid-devices=$(echo $hdd_disks | wc -w) $hdd_disks
     echo "I: formatting $hdd_array as LUKS partition"
     cryptsetup luksFormat $hdd_array --key-file=- <<EOF
 $luks_passphrase
 EOF
 fi
-if [ -b /dev/mapper/$pvname ]; then
-    echo "W: /dev/mapper/$pvname already present"
+if [ -b /dev/mapper/$hdd_pvname ]; then
+    echo "W: /dev/mapper/$hdd_pvname already present"
 else
     echo "I: unlocking $hdd_array"
     cryptsetup luksOpen $hdd_array "$pvname" --key-file=- <<EOF
 $luks_passphrase
 EOF
-    echo "I: creating physical and volume group $pvname"
-    pvcreate "/dev/mapper/$pvname"
-    vgcreate $pvname /dev/mapper/$pvname
+    echo "I: creating physical and volume group $hdd_pvname"
+    pvcreate "/dev/mapper/$hdd_pvname"
+    vgcreate $hdd_pvname /dev/mapper/$hdd_pvname
     echo "I: creating $root_size root partition"
-    lvcreate -L$root_size -n root $pvname
-    mkfs /dev/$pvname/root
+    lvcreate -L$root_size -n root $hdd_pvname
+    mkfs /dev/$hdd_pvname/root
     echo "I: creating $swap_size swap partition"
-    lvcreate -L$swap_size -n swap $pvname
-    mkswap /dev/$pvname/swap
+    lvcreate -L$swap_size -n swap $hdd_pvname
+    mkswap /dev/$hdd_pvname/swap
 fi
 echo "I: all done"
 lsblk
@@ -100,7 +103,7 @@ vgdisplay -C
 lvdisplay -C
 cat <<EOF
 Next steps are probably:
-mount /dev/mapper/$pvname-root /mnt/
+mount /dev/mapper/$hdd_pvname-root /mnt/
 mkdir /mnt/boot
 mount $hdd_array /mnt/boot
 grml-debootstrap --grub /dev/sda --target /mnt --hostname $hostname --release buster \
