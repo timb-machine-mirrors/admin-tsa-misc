@@ -28,6 +28,9 @@ sed -e '/^ssh-/ s#^#no-port-forwarding,no-agent-forwarding,no-X11-forwarding,com
 
 echo "I: setting up network hook in initramfs"
 
+mkdir -p $MNTPOINT/etc/default/grub.d
+echo 'GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX net.ifnames=0"' > $MNTPOINT/etc/default/grub.d/local-ifnames.cfg
+
 # unsure why this is necessary, or how this works
 cat > "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw" << 'EOF'
 #!/bin/sh
