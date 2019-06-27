@@ -112,6 +112,9 @@ ROOTPASSWORD=\$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30) grml-debootstrap
                  --remove-configs --defaultinterfaces
 editor /mnt/etc/fstab
 editor /mnt/etc/network/interfaces
+chroot /mnt /usr/share/mdadm/mkconf > /etc/mdadm/mdadm.conf
+# cross fingers and donate to the FSF
+reboot
 EOF
 
 # example fstab
