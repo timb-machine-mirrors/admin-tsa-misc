@@ -109,5 +109,5 @@ cat <<EOF
 Next steps:
 ROOTPASSWORD=\$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30) grml-debootstrap --grub /dev/sda --target /mnt --hostname $hostname --release buster \
                  --mirror https://mirror.hetzner.de/debian/packages/ \
-                 --bootappend "net.ifnames=0" --remove-configs
+                 --remove-configs --defaultinterfaces
 EOF
