@@ -11,7 +11,7 @@
 # separate because the latter is only for virtual machines.
 #
 # This script was used to initialize the archive.tpo replacement as
-# part of #tor-install-archive-tpo# 29697.
+# part of Trac ticket #29697.
 #
 # Copyright 2019 Antoine Beaupré <anarcat@torproject.org>
 #
