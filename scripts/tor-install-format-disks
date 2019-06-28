@@ -40,7 +40,8 @@ hdd_parts=/dev/sd[abcd]3
 # ssd_parts=...
 hdd_raid_level=10
 hostname=${HOSTNAME:-$(hostname)}
-hdd_pvname=${HDD_PVNAME:-vg_${hostname}hdd}
+# pvnames shouldn't have dashes
+hdd_pvname=$(echo ${HDD_PVNAME:-vg_${hostname}hdd} | sed 's/-//g')
 root_size=30G
 swap_size=1G
 luks_passphrase=${LUKS_PASSPHRASE:-$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30)}
