@@ -41,7 +41,10 @@ hdd_parts=/dev/sd[abcd]3
 hdd_raid_level=10
 hostname=${HOSTNAME:-$(hostname)}
 # pvnames shouldn't have dashes
-hdd_pvname=$(echo ${HDD_PVNAME:-vg_${hostname}hdd} | sed 's/-//g')
+hdd_pvname=$(echo ${hostname} | sed 's/-//g')hdd
+hdd_vgname=vg_$hdd_pvname
+# denote the crypted device
+hdd_pvname=c$hdd_pvname
 root_size=30G
 swap_size=1G
 luks_passphrase=${LUKS_PASSPHRASE:-$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30)}
@@ -53,6 +56,7 @@ boot_parts=$boot_parts
 boot_raid_level=$boot_raid_level
 hdd_parts=$hdd_parts
 hdd_raid_level=$hdd_raid_level
+hdd_vgname=$hdd_vgname
 hdd_pvname=$hdd_pvname
 root_size=$root_size
 swap_size=$swap_size
@@ -106,15 +110,15 @@ else
     echo -n "$luks_passphrase" | cryptsetup luksOpen $hdd_array "$hdd_pvname" --key-file=-
     echo "I: creating physical and volume group $hdd_pvname"
     pvcreate "/dev/mapper/$hdd_pvname"
-    vgcreate $hdd_pvname /dev/mapper/$hdd_pvname
+    vgcreate $hdd_vgname /dev/mapper/$hdd_pvname
     echo "I: creating $root_size root partition"
-    lvcreate -L$root_size -n root $hdd_pvname
-    mkfs /dev/$hdd_pvname/root
+    lvcreate -L$root_size -n root $hdd_vgname
+    mkfs /dev/$hdd_vgname/root
     echo "I: creating $swap_size swap partition"
-    lvcreate -L$swap_size -n swap $hdd_pvname
-    mkswap /dev/$hdd_pvname/swap
+    lvcreate -L$swap_size -n swap $hdd_vgname
+    mkswap /dev/$hdd_vgname/swap
     echo "I: mounting everything"
-    mount /dev/mapper/$hdd_pvname-root /mnt/
+    mount /dev/mapper/$hdd_vgname-root /mnt/
     mkdir /mnt/boot
     mount $hdd_array /mnt/boot
 fi
