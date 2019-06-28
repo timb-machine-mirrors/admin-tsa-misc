@@ -118,7 +118,7 @@ else
     lvcreate -L$swap_size -n swap $hdd_vgname
     mkswap /dev/$hdd_vgname/swap
     echo "I: mounting everything"
-    mount /dev/mapper/$hdd_vgname-root /mnt/
+    mount /dev/$hdd_vgname/root /mnt/
     mkdir /mnt/boot
     mount $hdd_array /mnt/boot
 fi
