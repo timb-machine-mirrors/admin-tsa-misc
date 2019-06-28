@@ -1,0 +1,37 @@
+#!/bin/sh
+
+LOCATION=${LOCATION:-"Falkenstein, Saxony, Germany"}
+PARENT=${PARENT:-"hetzner"}
+DESCRIPTION=${DESCRIPTION:-"XXX"}
+PURPOSE=${PURPOSE:-"XXX"}
+IPADDR=${IPADDR:-$(ip -o -4 route get 255.255.255.255 | sed 's/.* src //;s/ .*//')}
+IP6ADDR=${IP6ADDR:-$(ip -o -6 route get ffff:: | sed 's/.* src //;s/ .*//')}
+HOSTNAME=${HOSTNAME:-$(hostname)}
+FQDN=${FQDN:-$(hostname -f)}
+
+cat <<EOF
+add host=$HOSTNAME,ou=hosts,dc=torproject,dc=org
+host: $HOSTNAME
+hostname: $FQDN
+objectClass: top
+objectClass: debianServer
+l: $LOCATION
+distribution: Debian
+access: restricted
+admin: torproject-admin@torproject.org
+architecture: amd64
+physicalHost: $PARENT
+description: $DESCRIPTION
+purpose: $PURPOSE
+ipHostNumber: $IPADDR
+ipHostNumber: $IP6ADDR
+EOF
+
+for key in /etc/ssh/ssh_host_*_key.pub ; do
+    printf "sshRSAHostKey: "
+    cat $key
+done
+for key in /etc/dropbear-initramfs/dropbear_*_host_key ; do
+    printf "sshRSAHostKey: "
+    dropbearkey -y -f $key | grep -e ^ssh- -e ^ecdsa-
+done
