@@ -25,6 +25,19 @@ set -e
 # mountpoint from grml or first argument or current directory
 MNTPOINT=${MNTPOINT:-${1:-.}}
 AUTHKEYS_SOURCE=${AUTHKEYS_SOURCE:-$HOME/.ssh/authorized_keys}
+# set to 1 to enable, 0 to disable hetzner network hack, leave empty for auto-detect
+USE_HETZNER_NETWORK_HACK=""
+
+if [ -z "$USE_HETZNER_NETWORK_HACK" ] ; then
+    # XXX: circumstancial evidence tells us that the network hack is
+    # required on hosts with that RFC1918 IP space gateway, it might
+    # not be complete
+    if ip route show | grep -q 172.31.1.1; then
+        USE_HETZNER_NETWORK_HACK=1
+    else
+        USE_HETZNER_NETWORK_HACK=0
+    fi
+fi
 
 echo "I: setting up LUKS boot on $MNTPOINT..."
 
@@ -53,8 +66,20 @@ echo "I: setting up network hook in initramfs"
 mkdir -p $MNTPOINT/etc/default/grub.d
 echo 'GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX net.ifnames=0"' > $MNTPOINT/etc/default/grub.d/local-ifnames.cfg
 
-# unsure why this is necessary, or how this works
-cat > "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw" << 'EOF'
+if [ "$USE_HETZNER_NETWORK_HACK" -gt 0 ]; then
+    # this is necessary because, apparently, the kernel's DHCP client
+    # cannot deal with the weird Hetzner routing setup, which looks
+    # something like this:
+    #
+    # $ ip r
+    # default via 172.31.1.1 dev eth0 
+    # 172.31.1.1 dev eth0 scope link
+    # $ ip a
+    # [...]
+    # 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq state UP group default qlen 1000
+    # [...]
+    # inet 95.216.141.241/32 brd 95.216.141.241 scope global eth0
+    cat > "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw" << 'EOF'
 #!/bin/sh
 
 PREREQ=""
@@ -97,10 +122,11 @@ ip route add "$IPV4GATEWAY"/32 dev "$DEVICE"
 log_begin_msg "Setting default route"
 ip route add default via "$IPV4GATEWAY" dev "$DEVICE"
 EOF
-chmod +x "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw"
+    chmod +x "$MNTPOINT/etc/initramfs-tools/scripts/init-premount/local-hetzner-default-gw"
 
-echo "I: setting DEVICE=eth0 in initramfs.conf"
-sed -i -e 's/^DEVICE=$/DEVICE=eth0/' "$MNTPOINT/etc/initramfs-tools/initramfs.conf"
+    echo "I: setting DEVICE=eth0 in initramfs.conf"
+    sed -i -e 's/^DEVICE=$/DEVICE=eth0/' "$MNTPOINT/etc/initramfs-tools/initramfs.conf"
+fi
 
 echo "I: configuring crypttab"
 cat > "$MNTPOINT/etc/crypttab" << EOF
