@@ -41,10 +41,12 @@ fi
 
 echo "I: setting up LUKS boot on $MNTPOINT..."
 
-PVNAME=$(lvs --noheadings -o vg_name $(findmnt -o SOURCE -l -n $MNTPOINT) | sed 's/^ *//')
-UUID=$(blkid -s UUID -o value $(cryptsetup status $PVNAME | sed -n '/device:/{s/.*: *//;p}'))
+VGNAME=$(lvs --noheadings -o vg_name $(findmnt -o SOURCE -l -n $MNTPOINT) | sed 's/^ *//')
+PVDEV=$(pvs --separator : --noheadings -o vg_name,pv_name | sed -e 's/^[[:space:]]*//' | awk -F: -v VG="$VGNAME" ' {print $2}')
+UUID=$(blkid -s UUID -o value $(cryptsetup status $PVDEV | sed -n '/device:/{s/.*: *//;p}'))
+PVNAME=$(basename "$PVDEV")
 
-echo "I: UUID: $UUID, PVNAME: $PVNAME"
+echo "I: UUID: $UUID, VG: $VGNAME PV: $PVDEV"
 
 if ! [ -f $AUTHKEYS_SOURCE ] || ! [ -s $AUTHKEYS_SOURCE ]; then
     echo "$AUTHKEYS_SOURCE missing or empty" >&2
