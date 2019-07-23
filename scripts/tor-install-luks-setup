@@ -143,10 +143,6 @@ echo "I: regenerating initramfs"
 chroot $MNTPOINT update-initramfs -u -k all
 echo "I: updating grub"
 chroot $MNTPOINT update-grub
-for device in /dev/sd[a-z]; do
-    echo "I: installing grub on $device"
-    chroot $MNTPOINT grub-install $device
-done
 echo "I: unmounting"
 for fs in dev proc run sys ; do
     umount "$MNTPOINT/$fs"
