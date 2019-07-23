@@ -1,0 +1,67 @@
+
+# note: hetzner systems apparently don't do EFI as of 2019-07
+
+# this is so that mdadm creates the arrays just right and ssh keygen
+# creates keys in the right name etc.
+echo -n 'New hostname: ' && read hn && hostname "$hn" && bash
+
+root_size=30G
+swap_size=1G
+
+parted --script --align optimal /dev/nvme0n1 -- \
+  mklabel gpt \
+  mkpart primary 0% 8MiB \
+  set 1 bios_grub on \
+  mkpart primary 512MiB 1024MiB \
+  mkpart primary 1024MiB 100%
+
+parted --script --align optimal /dev/nvme1n1 -- \
+  mklabel gpt \
+  mkpart primary 0% 8MiB \
+  set 1 bios_grub on \
+  mkpart primary 512MiB 1024MiB \
+  mkpart primary 1024MiB 100%
+
+
+parted --align optimal --script /dev/sda -- mklabel gpt mkpart primary 0% 100%
+parted --align optimal --script /dev/sdb -- mklabel gpt mkpart primary 0% 100%
+
+sfdisk --part-type /dev/nvme0n1 2 29
+sfdisk --part-type /dev/nvme0n1 3 29
+sfdisk --part-type /dev/nvme1n1 2 29
+sfdisk --part-type /dev/nvme1n1 3 29
+sfdisk --part-type /dev/sda 1 29
+sfdisk --part-type /dev/sdb 1 29
+
+mdadm --create /dev/md0 --name=boot --level=1 --raid-devices=2 /dev/nvme[01]n1p2 &&
+mdadm --create /dev/md1 --name=pv_nvme --level=1 --raid-devices=2 /dev/nvme[01]n1p3 &&
+mdadm --create /dev/md2 --name=pv_hdd --level=1 --raid-devices=2 /dev/sd[ab]1
+
+/usr/share/mdadm/mkconf > /etc/mdadm/mdadm.conf
+mdadm --stop /dev/md0
+mdadm --stop /dev/md1
+mdadm --stop /dev/md2
+mdadm --assemble boot
+mdadm --assemble pv_nvme
+mdadm --assemble pv_hdd
+
+
+
+read -s luks_passphrase
+
+echo -n "$luks_passphrase" | cryptsetup luksFormat /dev/md/pv_nvme
+echo -n "$luks_passphrase" | cryptsetup luksOpen /dev/md/pv_nvme cpv_nvme
+vg="vg_$(hostname)"
+vgcreate $vg /dev/mapper/cpv_nvme
+
+lvcreate -L$root_size -n root $vg
+mkfs.ext4 /dev/$vg/root
+lvcreate -L$swap_size -n swap $vg
+mkswap /dev/$vg/swap
+
+mkfs.ext4 /dev/md/boot
+
+mkdir /target
+mount /dev/$vg/root /target
+mkdir /target/boot
+mount /dev/md/boot /target/boot
