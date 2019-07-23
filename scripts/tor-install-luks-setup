@@ -55,8 +55,12 @@ if ! [ -f $AUTHKEYS_SOURCE ] || ! [ -s $AUTHKEYS_SOURCE ]; then
     cat > $AUTHKEYS_SOURCE
 fi
 
-echo "I: installing packages..."
+echo "I: bind mounting everything"
+for fs in dev proc run sys  ; do
+    mount -o bind /$fs "$MNTPOINT/$fs"
+done
 
+echo "I: installing packages..."
 DEBIAN_FRONTEND=noninteractive chroot "$MNTPOINT" apt-get install -y dropbear-initramfs cryptsetup console-setup
 
 echo "I: adding SSH keys from $AUTHKEYS_SOURCE"
@@ -135,10 +139,6 @@ cat > "$MNTPOINT/etc/crypttab" << EOF
 $PVNAME UUID=$UUID none luks
 EOF
 
-echo "I: bind mounting everything"
-for fs in dev proc run sys  ; do
-    mount -o bind /$fs "$MNTPOINT/$fs"
-done
 echo "I: regenerating initramfs"
 chroot $MNTPOINT update-initramfs -u -k all
 echo "I: updating grub"
