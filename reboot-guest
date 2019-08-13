@@ -1,0 +1,23 @@
+#!/bin/sh
+
+HOST="$1"
+
+if [ -z "$HOST" ]; then
+    echo "Usage: $0 <host>"
+    exit 1
+fi
+
+printf "about to reboot host %s, continue? " "$HOST"
+
+read -r _
+
+ssh "root@$HOST" /sbin/shutdown -r +5 new kernel &&
+echo "waiting 5 minutes for reboot to happen..." &&
+sleep 5m &&
+echo "waiting for host to go down for 30 seconds..." &&
+sleep 30 &&
+echo "waiting up to 2 minutes for $HOST to come back..." &&
+date &&
+ping -c 10 -w 120 "$HOST"
+
+ssh "$HOST" uptime && echo "check uptime above"
