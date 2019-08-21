@@ -51,7 +51,9 @@ for key in /etc/ssh/ssh_host_*_key.pub ; do
     printf "sshRSAHostKey: "
     cat $key
 done | grep -v 'ecdsa-sha2-nistp256'
-for key in /etc/dropbear-initramfs/dropbear_*_host_key ; do
-    printf "sshRSAHostKey: "
-    dropbearkey -y -f $key | grep -e ^ssh- -e ^ecdsa-
-done | grep -v 'ssh-dss ' | sed -e 's/$/ (initramfs)/'
+if [ -e /etc/dropbear-initramfs ]; then
+    for key in /etc/dropbear-initramfs/dropbear_*_host_key ; do
+        printf "sshRSAHostKey: "
+        dropbearkey -y -f $key | grep -e ^ssh- -e ^ecdsa-
+    done | grep -v 'ssh-dss ' | sed -e 's/$/ (initramfs)/'
+fi
