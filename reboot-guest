@@ -1,5 +1,6 @@
 #!/bin/sh
 
+DELAY=${DELAY:-5}
 HOST="$1"
 
 if [ -z "$HOST" ]; then
@@ -11,9 +12,9 @@ printf "about to reboot host %s, continue? " "$HOST"
 
 read -r _
 
-ssh "root@$HOST" /sbin/shutdown -r +5 new kernel &&
-echo "waiting 5 minutes for reboot to happen..." &&
-sleep 5m &&
+ssh "root@$HOST" /sbin/shutdown -r "+${DELAY}" new kernel &&
+echo "waiting ${DELAY} minutes for reboot to happen..." &&
+sleep "${DELAY}m" &&
 echo "waiting for host to go down for 30 seconds..." &&
 sleep 30 &&
 echo "waiting up to 2 minutes for $HOST to come back..." &&
