@@ -45,6 +45,7 @@ description: $DESCRIPTION
 purpose: $PURPOSE
 ipHostNumber: $IPADDR
 ipHostNumber: $IP6ADDR
+rebootPolicy: XXX justdoit|rotation|manual
 EOF
 
 for key in /etc/ssh/ssh_host_*_key.pub ; do
