@@ -25,7 +25,6 @@ set -u
 SUITE=buster
 
 MIRROR=https://mirror.hetzner.de/debian/packages/
-KEYRING=/root/debian-archive-keyring.gpg
 
 AUTHKEYS_SOURCE=/root/.ssh/authorized_keys
 if ! [ -e "$AUTHKEYS_SOURCE" ] ; then
@@ -94,7 +93,6 @@ if [ -e /etc/debian_version ]; then
 else
   if ! [ -e `which debootstrap >/dev/null 2>&1` ]; then echo >&2 "E: could not find debootstrap binary"; exit 1; fi
   if ! [ -e `which kpartx >/dev/null 2>&1` ]; then echo >&2 "E: could not find kpartx binary"; exit 1; fi
-  if ! [ -e $KEYRING ]; then echo >&2 "E: could not find keyring in $KEYRING"; exit 1; fi
 fi
 
 declare -a cleanup
@@ -140,7 +138,7 @@ mkdir "boot"
 mount "$part1" "$target/boot"
 cleanup+=("umount '$target/boot'")
 
-debootstrap --arch=amd64 --variant=minbase --keyring="$KEYRING" "$SUITE" . "$MIRROR"
+debootstrap --arch=amd64 --variant=minbase "$SUITE" . "$MIRROR"
 
 mount -o bind /proc "$target/proc"
 cleanup+=("umount '$target/proc'")
