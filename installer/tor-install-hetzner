@@ -318,25 +318,6 @@ echo "IP addresses:"
 echo "  $ipaddr"
 echo
 echo "ud-ldap ldapvi snippet:"
-cat << EOF
-add host=$guest,ou=hosts,dc=torproject,dc=org
-host: $guest
-hostname: $fqdn
-objectClass: top
-objectClass: debianServer
-l: Falkenstein, Saxony, Germany
-distribution: Debian
-access: restricted
-admin: torproject-admin@torproject.org
-architecture: amd64
-sshRSAHostKey: $rsahostkey
-physicalHost: hetzner
-description: XXX
-purpose: XXX
-ipHostNumber: $ipaddr
-ipHostNumber: $ip6addr
-EOF
-[ -n "${ed25519hostkey:-}" ] && echo "sshRSAHostKey: $ed25519hostkey"
-echo $dropbbearsshkeysfor_ldap
-echo
-echo
+
+BASEDIR=$(dirname "$0")
+"$BASEDIR/tor-install-generate-ldap"
