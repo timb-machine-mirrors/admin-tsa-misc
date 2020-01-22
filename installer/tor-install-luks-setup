@@ -136,7 +136,7 @@ fi
 
 echo "I: configuring crypttab"
 cat > "$MNTPOINT/etc/crypttab" << EOF
-$PVNAME UUID=$UUID none luks
+$PVNAME UUID=$UUID none luks,discard
 EOF
 
 echo "I: regenerating initramfs"
