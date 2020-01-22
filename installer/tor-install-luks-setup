@@ -42,7 +42,7 @@ fi
 echo "I: setting up LUKS boot on $MNTPOINT..."
 
 VGNAME=$(lvs --noheadings -o vg_name $(findmnt -o SOURCE -l -n $MNTPOINT) | sed 's/^ *//')
-PVDEV=$(pvs --separator : --noheadings -o vg_name,pv_name | sed -e 's/^[[:space:]]*//' | awk -F: -v VG="$VGNAME" ' {print $2}')
+PVDEV=$(pvs --noheadings -o pv_name --select vg_name=$VGNAME)
 UUID=$(blkid -s UUID -o value $(cryptsetup status $PVDEV | sed -n '/device:/{s/.*: *//;p}'))
 PVNAME=$(basename "$PVDEV")
 
