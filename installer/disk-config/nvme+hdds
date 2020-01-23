@@ -34,11 +34,10 @@ luks    -       /dev/md1        -       -
 luks    -       /dev/md2        -       -
 
 disk_config lvm fstabkey:uuid
-# previous convention was "vg_$hostname"
-vg      vg_nvme md1
-vg_nvme-root    /       30G     ext4    rw
-vg_nvme-swap    swap    1G      swap    sw
+vg      vg_ganeti md1
+vg_ganeti-root    /       30G     ext4    rw
+vg_ganeti-swap    swap    1G      swap    sw
 
-vg      vg_hdd  md2
+vg      vg_ganeti_hdd  md2
 
 # HDD disks config intentionally left blank
