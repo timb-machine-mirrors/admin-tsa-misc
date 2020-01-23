@@ -1,3 +1,4 @@
+#!/bin/sh
 
 # note: hetzner systems apparently don't do EFI as of 2019-07
 
