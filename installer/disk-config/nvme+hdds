@@ -1,6 +1,3 @@
-# open questions
-# use sameas: to set all disk names earlier?
-
 disk_config nvme0n1 disklabel:gpt-bios gpt_bios_part:1 bootable:2 align-at:1M
 # bios grub second stage
 primary -       8MiB    -       -
@@ -9,17 +6,12 @@ primary -       512MiB  -       -
 # rest is RAID+LUKS+LVM
 primary -       0-      -       -
 
-disk_config nvme1n1 disklabel:gpt-bios gpt_bios_part:1 bootable:2 align-at:1M
-# same as above
-primary -       8MiB    -       -
-primary -       512MiB  -       -
-primary -       0-      -       -
+disk_config nvme1n1 sameas:nvme0n1
 
 disk_config sda disklabel:gpt align-at:1M
 primary -       0-      -       -
 
-disk_config sdb disklabel:gpt align-at:1M
-primary -       0-      -       -
+disk_config sdb sameas:sda
 
 disk_config raid fstabkey:uuid
 raid1   /boot   nvme0n1p2,nvme1n1p2     ext4    rw,noatime,errors=remount-ro
