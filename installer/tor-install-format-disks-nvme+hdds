@@ -8,7 +8,7 @@ apt install fai-setup-storage
 
 CURDIR=$(dirname "$0")
 
-setup-storage -f "$CURDIR/disk_config/nvme+hdds" -X
+setup-storage -f "$CURDIR/disk_config/gnt-fsn" -X
 
 . /tmp/fai/disk_var.sh
 
