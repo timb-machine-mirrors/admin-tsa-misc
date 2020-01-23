@@ -6,6 +6,11 @@ set -e
 
 apt install fai-setup-storage
 
+echo "WARNING: this script is deprecated. call setup-storage directly."
+
+printf "press enter to continue..."
+read _
+
 CURDIR=$(dirname "$0")
 
 setup-storage -f "$CURDIR/disk_config/gnt-fsn" -X
