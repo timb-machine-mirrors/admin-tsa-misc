@@ -33,6 +33,11 @@
 set -e
 set -u
 
+echo "WARNING: this script is deprecated. call setup-storage directly."
+
+printf "press enter to continue..."
+read _
+
 disks=/dev/sd[abcd]
 boot_parts=/dev/sd[abcd]2
 boot_raid_level=10
