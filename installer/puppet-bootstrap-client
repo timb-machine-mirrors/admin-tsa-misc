@@ -61,10 +61,13 @@ echo "CA was generated on 2019-04-06 and expires on 2039-04-02"
 echo "change this script if there were any changes on the Puppet master since then"
 
 echo "running puppet to generate certificate request checksum..."
-puppet agent -t || true
+puppet agent --test || true
 
 echo "client certificate SHA-256 checksum:"
 echo
 (cd /var/lib/puppet/ssl/certificate_requests && sha256sum "$fqdn.pem")
 echo
 echo "run tpa-puppet-sign-client on the Puppetmaster with the above checksum"
+echo
+echo "running puppet agent --waitforcert for 2 minutes"
+puppet agent --test --waitforcert 120
