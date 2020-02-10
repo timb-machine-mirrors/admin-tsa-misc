@@ -1,16 +1,70 @@
 #!/bin/sh
 
-me=$(hostname -f) && \
-[ "$me" != "${me%torproject.org}" ] && \
+set -e
+set -u
+
+domain=torproject.org
+fqdn=$(hostname -f)
+# sanity check
+if ! hostname -f | grep "$domain\$"; then
+    echo "Error: hostname '$fqdn' doesn't match expected domain '$domain'"
+    exit 1
+fi
+
+echo "disabling puppet service before install"
+systemctl mask puppet.service
+
+echo "installing Puppet..."
 apt-get update && \
-apt-get install -y --no-install-recommends puppet lsb-release && \
-service puppet stop && \
-systemctl mask puppet.service && \
-(puppet agent -t || true ) && \
-cd /var/lib/puppet/ssl/certificate_requests && \
-echo sha256sum output: && \
-echo && \
-sha256sum $me.pem && \
-echo && \
-echo && \
-cd /
+    apt-get install -y --no-install-recommends puppet lsb-release
+
+echo "making sure puppet is stopped..."
+service puppet stop || true
+
+echo "injecting hardcoded Puppet CA..."
+cat > /var/lib/puppet/ssl/certs/ca.pem <<EOF
+-----BEGIN CERTIFICATE-----
+MIIFijCCA3KgAwIBAgIBATANBgkqhkiG9w0BAQsFADAqMSgwJgYDVQQDDB9QdXBw
+ZXQgQ0E6IHBhdWxpLnRvcnByb2plY3Qub3JnMB4XDTE5MDQwNjIxMDQwNFoXDTM5
+MDQwMjIxMDQwNFowKjEoMCYGA1UEAwwfUHVwcGV0IENBOiBwYXVsaS50b3Jwcm9q
+ZWN0Lm9yZzCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAMWsFSgLAdbP
+uQAIwapCrvfmQsD1S1G/aqesT5BpJDJmzmDJudJgK+oJ2mNpe58o1hp1rPQEMoKC
+A0Uy1fXEuSwAE/D8/liFVWm89N+ASy1M+E8OVimj7SG7TfHgYneUhzCZ6kmQyWck
+NGm0pSMUWMelyqX8fKk8h3ozs+rqyIxSPJeHV0TdOqT2oSwz7vr0eCXBL+/HB6QT
+EGESiTxTiTpMlo7kCSrCrsXq6Ury1yLjmzpW4YXF40Ti2t9lCuR4Zvi5RzkR/FXZ
+1+752yi1qIJPP4ppMqR1vu3malDwRuCYGFFeVhGptU0iQje/aqPYCugm+9eNEfgY
+XXzEwGzg8cyZY3ZegQHGIRq4e/tfrdq1+lV/211nEIEI3lum4kE71fgets5BRXUn
+dH2GsxBqCq0AXGUKd1FDss5/yTyeOlQwBCIWU1L3rcZnuNgLW/fswGsbrsDevMTe
+GoV1/B8PfpM7LnApy+UhpCipZ0hQtvSAAsoWgqys9vpdqoWM7jX84DWl4BSoJqa5
+K+4+73aPbz+MySi9GSDTpO/agdRazqCg90DD7EYLG1yEMHfz//KRmpWqeBcg9NsX
+tVUs7XwAMaBb+PffZGaLamgy/KQyE+OAZD+0LlCO3U8IlK2TEPVUsECWKq1fL9ya
+mQE/yyd/ZVUBeMHUoGPjTFx/vIXxtMdbAgMBAAGjgbowgbcwNwYJYIZIAYb4QgEN
+BCoMKFB1cHBldCBSdWJ5L09wZW5TU0wgSW50ZXJuYWwgQ2VydGlmaWNhdGUwDgYD
+VR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFBdovj0gYPQP
+c5V/fEDVGFrvU8rCMDwGA1UdIwQ1MDOhLqQsMCoxKDAmBgNVBAMMH1B1cHBldCBD
+QTogcGF1bGkudG9ycHJvamVjdC5vcmeCAQEwDQYJKoZIhvcNAQELBQADggIBAA8N
+eO3T93fCQARGTttJtN2PrGWBCG1SmLCv8deHN15aj4eapvJZl7WRx/MQgwdd+GC7
+5a5P9RvW+tLBQABFLMCeBxtBPSRfPkt1W+AkLYFITXG6GfDIUP0afGFcGercVp3G
+x4x7w+NW1QT/31CgLr7nKoQBjnHkjv5ymxHWelW31hX44oDhkUhzicJRovnjfdWG
+T+EA6HuvqC4EmIXWGdB1aSyYZfs3bXtOdUePjEYlj9AGBHgRg6eSU7sbCmFfXaPf
+bkQqPfqtdeTL5/4AUlm4bc2HDOV6aG/kWKKVnDX2ssyHhJsBv0x13wRd/SKe6Efr
+uIk5+NFoSYhLkVyKvhmX/l5dHI52njPIlbmy4fh5I/JiqP2DVfR13dc434+xcNyR
+YMBobUPwxoeB0Fli1wLI1e/EWc+3KYwhbq0+IgMvvBrc8/EzQfH/p6J/fSn5pBH1
+6FtewRRfPfJrfONIIK5MXJCCXgG6/cV82plB086yj6Tt7PFCxkNg8j2Mmy4mbBCl
+cyXbXDiz9iBsghrntKNBrXL4xf4lUlCkHj+zo8ehmr/E5HozqFkwgdttJPpjiQK9
+1/eCx3Fq9Vax6VLQw6h8OyR7iCl89GRBXmnBcMPTiSZMJpAbeS5X1mXTtUp5bKZ0
+lJjVeyYMxnSJQ3Cgu5BVvAxV2lSa4f7EZqkuVHZI
+-----END CERTIFICATE-----
+EOF
+
+echo "CA was generated on 2019-04-06 and expires on 2039-04-02"
+echo "change this script if there were any changes on the Puppet master since then"
+
+echo "running puppet to generate certificate request checksum..."
+puppet agent -t || true
+
+echo "client certificate SHA-256 checksum:"
+echo
+(cd /var/lib/puppet/ssl/certificate_requests && sha256sum "$fqdn.pem")
+echo
+echo "run tpa-puppet-sign-client on the Puppetmaster with the above checksum"
