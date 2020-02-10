@@ -1,0 +1,16 @@
+#!/bin/sh
+
+me=$(hostname -f) && \
+[ "$me" != "${me%torproject.org}" ] && \
+apt-get update && \
+apt-get install -y --no-install-recommends puppet lsb-release && \
+service puppet stop && \
+systemctl mask puppet.service && \
+(puppet agent -t || true ) && \
+cd /var/lib/puppet/ssl/certificate_requests && \
+echo sha256sum output: && \
+echo && \
+sha256sum $me.pem && \
+echo && \
+echo && \
+cd /
