@@ -22,6 +22,7 @@ echo "making sure puppet is stopped..."
 service puppet stop || true
 
 echo "injecting hardcoded Puppet CA..."
+sudo -u puppet mkdir -p /var/lib/puppet/ssl/certs
 cat > /var/lib/puppet/ssl/certs/ca.pem <<EOF
 -----BEGIN CERTIFICATE-----
 MIIFijCCA3KgAwIBAgIBATANBgkqhkiG9w0BAQsFADAqMSgwJgYDVQQDDB9QdXBw
