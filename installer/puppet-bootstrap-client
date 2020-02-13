@@ -23,7 +23,15 @@ fi
 
 # sanity check
 if ! [ "$(hostname).${domain}" = "$(hostname -f)" ]; then
-    echo "Error: hostname '$(hostname -f)' doesn't match expected domain '$(hostname).$domain'"
+    cat <<EOF
+Error: hostname '$(hostname -f)' doesn't match expected domain '$(hostname).$domain'
+
+Make sure there is an entry like this in /etc/hosts:
+
+10.0.0.1 $(hostname).$domain $(hostname)
+
+where '10.0.0.1' is the main IP address of this machine
+EOF
     exit 1
 fi
 
