@@ -4,10 +4,9 @@ set -e
 set -u
 
 domain=torproject.org
-fqdn=$(hostname -f)
 # sanity check
 if ! hostname -f | grep "$domain\$"; then
-    echo "Error: hostname '$fqdn' doesn't match expected domain '$domain'"
+    echo "Error: hostname '$(hostname -f)' doesn't match expected domain '$(hostname).$domain'"
     exit 1
 fi
 
@@ -66,7 +65,7 @@ puppet agent --test || true
 
 echo "client certificate SHA-256 checksum:"
 echo
-(cd /var/lib/puppet/ssl/certificate_requests && sha256sum "$fqdn.pem")
+(cd /var/lib/puppet/ssl/certificate_requests && sha256sum "$(hostname -f).pem")
 echo
 echo "run tpa-puppet-sign-client on the Puppetmaster with the above checksum"
 echo
