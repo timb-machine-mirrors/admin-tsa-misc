@@ -4,8 +4,9 @@ set -e
 set -u
 
 domain=torproject.org
+
 # sanity check
-if ! hostname -f | grep "$domain\$"; then
+if ! [ "$(hostname).${domain}" = "$(hostname -f)" ]; then
     echo "Error: hostname '$(hostname -f)' doesn't match expected domain '$(hostname).$domain'"
     exit 1
 fi
