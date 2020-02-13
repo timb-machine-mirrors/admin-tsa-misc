@@ -5,6 +5,22 @@ set -u
 
 domain=torproject.org
 
+# give our installer a chance at failing a proper setup
+#
+# XXX: should we just check if "host puppet" resolves instead of taking this guess?
+if ! grep "^domain $domain\$" /etc/resolv.conf ; then
+    echo "missing ${domain} from /etc/resolv.conf, appending backup configuration..."
+    cat >> /etc/resolv.conf <<EOF
+
+# fallback configuration added by $0 on $(date +%Y-%m-%d)
+domain $domain
+
+# bootstrap DNS for Puppet with Google, should be replaced by next Puppet run
+nameserver 8.8.8.8
+
+EOF
+fi
+
 # sanity check
 if ! [ "$(hostname).${domain}" = "$(hostname -f)" ]; then
     echo "Error: hostname '$(hostname -f)' doesn't match expected domain '$(hostname).$domain'"
