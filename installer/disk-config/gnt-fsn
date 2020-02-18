@@ -42,7 +42,11 @@ luks    -       /dev/md2        -       -
 disk_config lvm fstabkey:uuid
 vg      vg_ganeti md1
 vg_ganeti-root    /       30G     ext4    rw
-vg_ganeti-swap    swap    1G      swap    sw
+# set swap to be as big as RAM
+#
+# This is a tradition that might seem dated, but it has the advantage
+# of giving us breathing room if we ever run out of space on the VG
+vg_ganeti-swap    swap    RAM:100%      swap    sw
 
 vg      vg_ganeti_hdd  md2
 
