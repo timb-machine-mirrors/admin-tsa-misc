@@ -7,6 +7,12 @@
 # logical volume is created.
 #
 # an older version of this was used to install fsn-node-03
+#
+# Documentation on this file format is available in the setup-storage(8) manpage.
+
+# configure a tempfs with defaults (which is RAM:50%)
+disk_config tmpfs
+tmpfs   /tmp    -       defaults
 
 disk_config nvme0n1 disklabel:gpt-bios gpt_bios_part:1 bootable:2 align-at:1M
 # bios grub second stage
