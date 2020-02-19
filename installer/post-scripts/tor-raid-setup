@@ -8,6 +8,11 @@ DISK2="/dev/nvme1n1"
 
 echo "I: entering post-script hook $0"
 
+echo "I: bind mounting everything"
+for fs in dev proc run sys  ; do
+    mount -o bind /$fs "$MNTPOINT/$fs"
+done
+
 # TODO: doesn't this belong in grml-debootstrap itself?
 echo "I: regenerating mdadm.conf..."
 chroot "$MNTPOINT" sh -c "/usr/share/mdadm/mkconf > /etc/mdadm/mdadm.conf"
@@ -25,4 +30,8 @@ chroot "$MNTPOINT" grub-install "$DISK2"
 echo "I: current crypttab:"
 cat "$MNTPOINT/etc/crypttab"
 
+echo "I: unmounting"
+for fs in dev proc run sys ; do
+    umount "$MNTPOINT/$fs"
+done
 echo "I: hook $0 done"
