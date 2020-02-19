@@ -10,13 +10,16 @@
 #
 # Documentation on this file format is available in the setup-storage(8) manpage.
 
-# configure a tempfs with defaults, which is RAM:50% according to tmpfs(5)
+# configure a 512m tmpfs
+#
+# the default is RAM:50% according to tmpfs(5), but the most common
+# config is currently 512m.
 #
 # TODO: we should leave this default into the tmpfs driver and not
 # override it here, but setup-storage insists on having that setting
 # here, see https://bugs.debian.org/951659
 disk_config tmpfs
-tmpfs   /tmp    RAM:50%       defaults
+tmpfs   /tmp    RAM:512m       defaults
 
 disk_config nvme0n1 disklabel:gpt-bios bootable:2 align-at:1M
 # bios grub second stage
