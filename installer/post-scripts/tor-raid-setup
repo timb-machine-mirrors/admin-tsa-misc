@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+set -u
+
+# TODO: hardcoded secondary disk, should be guessed?
+DISK2="/dev/nvme1n1"
+
+echo "I: entering post-script hook $0"
+
+# TODO: doesn't this belong in grml-debootstrap itself?
+echo "I: regenerating mdadm.conf..."
+chroot "$MNTPOINT" sh -c "/usr/share/mdadm/mkconf > /etc/mdadm/mdadm.conf"
+
+# assume we need to rebuild initrd...
+echo "I: rebuilding initramfs..."
+chroot "$MNTPOINT" update-initramfs -u
+
+echo "I: rebuilding grub config..."
+chroot "$MNTPOINT" update-grub
+
+echo "I: installing grub on secondary disk $DISK2" 
+chroot "$MNTPOINT" grub-install "$DISK2"
+
+echo "I: current crypttab:"
+cat "$MNTPOINT/etc/crypttab"
+
+echo "I: hook $0 done"
