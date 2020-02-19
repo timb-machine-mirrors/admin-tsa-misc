@@ -132,3 +132,16 @@ lsblk
 vgdisplay -C
 lvdisplay -C
 df -h /mnt /mnt/boot
+
+cat <<EOF
+TODO: include the tmpfs and swap in the above config. For now, try:
+
+grep -q tmpfs /etc/fstab || echo 'tmpfs /tmp tmpfs defaults 0 0' >> /etc/fstab
+
+! grep -q swap /etc/fstab && \
+dd if=/dev/zero bs=1024k count=1024 of=/swapfile && \
+chmod 0 /swapfile && \
+mkswap /swapfile && \
+echo '/swapfile none swap sw 0 0' >> /etc/fstab && \
+swapon -a
+EOF
