@@ -12,6 +12,7 @@
 #         /^resolvconf$/d;
 #         /^strace$/d;
 #         /^vlan$/d;
+#         /^w3m$/d;
 #         /^zsh$/d;
 #         $adbus
 #         $acryptsetup-initramfs
@@ -41,4 +42,3 @@ screen
 ssh
 usbutils
 vim
-w3m
