@@ -11,6 +11,10 @@
 # Documentation on this file format is available in the setup-storage(8) manpage.
 
 # configure a tempfs with defaults, which is RAM:50% according to tmpfs(5)
+#
+# TODO: we should leave this default into the tmpfs driver and not
+# override it here, but setup-storage insists on having that setting
+# here, see https://bugs.debian.org/951659
 disk_config tmpfs
 tmpfs   /tmp    RAM:50%       defaults
 
