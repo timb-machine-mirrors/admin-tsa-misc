@@ -33,7 +33,7 @@
 set -e
 set -u
 
-echo "WARNING: this script is deprecated. call setup-storage directly."
+echo "WARNING: this script is deprecated. write a new setup-storage config instead."
 
 printf "press enter to continue..."
 read _
