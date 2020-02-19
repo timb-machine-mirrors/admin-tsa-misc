@@ -145,6 +145,12 @@ if [ -d /tmp/fai ]; then
 
     LUKS_PASSPHRASE=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30)
 
+    mkdir -p $MNTPOINT/etc/luks/
+    chmod 0 $MNTPOINT/etc/luks/
+    cp /tmp/fai/crypt_dev_* "$MNTPOINT/etc/luks/"
+    chmod 0 $MNTPOINT/etc/luks/*
+
+    # TODO: hardcoded device list
     for device in md1 md2; do
         if [ -e "/dev/$dev" ] && [ -e "/tmp/fai/crypt_dev_$dev" ]; then
             echo "I: setting passphrase $LUKS_PASSPHRASE on device /dev/$device from keyfile /tmp/fai/crypt_dev_$device"
@@ -154,13 +160,10 @@ if [ -d /tmp/fai ]; then
         fi
     done
 
+    # TODO: hardcoded device name
     if [ -e /dev/md2 ] && [ -e /tmp/fai/crypt_dev_md2 ]; then
         echo "I: handling special case for md2"
-        mkdir -p $MNTPOINT/etc/luks/
-        chmod 0 $MNTPOINT/etc/luks/
-        cp /tmp/fai/crypt_dev_md2 "$MNTPOINT/etc/luks/crypt_dev_md2.key"
-        chmod 0 $MNTPOINT/etc/luks/*
-        echo "crypt_dev_md2 UUID=$(lsblk -o UUID --noheadings /dev/md2) /etc/luks/crypt_dev_md2.key luks" >> $MNTPOINT/etc/crypttab
+        echo "crypt_dev_md2 UUID=$(lsblk -o UUID --noheadings /dev/md2) /etc/luks/crypt_dev_md2 luks" >> $MNTPOINT/etc/crypttab
     fi
 fi
 
