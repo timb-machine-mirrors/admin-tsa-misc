@@ -18,6 +18,8 @@
 # TODO: we should leave this default into the tmpfs driver and not
 # override it here, but setup-storage insists on having that setting
 # here, see https://bugs.debian.org/951659
+#
+# TODO: make bigger? https://trac.torproject.org/projects/tor/ticket/33387
 disk_config tmpfs
 tmpfs   /tmp    RAM:512m       defaults
 
