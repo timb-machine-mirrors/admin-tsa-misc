@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo "I: post-FAI configuration"
+
+MNTPOINT=${MNTPOINT:-/target}
+echo "I: copying fstab from /tmp/fai/fstab to $MNTPOINT/etc/fstab"
