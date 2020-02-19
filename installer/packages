@@ -1,3 +1,10 @@
+# base package install list
+#
+# here we should only include packages that are essential to
+# bootstrapping the system. this should *not* include the list of base
+# packages installed on all machines. that is something Puppet should
+# be handling instead.
+#
 # this list was originally generated from the following sed command,
 # to remove superfluous packages from the base grml-debootstrap set:
 #
@@ -22,6 +29,10 @@
 # *included* packages that the list of *excluded* packages, as both
 # are about as long. the above can be reused to regenerate the
 # following list, however.
+#
+# this file is read by grml-debootstrap hook scripts, specifically
+# /etc/debootstrap/chroot-script, which skips comments and passes the
+# rest to apt-get install
 acpi-support-base
 console-common
 console-data
