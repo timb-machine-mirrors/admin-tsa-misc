@@ -6,8 +6,6 @@ set -u
 # TODO: hardcoded secondary disk, should be guessed?
 DISK2="/dev/nvme1n1"
 
-echo "I: entering post-script hook $0"
-
 echo "I: bind mounting everything"
 for fs in dev proc run sys  ; do
     mount -o bind /$fs "$MNTPOINT/$fs"
@@ -34,4 +32,3 @@ echo "I: unmounting"
 for fs in dev proc run sys ; do
     umount "$MNTPOINT/$fs"
 done
-echo "I: hook $0 done"
