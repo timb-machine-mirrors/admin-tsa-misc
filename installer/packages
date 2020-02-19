@@ -1,18 +1,18 @@
 # this list was originally generated from the following sed command,
 # to remove superfluous packages from the base grml-debootstrap set:
 #
-# sed -e 's/bridge-utils//;
-#         s/bzip2//;
-#         s/file//;
-#         s/ifenslave//;
-#         s/lsof//;
-#         s/most//;
-#         s/os-prober//;
-#         s/postfix//;
-#         s/resolvconf//;
-#         s/strace//;
-#         s/vlan//;
-#         s/zsh//;
+# sed -e '/^bridge-utils$/d;
+#         /^bzip2$/d;
+#         /^file$/d;
+#         /^ifenslave$/d;
+#         /^lsof$/d;
+#         /^most$/d;
+#         /^os-prober$/d;
+#         /^postfix$/d;
+#         /^resolvconf$/d;
+#         /^strace$/d;
+#         /^vlan$/d;
+#         /^zsh$/d;
 #         $adbus
 #         $acryptsetup-initramfs
 #         ' /etc/debootstrap/packages
