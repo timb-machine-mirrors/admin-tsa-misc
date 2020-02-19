@@ -18,7 +18,7 @@
 disk_config tmpfs
 tmpfs   /tmp    RAM:50%       defaults
 
-disk_config nvme0n1 disklabel:gpt-bios gpt_bios_part:1 bootable:2 align-at:1M
+disk_config nvme0n1 disklabel:gpt-bios bootable:2 align-at:1M
 # bios grub second stage
 primary -       8MiB    -       -
 # /boot
