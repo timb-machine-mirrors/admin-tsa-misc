@@ -1,0 +1,44 @@
+# this list was originally generated from the following sed command,
+# to remove superfluous packages from the base grml-debootstrap set:
+#
+# sed -e 's/postfix//;
+#         s/vlan//;
+#         s/bridge-utils//;
+#         s/ifenslave//;
+#         s/resolvconf//;
+#         s/zsh//;
+#         s/strace//;
+#         s/os-prober//;
+#         s/bzip2//;
+#         s/file//;
+#         s/lsof//;
+#         s/most//;
+#         $adbus
+#         $acryptsetup-initramfs
+#         ' /etc/debootstrap/packages
+#
+# but now it seems simpler and better to just manage the list of
+# *included* packages that the list of *excluded* packages, as both
+# are about as long. the above can be reused to regenerate the
+# following list, however.
+acpi-support-base
+console-common
+console-data
+cryptsetup
+cryptsetup-initramfs
+dbus
+grub-pc
+initramfs-tools
+isc-dhcp-client
+less
+locales
+lsb-release
+lvm2
+mdadm
+pciutils
+rsync
+screen
+ssh
+usbutils
+vim
+w3m
