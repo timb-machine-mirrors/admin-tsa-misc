@@ -3,6 +3,10 @@
 set -e
 set -u
 
+# TODO: this entire hook should be managed by grml-debootstrap
+# itself. it's mostly necessary because grml doesn't support multiple
+# disks, see: https://github.com/grml/grml-debootstrap/issues/152
+
 # TODO: hardcoded secondary disk, should be guessed?
 DISK2="/dev/nvme1n1"
 
