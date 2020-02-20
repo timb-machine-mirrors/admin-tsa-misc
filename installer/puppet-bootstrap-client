@@ -94,5 +94,7 @@ echo
 echo
 echo "run tpa-puppet-sign-client on the Puppetmaster with the above checksum"
 echo
+
 echo "running puppet agent --waitforcert for 2 minutes"
+echo "current time is: $(date), please approve cert before $(date -d '2 minutes')"
 puppet agent --test --waitforcert 120
