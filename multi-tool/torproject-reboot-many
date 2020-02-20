@@ -11,7 +11,7 @@ if [ "$#" = 0 ]; then
 fi
 
 if ! [ -x /usr/bin/ldapsearch ]; then
-  echo "No ldap-utils installed. On Debian maschine you need to run:"
+  echo "No ldap-utils installed. On Debian machine you need to run:"
   echo "  sudo apt install ldap-utils"
   exit 1
 fi
