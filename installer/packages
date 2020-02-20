@@ -39,6 +39,7 @@ console-data
 cryptsetup
 cryptsetup-initramfs
 dbus
+git
 grub-pc
 initramfs-tools
 isc-dhcp-client
