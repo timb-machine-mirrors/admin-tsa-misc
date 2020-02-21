@@ -47,10 +47,10 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--master', help='master ganeti server (default: auto)')  # noqa E501
     parser.add_argument('--dryrun', '-n', action='store_true',
                         help='do not reboot servers (but do migrate)')
-    parser.add_argument('--delay-shutdown', default=30, type=int,
-                        help='wait delay for shutdown (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-boot', default=300, type=int,
-                        help='wait delay for boot (default: %(default)s seconds)')  # noqa: E501
+    parser.add_argument('--delay-down', default=30, type=int,
+                        help='how long to wait for host to shutdown (default: %(default)s seconds)')  # noqa: E501
+    parser.add_argument('--delay-up', default=300, type=int,
+                        help='how long to wait for host to come back up (default: %(default)s seconds)')  # noqa: E501
     parser.add_argument('--delay-nodes', default=5, type=int,
                         help='how long to wait between nodes (default: %(default)s seconds)')  # noqa: E501
     return parser.parse_args(args=args)
@@ -99,21 +99,21 @@ def wait_for_boot(node, timeout):
             return True
 
 
-def reboot_node(node, delay_shutdown, delay_boot):
+def reboot_node(node, delay_down, delay_up):
     with fabric.Connection(node) as node_con:
         node_con.run('reboot', warn=True)
         # ignoring reboot errors: this always fails because ssh is killed
 
-    logging.info('waiting %d seconds for host to go down', delay_shutdown)
-    if not wait_for_shutdown(node, delay_shutdown):
+    logging.info('waiting up to %d seconds for host to go down', delay_down)
+    if not wait_for_shutdown(node, delay_down):
         logging.warning('host %s was still up after %d seconds, aborting',
-                        node, delay_shutdown)
+                        node, delay_down)
         return False
 
-    logging.info('waiting %d seconds for host to go up', delay_boot)
-    if not wait_for_boot(node, delay_boot):
+    logging.info('waiting %d seconds for host to go up', delay_up)
+    if not wait_for_boot(node, delay_up):
         logging.warning('host %s did not return after %d seconds, aborting',
-                        node, delay_boot)
+                        node, delay_up)
         return False
 
     logging.info('host %s should be back online')
