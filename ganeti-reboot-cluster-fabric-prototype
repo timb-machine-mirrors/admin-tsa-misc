@@ -91,10 +91,8 @@ def wait_for_boot(node, timeout):
 
 def reboot_node(node, delay_shutdown, delay_boot):
     with fabric.Connection(node) as node_con:
-        result = node_con.run('reboot', warn=True)
-        if result.failed:
-            logging.warning('failed to reboot host %s, aborting', node)
-            return False
+        node_con.run('reboot', warn=True)
+        # ignoring reboot errors: this always fails because ssh is killed
 
     logging.info('waiting %d seconds for host to go down', delay_shutdown)
     if not wait_for_shutdown(node, delay_shutdown):
