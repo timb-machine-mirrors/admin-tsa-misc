@@ -1,0 +1,140 @@
+#!/usr/bin/python3
+# coding: utf-8
+
+''''''
+# Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import division, absolute_import
+from __future__ import print_function, unicode_literals
+
+import argparse
+from contextlib import closing
+import logging
+import socket
+import sys
+import time
+
+try:
+    import fabric
+except ImportError:
+    sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')
+    raise
+
+
+def parse_args(args=sys.argv[1:]):
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     epilog='''''')
+    parser.add_argument('--verbose', '-v', dest='log_level',
+                        action='store_const', const='info', default='warning')
+    parser.add_argument('--debug', '-d', dest='log_level',
+                        action='store_const', const='debug', default='warning')
+    # TODO: autodetect from master list or PuppetDB
+    parser.add_argument('--node', nargs='+',
+                        help="node(s) to reboot")
+    # TODO: autodetect? nicer default?
+    parser.add_argument('--master', help='master ganeti server', required=True)
+    parser.add_argument('--dryrun', '-n', action='store_true',
+                        help='do not reboot servers (but do migrate)')
+    parser.add_argument('--wait-shutdown', default=30,
+                        help='wait delay for shutdown (default: %(default)s seconds)')  # noqa: E501
+    parser.add_argument('--wait-boot', default=300,
+                        help='wait delay for boot (default: %(default)s seconds)')  # noqa: E501
+    return parser.parse_args(args=args)
+
+
+def empty_node(node):
+    with fabric.Connection(args.master) as master_con:
+        command = 'gnt-node migrate -f %s' % node
+        logging.debug('sending command %s to node %s', command, args.master)
+        result = master_con.run(command, warn=True)
+        # TODO: failover master?
+        return result.ok and "All instances migrated successfully." in result.stdout  # noqa: E501
+
+
+def reboot_node(node, wait_shutdown, wait_boot):
+    with fabric.Connection(node) as node_con:
+        result = node_con.run('reboot', warn=True)
+        if result.failed:
+            logging.warning('failed to reboot host %s, aborting', node)
+            return False
+    logging.info('waiting %d seconds for host to go down', wait_shutdown)
+    done = False
+    for i in range(wait_shutdown):
+        if ping_node(node):
+            # port is open, so we didn't timeout, sleep the required delay
+            # TODO: discount the ping time to get a real one second delay?
+            time.sleep(1)
+        else:
+            done = True
+            break
+    if not done:
+        logging.warning('host %s was still up after %d seconds, aborting',
+                        node, wait_shutdown)
+        return False
+    logging.info('waiting %d seconds for host to go up', wait_boot)
+    done = False
+    for i in range(wait_boot):
+        # this will "sleep" one second if host is unreachable
+        if ping_node(node):
+            done = True
+            break
+    if not done:
+        logging.warning('host %s did not return after %d seconds, aborting',
+                        node, wait_boot)
+        return False
+    logging.info('host %s should be back online')
+    with fabric.Connection(node) as node_con:
+        if not node_con.is_connected:
+            logging.error('host %s cannot be reached by fabric')
+            return False
+    return True
+
+
+def ping_node(node, port=22, timeout=1):
+    # TODO: use fabric instead?
+    try:
+        with closing(socket.create_connection((node, port), timeout=timeout)):
+            # do nothing with the socket, just test if it opens
+            pass
+    except socket.timeout:
+        return False
+    except OSError:
+        raise
+    finally:
+        return True
+
+
+def main(args):
+    for node in args.node:
+        # TODO: check if reboot required
+        logging.info('migrating instances off of %s', node)
+        if empty_node(node):
+            if args.dryrun:
+                logging.info('not rebooting node %s (dryrun)', node)
+            else:
+                logging.info('rebooting node %s', node)
+                if not reboot_node(node):
+                    logging.error('rebooting node %s failed, aborting', node)
+                    break
+        else:
+            logging.error('failed to empty node %s, try again', node)
+            break
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    logging.basicConfig(format='%(message)s', level=args.log_level.upper())
+    main(args)
