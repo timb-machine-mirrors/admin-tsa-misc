@@ -123,7 +123,7 @@ def reboot_node(node, delay_down, delay_up, delay_shutdown):
                         node, delay_up)
         return False
 
-    logging.info('host %s should be back online')
+    logging.info('host %s should be back online, checking uptime', node)
     with fabric.Connection(node) as node_con:
         if not node_con.is_connected:
             logging.error('host %s cannot be reached by fabric')
