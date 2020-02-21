@@ -60,7 +60,7 @@ def parse_args(args=sys.argv[1:]):
 def empty_node(node):
     with fabric.Connection(args.master) as master_con:
         command = 'gnt-node migrate -f %s' % node
-        logging.debug('sending command %s to node %s', command, args.master)
+        logging.info('sending command %s to node %s', command, master)
         result = master_con.run(command, warn=True)
         # TODO: failover master?
         return (result.ok
