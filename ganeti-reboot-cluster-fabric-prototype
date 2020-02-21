@@ -64,42 +64,49 @@ def empty_node(node):
         return result.ok and "All instances migrated successfully." in result.stdout  # noqa: E501
 
 
+def wait_for_shutdown(node, timeout):
+    for i in range(timeout):
+        if ping_node(node):
+            # port is open, so we didn't timeout, sleep the required delay
+            # TODO: discount the ping time to get a real one second delay?
+            time.sleep(1)
+        else:
+            return True
+    return False
+
+
+def wait_for_boot(node, timeout):
+    for i in range(timeout):
+        # this will "sleep" one second if host is unreachable
+        if ping_node(node):
+            return True
+
+
 def reboot_node(node, wait_shutdown, wait_boot):
     with fabric.Connection(node) as node_con:
         result = node_con.run('reboot', warn=True)
         if result.failed:
             logging.warning('failed to reboot host %s, aborting', node)
             return False
+
     logging.info('waiting %d seconds for host to go down', wait_shutdown)
-    done = False
-    for i in range(wait_shutdown):
-        if ping_node(node):
-            # port is open, so we didn't timeout, sleep the required delay
-            # TODO: discount the ping time to get a real one second delay?
-            time.sleep(1)
-        else:
-            done = True
-            break
-    if not done:
+    if not wait_for_shutdown(node, wait_shutdown):
         logging.warning('host %s was still up after %d seconds, aborting',
                         node, wait_shutdown)
         return False
+
     logging.info('waiting %d seconds for host to go up', wait_boot)
-    done = False
-    for i in range(wait_boot):
-        # this will "sleep" one second if host is unreachable
-        if ping_node(node):
-            done = True
-            break
-    if not done:
+    if not wait_for_boot(node, wait_boot):
         logging.warning('host %s did not return after %d seconds, aborting',
                         node, wait_boot)
         return False
+
     logging.info('host %s should be back online')
     with fabric.Connection(node) as node_con:
         if not node_con.is_connected:
             logging.error('host %s cannot be reached by fabric')
             return False
+
     return True
 
 
