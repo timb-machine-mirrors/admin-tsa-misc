@@ -146,13 +146,15 @@ def ping_node(node, port=22, timeout=1):
     try:
         with closing(socket.create_connection((node, port), timeout=timeout)):
             # do nothing with the socket, just test if it opens
-            pass
+            logging.debug('socket opened to %s:%d', node, port)
+            return True
     except socket.timeout:
+        logging.debug('timeout waiting for socket open to %s:%d', node, port)
         return False
-    except OSError:
-        raise
-    finally:
-        return True
+    except OSError as e:
+        logging.debug('connect to %s:%d failed: %s, sleeping', node, port, e)
+        time.sleep(1)
+        return False
 
 
 def main(args):
