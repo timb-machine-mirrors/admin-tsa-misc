@@ -192,4 +192,9 @@ def main(args):
 if __name__ == '__main__':
     args = parse_args()
     logging.basicConfig(format='%(message)s', level=args.log_level.upper())
+    # override default logging policies in submodules
+    #
+    # without this, we get debugging info from paramiko with --verbose
+    for mod in 'fabric', 'paramiko', 'invoke':
+        logging.getLogger(mod).setLevel('WARNING')
     main(args)
