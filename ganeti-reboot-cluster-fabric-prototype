@@ -145,7 +145,8 @@ def main(args):
         # TODO: check reboot policy, especially for reboot delays
         master = detect_ganeti(node)
         if master:
-            logging.info('migrating instances off of %s', node)
+            logging.info('ganeti node detection, migrating instances from  %s',
+                         node)
             if not empty_node(node, master):
                 logging.error('failed to empty node %s, aborting', node)
                 break
