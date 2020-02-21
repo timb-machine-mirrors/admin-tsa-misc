@@ -151,6 +151,9 @@ def ping_node(node, port=22, timeout=1):
     except socket.timeout:
         logging.debug('timeout waiting for socket open to %s:%d', node, port)
         return False
+    except (socket.herror, socket.gaierror) as e:
+        logging.error('address-related error in ping: %s', e)
+        return False
     except OSError as e:
         logging.debug('connect to %s:%d failed: %s, sleeping', node, port, e)
         time.sleep(1)
