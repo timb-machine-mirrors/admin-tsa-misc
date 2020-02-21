@@ -30,7 +30,7 @@ import time
 try:
     import fabric
 except ImportError:
-    sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')
+    sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
 
 
@@ -53,7 +53,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--delay-boot', default=300, type=int,
                         help='wait delay for boot (default: %(default)s seconds)')  # noqa: E501
     parser.add_argument('--delay-nodes', default=5, type=int,
-                        help='how long to wait between nodes (default: %(default)s seconds)')
+                        help='how long to wait between nodes (default: %(default)s seconds)')  # noqa: E501
     return parser.parse_args(args=args)
 
 
