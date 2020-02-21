@@ -44,8 +44,7 @@ def parse_args(args=sys.argv[1:]):
     # TODO: autodetect from master list or PuppetDB
     parser.add_argument('--node', nargs='+',
                         help="node(s) to reboot")
-    # TODO: autodetect? nicer default?
-    parser.add_argument('--master', help='master ganeti server', required=True)
+    parser.add_argument('--master', help='master ganeti server (default: auto)')  # noqa E501
     parser.add_argument('--dryrun', '-n', action='store_true',
                         help='do not reboot servers (but do migrate)')
     parser.add_argument('--delay-shutdown', default=30, type=int,
@@ -57,8 +56,19 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args=args)
 
 
-def empty_node(node):
-    with fabric.Connection(args.master) as master_con:
+def detect_ganeti(node):
+    master = False
+    logging.info('checking for ganeti master on node %s', node)
+    with fabric.Connection(node) as node_con:
+        result = node_con.run('gnt-cluster getmaster', hide=True, warn=True)
+        if result.ok:
+            master = result.stdout.strip()
+            logging.info('ganeti node detected with master %s', master)
+    return master
+
+
+def empty_node(node, master):
+    with fabric.Connection(master) as master_con:
         command = 'gnt-node migrate -f %s' % node
         logging.info('sending command %s to node %s', command, master)
         result = master_con.run(command, warn=True)
@@ -132,20 +142,22 @@ def ping_node(node, port=22, timeout=1):
 def main(args):
     for node in args.node:
         # TODO: check if reboot required
-        logging.info('migrating instances off of %s', node)
-        if empty_node(node):
-            if args.dryrun:
-                logging.info('not rebooting node %s (dryrun)', node)
-            else:
-                logging.info('rebooting node %s', node)
-                if not reboot_node(node,
-                                   delay_shutdown=args.delay_shutdown,
-                                   delay_boot=args.delay_boot):
-                    logging.error('rebooting node %s failed, aborting', node)
-                    break
+        # TODO: check reboot policy, especially for reboot delays
+        master = detect_ganeti(node)
+        if master:
+            logging.info('migrating instances off of %s', node)
+            if not empty_node(node, master):
+                logging.error('failed to empty node %s, aborting', node)
+                break
+        if args.dryrun:
+            logging.info('not rebooting node %s (dryrun)', node)
         else:
-            logging.error('failed to empty node %s, try again', node)
-            break
+            logging.info('rebooting node %s', node)
+            if not reboot_node(node,
+                               delay_down=args.delay_down,
+                               delay_up=args.delay_up):
+                logging.error('rebooting node %s failed, aborting', node)
+                break
         logging.info('done with node %s, sleeping %d seconds',
                      node, args.delay_nodes)
         time.sleep(args.delay_nodes)
