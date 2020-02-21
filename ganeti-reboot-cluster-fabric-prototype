@@ -61,7 +61,12 @@ def empty_node(node):
         logging.debug('sending command %s to node %s', command, args.master)
         result = master_con.run(command, warn=True)
         # TODO: failover master?
-        return result.ok and "All instances migrated successfully." in result.stdout  # noqa: E501
+        return (result.ok
+                and (
+                    "All instances migrated successfully." in result.stdout
+                    or ("No primary instances on node %s, exiting." % node) in result.stdout  # noqa: E501
+                )
+        )
 
 
 def wait_for_shutdown(node, timeout):
