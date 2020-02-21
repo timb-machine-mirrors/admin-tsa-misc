@@ -32,6 +32,8 @@ try:
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
+# no check required, fabric depends on invoke
+import invoke
 
 
 def parse_args(args=sys.argv[1:]):
@@ -103,8 +105,15 @@ def wait_for_boot(node, timeout):
 
 def reboot_node(node, delay_down, delay_up, delay_shutdown):
     with fabric.Connection(node) as node_con:
-        node_con.run('shutdown -r +%d "reboot"' % delay_shutdown, warn=True)
-        # ignoring reboot errors: this always fails because ssh is killed
+        try:
+            failed = node_con.run('shutdown -r +%d "reboot"' % delay_shutdown,
+                                  warn=True).failed
+        except invoke.Failure as e:
+            logging.warning('failed to connect to %s, assuming down: %s',
+                            node, e)
+        else:
+            if failed:
+                logging.warning('failed to shutdown %s, assuming down', node)
 
     # TODO: relinquish control so we schedule other jobs
     logging.info('waiting %d minutes for reboot to happen', delay_shutdown)
