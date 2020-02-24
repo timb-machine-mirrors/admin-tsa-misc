@@ -97,11 +97,11 @@ echo
 
 echo "running puppet agent --waitforcert for 2 minutes"
 echo "current time is: $(date), please approve cert before $(date -d '2 minutes')"
-puppet agent --test --waitforcert 120
+puppet agent --test --waitforcert 120 || true
 
 echo "syncing with ud-ldap to get our users"
 ud-replicate
 echo "running puppet again, with new users"
-puppet agent --test
+puppet agent --test || true
 echo "running puppet again, again (one last time), to make sure we converged"
-puppet agent --test
+puppet agent --test || true
