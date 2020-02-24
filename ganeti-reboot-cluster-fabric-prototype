@@ -36,6 +36,9 @@ except ImportError:
 import invoke
 
 
+# FIXME: rewrite this with fabric/invoke tasks
+
+
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog='''''')
