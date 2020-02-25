@@ -74,7 +74,8 @@ def kvm_undefine(kvm_con, instance):
 def detect_ganeti(host_con, hide=True):
     master = False
     logging.info('checking for ganeti master on node %s', host_con.host)
-    result = host_con.run('gnt-cluster getmaster', hide=hide, dry=False, warn=True)
+    result = host_con.run('gnt-cluster getmaster',
+                          hide=hide, dry=False, warn=True)
     if result.ok:
         master = result.stdout.strip()
         logging.info('ganeti node detected with master %s', master)
@@ -172,9 +173,9 @@ def main(args):
         }
     })
     # emulate --dry
-    host_con = Connection(args.parent_host, user='root', config=config) if args.parent_host else None
-    backup_con = Connection(args.backup_host, user='root', config=config) if args.backup_host else None
-    puppet_con = Connection(args.puppet_host, user='root', config=config) if args.puppet_host else None
+    host_con = Connection(args.parent_host, user='root', config=config) if args.parent_host else None  # noqa: E501
+    backup_con = Connection(args.backup_host, user='root', config=config) if args.backup_host else None  # noqa: E501
+    puppet_con = Connection(args.puppet_host, user='root', config=config) if args.puppet_host else None  # noqa: E501
 
     for instance in args.instance:
         # STEP 1, 3, 4, 5
