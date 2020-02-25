@@ -36,6 +36,9 @@ except ImportError:
 import invoke
 
 
+from fabric_tpa import detect_ganeti
+
+
 # FIXME: rewrite this with fabric/invoke tasks
 
 
@@ -61,17 +64,6 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--delay-shutdown', default=10, type=int,
                         help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
     return parser.parse_args(args=args)
-
-
-def detect_ganeti(node):
-    master = False
-    logging.info('checking for ganeti master on node %s', node)
-    with fabric.Connection(node) as node_con:
-        result = node_con.run('gnt-cluster getmaster', hide=True, warn=True)
-        if result.ok:
-            master = result.stdout.strip()
-            logging.info('ganeti node detected with master %s', master)
-    return master
 
 
 def empty_node(node, master):
@@ -169,10 +161,11 @@ def ping_node(node, port=22, timeout=1):
 
 def main(args):
     for node in args.node:
+        node_con = Connection(node)
         delay_shutdown = args.delay_shutdown
         # TODO: check if reboot required
         # TODO: check reboot policy, especially for reboot delays
-        master = detect_ganeti(node)
+        master = detect_ganeti(node_con, fail=False)
         if master:
             # shorter delay, as the node will be empty
             delay_shutdown = 1

@@ -33,7 +33,7 @@ import invoke
 
 
 @task
-def detect_ganeti(con, hide=True):
+def detect_ganeti(con, hide=True, fail=False):
     master = False
     logging.info('checking for ganeti master on node %s', con.host)
     result = con.run('gnt-cluster getmaster',
@@ -42,5 +42,8 @@ def detect_ganeti(con, hide=True):
         master = result.stdout.strip()
         logging.info('ganeti node detected with master %s', master)
         return master
-    raise invoke.exceptions.Failure(result,
-                                    '%s is not a ganeti node' % con.host)
+    if fail:
+        raise invoke.exceptions.Failure(result,
+                                        '%s is not a ganeti node' % con.host)
+    else:
+        return False
