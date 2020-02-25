@@ -28,7 +28,7 @@ import sys
 import time
 
 try:
-    from fabric import task, Connection
+    from fabric import task, Connection, Config
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -159,10 +159,16 @@ def ping_node(node, port=22, timeout=1):
 
 
 def main(args):
-    master_con = Connection(args.master)
+    config = Config({
+        'run': {
+            'dry': args.dryrun,
+        }
+    })
+
+    master_con = Connection(args.master, config=config, user='root')
 
     for node in args.node:
-        node_con = Connection(node)
+        node_con = Connection(node, config=config, user='root')
         delay_shutdown = args.delay_shutdown
         # TODO: check if reboot required
         # TODO: check reboot policy, especially for reboot delays
@@ -177,16 +183,15 @@ def main(args):
                 break
         else:
             logging.info('host %s is not a ganeti node', node)
-        if args.dryrun:
-            logging.info('not rebooting node %s (dryrun)', node)
-        else:
-            logging.info('rebooting node %s', node)
-            if not reboot_node(node_con,
-                               delay_down=args.delay_down,
-                               delay_up=args.delay_up,
-                               delay_shutdown=delay_shutdown):
-                logging.error('rebooting node %s failed, aborting', node)
-                break
+
+        logging.info('rebooting node %s', node)
+        if not reboot_node(node_con,
+                           delay_down=args.delay_down,
+                           delay_up=args.delay_up,
+                           delay_shutdown=delay_shutdown):
+            logging.error('rebooting node %s failed, aborting', node)
+            break
+
         logging.info('done with node %s, sleeping %d seconds',
                      node, args.delay_nodes)
         time.sleep(args.delay_nodes)
