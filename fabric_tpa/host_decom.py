@@ -32,6 +32,8 @@ except ImportError:
     raise
 import invoke.exceptions
 
+from fabric_tpa import detect_ganeti
+
 
 __description__ = '''Part of the host retirement procedure defined at
 https://help.torproject.org/tsa/howto/retire-a-host/.  Can also be
@@ -68,20 +70,6 @@ def kvm_shutdown(kvm_con, instance):
 @task
 def kvm_undefine(kvm_con, instance):
     kvm_con.run("virsh undefine '%s'" % instance)
-
-
-@task
-def detect_ganeti(host_con, hide=True):
-    master = False
-    logging.info('checking for ganeti master on node %s', host_con.host)
-    result = host_con.run('gnt-cluster getmaster',
-                          hide=hide, dry=False, warn=True)
-    if result.ok:
-        master = result.stdout.strip()
-        logging.info('ganeti node detected with master %s', master)
-        return master
-    raise invoke.exceptions.Failure(result,
-                                    '%s is not a ganeti node' % host_con.host)
 
 
 @task
