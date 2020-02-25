@@ -28,7 +28,7 @@ import sys
 import time
 
 try:
-    import fabric
+    from fabric import task, Connection
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -66,18 +66,18 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args=args)
 
 
-def empty_node(node, master):
-    with fabric.Connection(master) as master_con:
-        command = 'gnt-node migrate -f %s' % node
-        logging.info('sending command %s to node %s', command, master)
-        result = master_con.run(command, warn=True)
-        # TODO: failover master?
-        return (result.ok
-                and (
-                    "All instances migrated successfully." in result.stdout
-                    or ("No primary instances on node %s, exiting." % node) in result.stdout  # noqa: E501
-                )
-        )
+@task
+def empty_node(con, node):
+    command = 'gnt-node migrate -f %s' % node
+    logging.info('sending command %s to node %s', command, con.host)
+    result = con.run(command, warn=True)
+    # TODO: failover master?
+    return (result.ok
+            and (
+                "All instances migrated successfully." in result.stdout
+                or ("No primary instances on node %s, exiting." % con.host) in result.stdout  # noqa: E501
+            )
+    )
 
 
 def wait_for_shutdown(node, timeout):
@@ -98,17 +98,17 @@ def wait_for_boot(node, timeout):
             return True
 
 
-def reboot_node(node, delay_down, delay_up, delay_shutdown):
-    with fabric.Connection(node) as node_con:
-        try:
-            failed = node_con.run('shutdown -r +%d "reboot"' % delay_shutdown,
-                                  warn=True).failed
-        except invoke.Failure as e:
-            logging.warning('failed to connect to %s, assuming down: %s',
-                            node, e)
-        else:
-            if failed:
-                logging.warning('failed to shutdown %s, assuming down', node)
+@task
+def reboot_node(con, delay_down, delay_up, delay_shutdown):
+    try:
+        failed = con.run('shutdown -r +%d "reboot"' % delay_shutdown,
+                         warn=True).failed
+    except invoke.Failure as e:
+        logging.warning('failed to connect to %s, assuming down: %s',
+                        con.host, e)
+    else:
+        if failed:
+            logging.warning('failed to shutdown %s, assuming down', con.host)
 
     # TODO: relinquish control so we schedule other jobs
     logging.info('waiting %d minutes for reboot to happen', delay_shutdown)
@@ -116,22 +116,21 @@ def reboot_node(node, delay_down, delay_up, delay_shutdown):
     time.sleep(delay_shutdown * 60)
 
     logging.info('waiting up to %d seconds for host to go down', delay_down)
-    if not wait_for_shutdown(node, delay_down):
+    if not wait_for_shutdown(con.host, delay_down):
         logging.warning('host %s was still up after %d seconds, aborting',
-                        node, delay_down)
+                        con.host, delay_down)
         return False
 
     logging.info('waiting %d seconds for host to go up', delay_up)
-    if not wait_for_boot(node, delay_up):
+    if not wait_for_boot(con.host, delay_up):
         logging.warning('host %s did not return after %d seconds, aborting',
-                        node, delay_up)
+                        con.host, delay_up)
         return False
 
-    logging.info('host %s should be back online, checking uptime', node)
-    with fabric.Connection(node) as node_con:
-        if node_con.run('uptime', warn=True).failed:
-            logging.error('host %s cannot be reached by fabric', node)
-            return False
+    logging.info('host %s should be back online, checking uptime', con.host)
+    if con.run('uptime', warn=True).failed:
+        logging.error('host %s cannot be reached by fabric', con.host)
+        return False
 
     return True
 
@@ -160,6 +159,8 @@ def ping_node(node, port=22, timeout=1):
 
 
 def main(args):
+    master_con = Connection(args.master)
+
     for node in args.node:
         node_con = Connection(node)
         delay_shutdown = args.delay_shutdown
@@ -171,14 +172,16 @@ def main(args):
             delay_shutdown = 1
             logging.info('ganeti node detection, migrating instances from  %s',
                          node)
-            if not empty_node(node, master):
+            if not empty_node(master_con, node):
                 logging.error('failed to empty node %s, aborting', node)
                 break
+        else:
+            logging.info('host %s is not a ganeti node', node)
         if args.dryrun:
             logging.info('not rebooting node %s (dryrun)', node)
         else:
             logging.info('rebooting node %s', node)
-            if not reboot_node(node,
+            if not reboot_node(node_con,
                                delay_down=args.delay_down,
                                delay_up=args.delay_up,
                                delay_shutdown=delay_shutdown):
