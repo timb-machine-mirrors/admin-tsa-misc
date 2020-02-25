@@ -32,7 +32,7 @@ except ImportError:
     raise
 import invoke.exceptions
 
-from fabric_tpa import detect_ganeti
+from .ganeti import detect_ganeti
 
 
 __description__ = '''Part of the host retirement procedure defined at

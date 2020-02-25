@@ -36,7 +36,7 @@ except ImportError:
 import invoke
 
 
-from fabric_tpa import detect_ganeti
+from .ganeti import detect_ganeti
 
 
 # FIXME: rewrite this with fabric/invoke tasks
