@@ -52,7 +52,6 @@ def parse_args(args=sys.argv[1:]):
     # TODO: autodetect from master list or PuppetDB
     parser.add_argument('--node', nargs='+',
                         help="node(s) to reboot")
-    parser.add_argument('--master', help='master ganeti server (default: auto)')  # noqa E501
     parser.add_argument('--dryrun', '-n', action='store_true',
                         help='do not reboot servers (but do migrate)')
     parser.add_argument('--delay-down', default=30, type=int,
@@ -165,8 +164,6 @@ def main(args):
         }
     })
 
-    master_con = Connection(args.master, config=config, user='root')
-
     for node in args.node:
         node_con = Connection(node, config=config, user='root')
         delay_shutdown = args.delay_shutdown
@@ -177,6 +174,8 @@ def main(args):
         except invoke.exceptions.Failure:
             logging.info('host %s is not a ganeti node', node)
         else:
+            master_con = Connection(master, config=config, user='root')
+
             # shorter delay, as the node will be empty
             delay_shutdown = 1
             logging.info('ganeti node detection, migrating instances from  %s',
