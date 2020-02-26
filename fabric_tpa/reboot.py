@@ -36,7 +36,7 @@ except ImportError:
 import invoke
 
 
-from .ganeti import _detect_ganeti
+from .ganeti import _detect_master
 
 
 # FIXME: rewrite this with fabric/invoke tasks
@@ -172,7 +172,7 @@ def main(args):
         delay_shutdown = args.delay_shutdown
         # TODO: check if reboot required
         # TODO: check reboot policy, especially for reboot delays
-        master = _detect_ganeti(node_con, fail=False)
+        master = _detect_master(node_con)
         if master:
             # shorter delay, as the node will be empty
             delay_shutdown = 1
