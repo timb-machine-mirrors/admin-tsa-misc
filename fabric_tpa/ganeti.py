@@ -34,6 +34,11 @@ import invoke
 
 @task
 def detect_ganeti(con, hide=True, fail=False):
+    return _detect_ganeti(con, hide, fail)
+
+
+def _detect_ganeti(con, hide=True, fail=False):
+    '''stub function so imports don't show up in task lists'''
     master = False
     logging.info('checking for ganeti master on node %s', con.host)
     result = con.run('gnt-cluster getmaster',
