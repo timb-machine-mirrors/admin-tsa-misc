@@ -172,8 +172,11 @@ def main(args):
         delay_shutdown = args.delay_shutdown
         # TODO: check if reboot required
         # TODO: check reboot policy, especially for reboot delays
-        master = _detect_master(node_con)
-        if master:
+        try:
+            master = _detect_master(node_con)
+        except invoke.exceptions.Failure:
+            logging.info('host %s is not a ganeti node', node)
+        else:
             # shorter delay, as the node will be empty
             delay_shutdown = 1
             logging.info('ganeti node detection, migrating instances from  %s',
@@ -181,8 +184,6 @@ def main(args):
             if not empty_node(master_con, node):
                 logging.error('failed to empty node %s, aborting', node)
                 break
-        else:
-            logging.info('host %s is not a ganeti node', node)
 
         logging.info('rebooting node %s', node)
         if not reboot_node(node_con,

@@ -33,14 +33,14 @@ import invoke
 
 
 @task
-def detect_master(con, hide=True, fail=False):
+def detect_master(con, hide=True):
     '''find the master ganeti server supervising this node
 
     This can be used to detect if a node is running ganeti or note.'''
-    return _detect_master(con, hide, fail)
+    return _detect_master(con, hide)
 
 
-def _detect_master(con, hide=True, fail=False):
+def _detect_master(con, hide=True):
     '''stub function so imports don't show up in task lists'''
     master = False
     logging.info('checking for ganeti master on node %s', con.host)
@@ -50,8 +50,5 @@ def _detect_master(con, hide=True, fail=False):
         master = result.stdout.strip()
         logging.info('ganeti node detected with master %s', master)
         return master
-    if fail:
-        raise invoke.exceptions.Failure(result,
-                                        '%s is not a ganeti node' % con.host)
-    else:
-        return False
+    raise invoke.exceptions.Failure(result,
+                                    '%s is not a ganeti node' % con.host)
