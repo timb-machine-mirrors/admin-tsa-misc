@@ -36,7 +36,7 @@ except ImportError:
 import invoke
 
 
-from .ganeti import _detect_master
+from .ganeti import _getmaster
 
 
 # FIXME: rewrite this with fabric/invoke tasks
@@ -170,7 +170,7 @@ def main(args):
         # TODO: check if reboot required
         # TODO: check reboot policy, especially for reboot delays
         try:
-            master = _detect_master(node_con)
+            master = _getmaster(node_con)
         except invoke.exceptions.Failure:
             logging.info('host %s is not a ganeti node', node)
         else:

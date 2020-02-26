@@ -32,7 +32,7 @@ except ImportError:
     raise
 import invoke.exceptions
 
-from .ganeti import _detect_master
+from .ganeti import _getmaster
 
 
 __description__ = '''Part of the host retirement procedure defined at
@@ -134,7 +134,7 @@ def decom_kvm_instance(host_con, instance):
 def decom_instance(host_con, instance):
     if host_con:
         try:
-            _detect_master(host_con)
+            _getmaster(host_con)
         except invoke.exceptions.Failure:
             decom_kvm_instance(host_con, instance)
         else:
