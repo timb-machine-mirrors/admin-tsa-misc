@@ -32,7 +32,9 @@ except ImportError:
     raise
 import invoke.exceptions
 
-from .ganeti import _getmaster
+from . import libvirt
+from . import host
+from . import ganeti
 
 
 __description__ = '''Part of the host retirement procedure defined at
@@ -63,80 +65,12 @@ def parse_args(args=sys.argv[1:]):
 
 
 @task
-def kvm_shutdown(kvm_con, instance):
-    kvm_con.run("virsh shutdown '%s'" % instance)
-
-
-@task
-def kvm_undefine(kvm_con, instance):
-    kvm_con.run("virsh undefine '%s'" % instance)
-
-
-@task
-def path_exists(host_con, path):
-    logging.info('checking for path "%s" on %s', path, host_con.host)
-    sftp = host_con.sftp()
-    try:
-        sftp.chdir(path)
-    except IOError as e:
-        logging.error('path %s not found: %s', path, e)
-        return False
-    return True
-
-
-@task
-def schedule_delete(host_con, path, delay):
-    # TODO: shell escapes?
-    command = 'rm -rf "%s"' % path
-    logging.info('scheduling %s to run on %s in %s',
-                 command, host_con.host, delay)
-    return host_con.run("echo '%s' | at now + %s" % (command, delay),
-                        warn=True).ok
-
-
-@task
-def kvm_instance_running(con, instance, hide=True, dry=False):
-    result = con.run('virsh list --state-running --name', hide=hide, dry=dry)
-    return instance in result.stdout
-
-
-@task
-def decom_kvm_instance(host_con, instance):
-    # STEP 3
-    if kvm_instance_running(host_con, instance):
-        logging.info('shutting down instance %s on host %s',
-                     instance, host_con.host)
-        kvm_shutdown(host_con, instance)
-
-        # TODO: wait for shutdown properly? maybe reuse the
-        # shutdown procedure from the reboot system, to give
-        # users a warning?
-        # STEP 1?
-        raise NotImplementedError("need to wait for shutdown")
-    else:
-        logging.info('instance %s not running, no shutdown required',
-                     instance)
-
-    # STEP 4
-    logging.info('undefining instance %s on host %s',
-                 instance, host_con.host)
-    kvm_undefine(host_con, instance)
-
-    logging.info('scheduling %s disk deletion on host %s',
-                 instance, host_con.host)
-    # TODO: lvm removal
-    disk = '/srv/vmstore/%s/' % instance
-    if path_exists(host_con, disk):
-        schedule_delete(host_con, disk, '7 days')
-
-
-@task
 def decom_instance(host_con, instance):
     if host_con:
         try:
-            _getmaster(host_con)
+            ganeti.getmaster(host_con)
         except invoke.exceptions.Failure:
-            decom_kvm_instance(host_con, instance)
+            libvirt.decom_instance(host_con, instance)
         else:
             raise NotImplementedError('ganeti host decom not supported')
 
@@ -144,8 +78,8 @@ def decom_instance(host_con, instance):
 @task
 def remove_backups(backup_con, instance):
     backup_dir = '/srv/backups/bacula/%s/' % instance
-    if path_exists(backup_con, backup_dir):
-        schedule_delete(backup_con, backup_dir, '30 days')
+    if host.path_exists(backup_con, backup_dir):
+        host.schedule_delete(backup_con, backup_dir, '30 days')
 
 
 @task

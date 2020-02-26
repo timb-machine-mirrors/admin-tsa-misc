@@ -21,26 +21,17 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 import argparse
-import io
-import json
 import logging
-import os.path
 import sys
-import xml.etree.ElementTree as ET
 
 try:
-    from fabric import task, Connection
+    from fabric import Connection
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
 
-try:
-    from humanize import naturalsize
-except ImportError:
-    sys.stderr.write('cannot import humanize, sizes will be ugly')
 
-    def naturalsize(size, *args, **kwargs):
-        return size + 'B'
+from . import libvirt
 
 
 def parse_args(args=sys.argv[1:]):
@@ -63,100 +54,9 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args=args)
 
 
-def kvm_instance_parse_memory(xml_root):
-    for tag in xml_root.findall('memory'):
-        unit = tag.get('unit')
-        assert unit == 'KiB'
-        yield int(tag.text) * 1024
-
-
-def kvm_instance_parse_cpu(xml_root):
-    for tag in xml_root.findall('vcpu'):
-        yield int(tag.text)
-
-
-@task
-def kvm_instance_fetch_libvirt_xml(kvm_con, instance):
-    buffer = io.BytesIO()
-    instance_config = '/etc/libvirt/qemu/%s.xml' % instance
-    try:
-        kvm_con.get(instance_config, local=buffer)
-    except OSError as e:
-        logging.error('cannot fetch instance config from %s: %s',
-                      instance_config, e)
-        return False
-    return buffer.getvalue()
-
-
-def kvm_instance_list_disks(kvm_con, instance):
-    sftp = kvm_con.sftp()
-    for disk in sftp.listdir_iter('/srv/vmstore/%s' % instance):
-        logging.debug('found disk %s', disk.filename)
-        yield '/srv/vmstore/%s/%s' % (instance, disk.filename)
-
-
-def kvm_instance_disk_json(kvm_con, disk_path, hide=True):
-    command = 'qemu-img info --output=json %s' % disk_path
-    try:
-        result = kvm_con.run(command, hide=hide)
-    except OSError as e:
-        logging.error('failed to run %s: %s', command, e)
-        return False
-    return result.stdout
-
-
-def kvm_instance_swap_uuid(kvm_con, disk_path, hide=True):
-    result = kvm_con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
-                         hide=hide)
-    return result.stdout.strip()
-
-
-@task
-def kvm_instance_inventory(kvm_con, instance):
-    inventory = {}
-    logging.info('fetching instance %s inventory from %s...',
-                 instance, kvm_con.host)
-    xml_root = ET.fromstring(kvm_instance_fetch_libvirt_xml(kvm_con,
-                                                            instance))
-    # XXX: we drop duplicates in cpu and memory here
-    inventory['cpu'], = list(kvm_instance_parse_cpu(xml_root))
-    logging.info('CPU: %s', inventory['cpu'])
-    inventory['memory'], = list(kvm_instance_parse_memory(xml_root))
-    logging.info('memory: %s bytes (%s/%s)', inventory['memory'],
-                 naturalsize(inventory['memory'], binary=True),
-                 naturalsize(inventory['memory']))
-
-    swap = {}
-    disks = {}
-    for disk in kvm_instance_list_disks(kvm_con, instance):
-        j = kvm_instance_disk_json(kvm_con, disk)
-        disk_info = json.loads(j)
-
-        if disk.endswith('-swap'):
-            swap_uuid = kvm_instance_swap_uuid(kvm_con, disk)
-            logging.info('found swap %s: %s bytes (%s/%s) UUID:%s',
-                         os.path.basename(disk),
-                         disk_info['virtual-size'],
-                         naturalsize(disk_info['virtual-size'], binary=True),
-                         naturalsize(disk_info['virtual-size']),
-                         swap_uuid)
-            disk_info['swap_uuid'] = swap_uuid
-            swap[disk] = disk_info
-        else:
-            disks[disk] = disk_info
-            logging.info('disk %s: %s bytes (%s/%s)',
-                         os.path.basename(disk),
-                         disk_info['virtual-size'],
-                         naturalsize(disk_info['virtual-size'], binary=True),
-                         naturalsize(disk_info['virtual-size']))
-
-    inventory['disks'] = disks
-    return inventory
-
-
 def main(args):
     kvm_con = Connection(args.kvm_host)
-    kvm_instance_inventory(kvm_con, args.instance)
+    libvirt.instance_inventory(kvm_con, args.instance)
 
 
 if __name__ == '__main__':

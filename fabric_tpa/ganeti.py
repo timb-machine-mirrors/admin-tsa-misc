@@ -37,11 +37,6 @@ def getmaster(con, hide=True):
     '''find the master ganeti server supervising this node
 
     This can be used to detect if a node is running ganeti or note.'''
-    return _getmaster(con, hide)
-
-
-def _getmaster(con, hide=True):
-    '''stub function so imports don't show up in task lists'''
     master = False
     logging.info('checking for ganeti master on node %s', con.host)
     result = con.run('gnt-cluster getmaster',
@@ -52,3 +47,17 @@ def _getmaster(con, hide=True):
         return master
     raise invoke.exceptions.Failure(result,
                                     '%s is not a ganeti node' % con.host)
+
+
+@task
+def empty_node(con, node):
+    command = 'gnt-node migrate -f %s' % node
+    logging.info('sending command %s to node %s', command, con.host)
+    result = con.run(command, warn=True)
+    # TODO: failover master?
+    return (result.ok
+            and (
+                "All instances migrated successfully." in result.stdout
+                or ("No primary instances on node %s, exiting." % con.host) in result.stdout  # noqa: E501
+            )
+    )

@@ -36,7 +36,7 @@ except ImportError:
 import invoke
 
 
-from .ganeti import _getmaster
+from . import ganeti
 
 
 # FIXME: rewrite this with fabric/invoke tasks
@@ -63,20 +63,6 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--delay-shutdown', default=10, type=int,
                         help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
     return parser.parse_args(args=args)
-
-
-@task
-def empty_node(con, node):
-    command = 'gnt-node migrate -f %s' % node
-    logging.info('sending command %s to node %s', command, con.host)
-    result = con.run(command, warn=True)
-    # TODO: failover master?
-    return (result.ok
-            and (
-                "All instances migrated successfully." in result.stdout
-                or ("No primary instances on node %s, exiting." % con.host) in result.stdout  # noqa: E501
-            )
-    )
 
 
 def wait_for_shutdown(node, timeout):
@@ -170,7 +156,7 @@ def main(args):
         # TODO: check if reboot required
         # TODO: check reboot policy, especially for reboot delays
         try:
-            master = _getmaster(node_con)
+            master = ganeti.getmaster(node_con)
         except invoke.exceptions.Failure:
             logging.info('host %s is not a ganeti node', node)
         else:
@@ -180,7 +166,7 @@ def main(args):
             delay_shutdown = 1
             logging.info('ganeti node detection, migrating instances from  %s',
                          node)
-            if not empty_node(master_con, node):
+            if not ganeti.empty_node(master_con, node):
                 logging.error('failed to empty node %s, aborting', node)
                 break
 
