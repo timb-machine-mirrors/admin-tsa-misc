@@ -21,6 +21,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 import logging
+import os.path
 import sys
 
 try:
@@ -109,8 +110,51 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
                  ganeti_node, libvirt_host)
 
     # TODO: check for free space
-    logging.info('rsyncing disks from %s to %s...', libvirt_host, ganeti_node)
+    logging.info('copying disks from %s to %s...', libvirt_host, ganeti_node)
     for path, disk in inventory['disks'].items():
-        command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s /srv/" % (libvirt_host, path)  # noqa: E501
+        if disk['filename'].endswith('-swap'):
+            logging.info('skipping swap file %s', disk['filename'])
+            continue
+        disk['basename'] = os.path.basename(disk['filename'])
+        disk['filename_local'] = '/srv/' + disk['basename']
+        command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (libvirt_host, path, disk['filename_local'])  # noqa: E501
         logging.debug('command: %s', command)
         ganeti_node_con.run(command, pty=True)
+
+    logging.info('creating logical volumes...')
+    for path, disk in inventory['disks'].items():
+        command = 'lvcreate -L {virtual-size}B -n {basename} vg_ganeti'.format(**disk)  # noqa: E501
+        ganeti_node_con.run(command)
+        disk['device_path'] = '/dev/vg_ganeti/' + disk['device_name']
+
+        if disk['basename'].endswith('-swap'):
+            logging.info('creating swap UUID %s in %s',
+                         disk['swap_uuid'], disk['device_path'])
+            command = 'mkswap --uuid {swap_uuid} {device_path}'.format(**disk)  # noqa: E501
+            ganeti_node_con.run(command)
+        else:
+            logging.info('converting qcow image %s into raw device %s',
+                         disk['filename_local'], disk['device_path'])
+            command = 'qemu-img convert {filename_local}  -O raw {device_path}'.format(**disk)  # noqa: E501
+            ganeti_node_con.run(command)
+
+    disk_spec = ''
+    i = 0
+    for path, disk in inventory['disks'].items():
+        disk_spec += ' --disk %d:adopt=%s' % (i, disk['filename_local'])
+        # TODO: guess what goes on the HDDs!
+        i += 1
+
+    logging.info('launching adopted instance...')
+    command = f'''gnt-instance add -t plain
+    --net 0:ip=pool,network=gnt-fsn
+    --no-name-check
+    --no-ip-check
+    -o debootstrap+default
+    -n {ganeti_node}
+    {disk_spec}
+    --backend-parameters memory={inventory['memory']},vcpus={inventory['cpu']}
+    {instance_con.host}'''
+    logging.debug('command: %s', command)
+    ganeti_master_con = Connection(getmaster(ganeti_node_con))
+    ganeti_master_con.run(command)
