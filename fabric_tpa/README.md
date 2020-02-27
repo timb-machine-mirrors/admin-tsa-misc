@@ -11,3 +11,7 @@ Otherwise, some modules are also designed to be called directly, for
 example:
 
     python3 -m fabric_tpa.decom --parent-host unifolium.torproject.org --dryrun test-01.torproject.org
+
+WARNING: All the code here has only been tested summarily and should
+be handled with extreme care. Use `--dry` to see what will happen
+first.
