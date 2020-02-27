@@ -21,6 +21,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 import argparse
+from enum import Enum
 from contextlib import closing
 import logging
 import socket
@@ -28,7 +29,7 @@ import sys
 import time
 
 try:
-    from fabric import task, Connection, Config
+    from fabric import task, Connection, Config, Result
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -83,17 +84,26 @@ def wait_for_boot(node, timeout):
             return True
 
 
+class ShutdownType(str, Enum):
+    reboot = '-r'
+    halt = '-h'
+    wall = '-k'
+    cancel = '-c'
+
+
 @task
-def reboot_node(con, delay_down, delay_up, delay_shutdown):
+def shutdown(con: Connection, kind: ShutdownType,
+             reason: str, delay: str) -> Result:
+    return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
+
+
+@task
+def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
     try:
-        failed = con.run('shutdown -r +%d "reboot"' % delay_shutdown,
-                         warn=True).failed
+        shutdown(con, ShutdownType.reboot, reason, delay_shutdown)
     except invoke.Failure as e:
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
-    else:
-        if failed:
-            logging.warning('failed to shutdown %s, assuming down', con.host)
 
     # TODO: relinquish control so we schedule other jobs
     logging.info('waiting %d minutes for reboot to happen', delay_shutdown)
@@ -171,10 +181,11 @@ def main(args):
                 break
 
         logging.info('rebooting node %s', node)
-        if not reboot_node(node_con,
-                           delay_down=args.delay_down,
-                           delay_up=args.delay_up,
-                           delay_shutdown=delay_shutdown):
+        if not reboot_and_wait(node_con,
+                               reason='rebooting...',
+                               delay_down=args.delay_down,
+                               delay_up=args.delay_up,
+                               delay_shutdown=delay_shutdown):
             logging.error('rebooting node %s failed, aborting', node)
             break
 
