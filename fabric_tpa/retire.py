@@ -38,10 +38,7 @@ from . import ganeti
 
 
 __description__ = '''Part of the host retirement procedure defined at
-https://help.torproject.org/tsa/howto/retire-a-host/.  Can also be
-called with something like: `fab -c retire -H
-unifolium.torproject.org --dry kvm_instance_running
-test.torproject.org`.'''
+https://help.torproject.org/tsa/howto/retire-a-host/.'''
 
 
 def parse_args(args=sys.argv[1:]):
