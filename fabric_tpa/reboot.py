@@ -94,8 +94,8 @@ class ShutdownType(str, Enum):
 
 
 @task
-def shutdown(con: Connection, kind: ShutdownType,
-             reason: str, delay: str) -> Result:
+def shutdown(con, kind, reason, delay):
+    '''trigger a shutdown or reboot on the host'''
     return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
 
 
