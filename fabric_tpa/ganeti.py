@@ -32,6 +32,9 @@ except ImportError:
 import invoke
 
 
+from . import libvirt
+
+
 @task
 def getmaster(con, hide=True):
     '''find master ganeti
@@ -70,3 +73,9 @@ def empty_node(con, node):
                 or ("No primary instances on node %s, exiting." % con.host) in result.stdout  # noqa: E501
             )
     )
+
+
+@task
+def libvirt_import(kvm_con, ganeti_node, instance):
+    spec = libvirt.instance_inventory(kvm_con, instance)
+    logging.info('got spec from inventory: %s', spec)

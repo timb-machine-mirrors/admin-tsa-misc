@@ -31,7 +31,7 @@ except ImportError:
     raise
 
 
-from . import libvirt
+from . import ganeti
 
 
 def parse_args(args=sys.argv[1:]):
@@ -56,7 +56,7 @@ def parse_args(args=sys.argv[1:]):
 
 def main(args):
     kvm_con = Connection(args.kvm_host)
-    libvirt.instance_inventory(kvm_con, args.instance)
+    ganeti.libvirt_import(kvm_con, args.ganeti_node, args.instance)
 
 
 if __name__ == '__main__':
