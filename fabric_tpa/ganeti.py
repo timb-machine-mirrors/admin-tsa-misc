@@ -85,6 +85,14 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
     This will import the given hosts (INSTANCE_CON) from the KVM_HOST (string)
     into the GANETI_NODE.
     '''
+    # check for required options, workaround for:
+    # https://github.com/pyinvoke/invoke/issues/new
+    if not libvirt_host:
+        logging.error('libvirt host not provided')
+        return False
+    if not ganeti_node:
+        logging.error('ganeti node not provided')
+        return False
     libvirt_con = Connection(libvirt_host)
 
     spec = libvirt.instance_inventory(libvirt_con, instance_con.host)
