@@ -123,6 +123,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
 
     # STEP 4: copy disks
     # TODO: check for free space
+    # TODO: suspend VM to stop disk writing during rsync
     logging.info('copying disks from %s to %s...', libvirt_host, ganeti_node)
     for path, disk in inventory['disks'].items():
         disk['basename'] = os.path.basename(disk['filename'])

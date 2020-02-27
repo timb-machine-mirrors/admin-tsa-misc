@@ -55,6 +55,7 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args=args)
 
 
+# TODO: convert this into a Program so we don't have to duplicate arguments
 def main(args):
     con = Connection(args.instance)
     ganeti.libvirt_import(con, args.ganeti_node, args.libvirt_host,
