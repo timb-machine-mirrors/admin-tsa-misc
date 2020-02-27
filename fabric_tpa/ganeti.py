@@ -31,6 +31,13 @@ except ImportError:
     raise
 # no check required, fabric depends on invoke
 import invoke
+try:
+    from humanize import naturalsize
+except ImportError:
+    sys.stderr.write('cannot import humanize, sizes will be ugly')
+
+    def naturalsize(size, *args, **kwargs):
+        return size + 'B'
 
 
 from . import libvirt
@@ -127,6 +134,10 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
     # STEP 5: create volumes
     logging.info('creating logical volumes...')
     for path, disk in inventory['disks'].items():
+        logging.info('creating %s logical volume vg_ganeti/%s on host %s',
+                     naturalsize(disk['virtual-size']),
+                     disk['basename'],
+                     ganeti_node)
         command = 'lvcreate -L {virtual-size}B -n {basename} vg_ganeti'.format(**disk)  # noqa: E501
         ganeti_node_con.run(command)
         disk['device_path'] = '/dev/vg_ganeti/' + disk['basename']
