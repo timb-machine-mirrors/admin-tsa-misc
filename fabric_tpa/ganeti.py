@@ -24,7 +24,7 @@ import logging
 import sys
 
 try:
-    from fabric import task
+    from fabric import task, Connection
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -75,7 +75,17 @@ def empty_node(con, node):
     )
 
 
-@task
-def libvirt_import(kvm_con, ganeti_node, instance):
-    spec = libvirt.instance_inventory(kvm_con, instance)
+@task(help={
+    'ganeti-node': 'ganeti node to import instance into',
+    'libvirt-host': 'libvirt host to import instance from',
+})
+def libvirt_import(instance_con, ganeti_node, libvirt_host):
+    '''import instance into ganeti
+
+    This will import the given hosts (INSTANCE_CON) from the KVM_HOST (string)
+    into the GANETI_NODE.
+    '''
+    libvirt_con = Connection(libvirt_host)
+
+    spec = libvirt.instance_inventory(libvirt_con, instance_con.host)
     logging.info('got spec from inventory: %s', spec)

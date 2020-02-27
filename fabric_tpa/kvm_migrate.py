@@ -55,8 +55,8 @@ def parse_args(args=sys.argv[1:]):
 
 
 def main(args):
-    kvm_con = Connection(args.kvm_host)
-    ganeti.libvirt_import(kvm_con, args.ganeti_node, args.instance)
+    ganeti_con = Connection(args.ganeti_node)
+    ganeti.libvirt_import(ganeti_con, args.kvm_host, args.instance)
 
 
 if __name__ == '__main__':
