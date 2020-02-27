@@ -74,7 +74,7 @@ def wait_for_shutdown(con, timeout):
             time.sleep(1)
         else:
             return True
-    return False
+    return not tcp_ping_host(con)
 
 
 @task
@@ -83,6 +83,7 @@ def wait_for_boot(con, timeout):
         # this will "sleep" one second if host is unreachable
         if tcp_ping_host(con):
             return True
+    return tcp_ping_host(con)
 
 
 class ShutdownType(str, Enum):
