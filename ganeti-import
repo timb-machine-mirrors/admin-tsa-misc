@@ -51,12 +51,14 @@ def parse_args(args=sys.argv[1:]):
                         help='spare ganeti node to migrate the instance to')
     parser.add_argument('--instance', required=True,
                         help='host to migrate')
+    parser.add_argument('--skip-copy', action='store_true')
     return parser.parse_args(args=args)
 
 
 def main(args):
     con = Connection(args.instance)
-    ganeti.libvirt_import(con, args.ganeti_node, args.libvirt_host)
+    ganeti.libvirt_import(con, args.ganeti_node, args.libvirt_host,
+                          args.skip_copy)
 
 
 if __name__ == '__main__':

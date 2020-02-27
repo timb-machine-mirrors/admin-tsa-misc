@@ -88,11 +88,14 @@ def empty_node(con, node):
     'ganeti-node': 'ganeti node to import instance into',
     'libvirt-host': 'libvirt host to import instance from',
 })
-def libvirt_import(instance_con, ganeti_node, libvirt_host):
+def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     '''import instance into ganeti
 
-    This will import the given hosts (INSTANCE_CON) from the KVM_HOST (string)
-    into the GANETI_NODE.
+    This will import the given hosts (INSTANCE_CON) from the KVM_HOST
+    (string) into the GANETI_NODE. You can use SKIP_COPY to avoid
+    running rsync if a copy of the disks already exists. rsync is
+    fast, but it can still be pretty slow to run this command
+    repeatedly because rsync still needs to check the entire disk.
     '''
     # check for required options, workaround for:
     # https://github.com/pyinvoke/invoke/issues/new
@@ -124,6 +127,8 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
     for path, disk in inventory['disks'].items():
         disk['basename'] = os.path.basename(disk['filename'])
         disk['filename_local'] = '/srv/' + disk['basename']
+        if skip_copy:
+            continue
         if disk['filename'].endswith('-swap'):
             logging.info('skipping swap file %s', disk['filename'])
             continue
