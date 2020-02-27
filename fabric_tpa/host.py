@@ -20,6 +20,7 @@
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
+import io
 import logging
 import sys
 
@@ -58,3 +59,26 @@ def schedule_delete(host_con, path, delay):
                  command, host_con.host, delay)
     return host_con.run("echo '%s' | at now + %s" % (command, delay),
                         warn=True).ok
+
+
+@task
+def fetch_ssh_host_pubkey(con, type='ed25519'):
+    '''fetch public host key from server'''
+    buffer = io.BytesIO()
+    pubkey_path = '/etc/ssh/ssh_host_%s_key.pub' % type
+    try:
+        con.get(pubkey_path, local=buffer)
+    except OSError as e:
+        logging.error('cannot fetch instance config from %s: %s',
+                      pubkey_path, e)
+        return False
+    return buffer.getvalue()
+
+
+@task
+def append_to_file(con, path, content):
+    '''append bytes to a file
+
+    This does not check for duplicates.'''
+    with con.sftp().file(path, mode='ab') as fp:
+        fp.write(content)

@@ -33,6 +33,7 @@ import invoke
 
 
 from . import libvirt
+from . import host
 
 
 @task
@@ -94,6 +95,22 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
         logging.error('ganeti node not provided')
         return False
     libvirt_con = Connection(libvirt_host)
+    ganeti_node_con = Connection(ganeti_node)
 
-    spec = libvirt.instance_inventory(libvirt_con, instance_con.host)
-    logging.info('got spec from inventory: %s', spec)
+    inventory = libvirt.instance_inventory(libvirt_con, instance_con.host)
+    logging.debug('got inventory: %s', inventory)
+
+    pubkey = host.fetch_ssh_host_pubkey(ganeti_node_con)
+    logging.info('fetched %s host key: %s', ganeti_node, pubkey)
+
+    content = b"# %b pubkey for %b transfer\n%b\n" % (ganeti_node.encode('ascii'), instance_con.host.encode('ascii'), pubkey)  # noqa: E501
+    host.append_to_file(libvirt_con, '/etc/ssh/userkeys/root', content)
+    logging.info('allowed host %s to connect to %s as root',
+                 ganeti_node, libvirt_host)
+
+    # TODO: check for free space
+    logging.info('rsyncing disks from %s to %s...', libvirt_host, ganeti_node)
+    for path, disk in inventory['disks'].items():
+        command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s /srv/" % (libvirt_host, path)  # noqa: E501
+        logging.debug('command: %s', command)
+        ganeti_node_con.run(command, pty=True)
