@@ -49,22 +49,30 @@ from . import host
 
 @task
 def shutdown(con, instance):
+    '''turn off instance with virsh'''
     con.run("virsh shutdown '%s'" % instance)
 
 
 @task
 def undefine(con, instance):
+    '''remove instance configuration file'''
     con.run("virsh undefine '%s'" % instance)
 
 
 @task
 def instance_running(con, instance, hide=True, dry=False):
+    '''check if an instance is running'''
     result = con.run('virsh list --state-running --name', hide=hide, dry=dry)
     return instance in result.stdout
 
 
 @task
 def decom_instance(host_con, instance):
+    '''decomission a libvirt instance
+
+    This shuts down the instance, removes the configuration and its
+    disk.
+    '''
     # STEP 3
     if instance_running(host_con, instance):
         logging.info('shutting down instance %s on host %s',
@@ -94,6 +102,7 @@ def decom_instance(host_con, instance):
 
 
 def instance_parse_memory(xml_root):
+    '''find memory specs in parsed XML'''
     for tag in xml_root.findall('memory'):
         unit = tag.get('unit')
         assert unit == 'KiB'
@@ -101,12 +110,14 @@ def instance_parse_memory(xml_root):
 
 
 def instance_parse_cpu(xml_root):
+    '''find CPU specs in parsed XML'''
     for tag in xml_root.findall('vcpu'):
         yield int(tag.text)
 
 
 @task
 def instance_fetch_libvirt_xml(con, instance):
+    '''download the XML configuration for an instance'''
     buffer = io.BytesIO()
     instance_config = '/etc/libvirt/qemu/%s.xml' % instance
     try:
@@ -119,6 +130,7 @@ def instance_fetch_libvirt_xml(con, instance):
 
 
 def instance_list_disks(con, instance):
+    '''find the instance disks'''
     sftp = con.sftp()
     for disk in sftp.listdir_iter('/srv/vmstore/%s' % instance):
         logging.debug('found disk %s', disk.filename)
@@ -126,6 +138,7 @@ def instance_list_disks(con, instance):
 
 
 def instance_disk_json(con, disk_path, hide=True):
+    '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
         result = con.run(command, hide=hide)
@@ -136,6 +149,7 @@ def instance_disk_json(con, disk_path, hide=True):
 
 
 def instance_swap_uuid(con, disk_path, hide=True):
+    '''find the UUID of the given SWAP file or disk'''
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
                      hide=hide)
     return result.stdout.strip()
@@ -143,6 +157,7 @@ def instance_swap_uuid(con, disk_path, hide=True):
 
 @task
 def instance_inventory(con, instance):
+    '''fetch instance characteristics'''
     inventory = {}
     logging.info('fetching instance %s inventory from %s...',
                  instance, con.host)

@@ -33,6 +33,7 @@ except ImportError:
 
 @task
 def path_exists(host_con, path):
+    '''check if path exist with SFTP'''
     logging.info('checking for path "%s" on %s', path, host_con.host)
     sftp = host_con.sftp()
     try:
@@ -45,6 +46,12 @@ def path_exists(host_con, path):
 
 @task
 def schedule_delete(host_con, path, delay):
+    '''schedule removal of PATH in the future
+
+    The job is scheduled with `at(1)` so the DELAY is interpreted
+    accordingly. Normally, it should be something like "7 days".
+    '''
+
     # TODO: shell escapes?
     command = 'rm -rf "%s"' % path
     logging.info('scheduling %s to run on %s in %s',

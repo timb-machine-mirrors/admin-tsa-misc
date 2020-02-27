@@ -66,6 +66,13 @@ def parse_args(args=sys.argv[1:]):
 
 @task
 def decom_instance(host_con, instance):
+    '''decom instance, depending on its type
+
+    Checks if it's a ganeti node and otherwise assunmes it's
+    libvirt...
+
+    TODO: to be expanded.
+    '''
     if host_con:
         try:
             ganeti.getmaster(host_con)
@@ -77,6 +84,7 @@ def decom_instance(host_con, instance):
 
 @task
 def remove_backups(backup_con, instance):
+    '''delete instance backups from the bacula storage host'''
     backup_dir = '/srv/backups/bacula/%s/' % instance
     if host.path_exists(backup_con, backup_dir):
         host.schedule_delete(backup_con, backup_dir, '30 days')
@@ -84,6 +92,7 @@ def remove_backups(backup_con, instance):
 
 @task
 def puppet_revoke(con, instance):
+    '''revoke certificates of given instance on puppet master'''
     con.run('puppet node clean %s' % instance)
     con.run('puppet node deactivate %s' % instance)
 

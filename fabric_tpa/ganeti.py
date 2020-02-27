@@ -34,7 +34,7 @@ import invoke
 
 @task
 def getmaster(con, hide=True):
-    '''find the master ganeti server supervising this node
+    '''find master ganeti
 
     This can be used to detect if a node is running ganeti or note.'''
     master = False
@@ -51,6 +51,15 @@ def getmaster(con, hide=True):
 
 @task
 def empty_node(con, node):
+    '''migrate primary instances
+
+    This migrates (using gnt-node migrate) *primary* instances away
+    from this node, towards their secondary node. This is generally
+    done in preperation for a reboot.
+
+    It is *not* sufficient to decomission a node, for that a full
+    "evacuation" (including secondary nodes) needs to be performed.
+    '''
     command = 'gnt-node migrate -f %s' % node
     logging.info('sending command %s to node %s', command, con.host)
     result = con.run(command, warn=True)

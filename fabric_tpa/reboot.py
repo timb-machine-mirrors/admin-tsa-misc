@@ -67,6 +67,14 @@ def parse_args(args=sys.argv[1:]):
 
 @task
 def wait_for_shutdown(con, timeout):
+    '''wait for host to shutdown
+
+    This pings the node and waits one second until timeout is expired
+    or until it stops pinging.
+
+    Returns True if the box stops pinging before timeout, or False if
+    the box still pings after the timeout expired.
+    '''
     for i in range(timeout):
         if tcp_ping_host(con):
             # port is open, so we didn't timeout, sleep the required delay
@@ -79,6 +87,14 @@ def wait_for_shutdown(con, timeout):
 
 @task
 def wait_for_boot(con, timeout):
+    '''wait for host to ping
+
+    This tries to ping the host until it responds or until the timeout
+    expires.
+
+    This returns true if the node pings or False if the timeout
+    expires and the node still does not ping.
+    '''
     for i in range(timeout):
         # this will "sleep" one second if host is unreachable
         if tcp_ping_host(con):
@@ -87,6 +103,12 @@ def wait_for_boot(con, timeout):
 
 
 class ShutdownType(str, Enum):
+    '''the different flags that can be passed to the shutdown command
+
+    This is not called "Flag" because that has a specific meaning for
+    Enum classes, specifically stuff that can be combined with bitwise
+    operators.
+    '''
     reboot = '-r'
     halt = '-h'
     wall = '-k'
@@ -101,6 +123,7 @@ def shutdown(con, kind, reason, delay):
 
 @task
 def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
+    '''shutdown the machine and wait for the box to return'''
     try:
         shutdown(con, ShutdownType.reboot, reason, delay_shutdown)
     except invoke.Failure as e:
@@ -134,6 +157,20 @@ def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
 
 @task
 def tcp_ping_host(con, port=22, timeout=1):
+    '''ping the host by opening a TCP socket
+
+    This is implemented using TCP because ICMP pings require raw
+    sockets and so root access or ICMP capabilities. Besides, "ping"
+    doesn't really tell us if a host has returned: what we want to
+    know is if *services* are running and for that, TCP is a better
+    model.
+
+    The *port* argument determines which port is open (22 by default,
+    since it's commonly available on all our hosts). The *timeout*
+    argument determines how long we wait for a response (default: one
+    second).
+    '''
+
     # TODO: use fabric instead?
     try:
         with closing(socket.create_connection((con.host, port),
