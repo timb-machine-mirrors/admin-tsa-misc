@@ -139,7 +139,14 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
                      disk['basename'],
                      ganeti_node)
         command = 'lvcreate -L {virtual-size}B -n {basename} vg_ganeti'.format(**disk)  # noqa: E501
-        ganeti_node_con.run(command)
+        try:
+            ganeti_node_con.run(command)
+        except invoke.exceptions.UnexpectedExit as e:
+            if 'already exists' in str(e.result.stderr):
+                logging.warning('reusing existing logical volume')
+                continue
+            else:
+                raise e
         disk['device_path'] = '/dev/vg_ganeti/' + disk['basename']
 
         if disk['basename'].endswith('-swap'):
