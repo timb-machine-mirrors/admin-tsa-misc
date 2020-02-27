@@ -5,9 +5,9 @@ available jobs with:
 
 For example, commands in `host_decom` can be called individually with:
 
-    fab -H unifolium.torproject.org --dry host-decom.kvm-instance-running test.torproject.org
+    fab -H unifolium.torproject.org --dry libvirt.instance-running test.torproject.org
 
-Otherwise, modules are also designed to be called directly, for
+Otherwise, some modules are also designed to be called directly, for
 example:
 
-    python3 -m fabric_tpa.host_decom --parent-host unifolium.torproject.org --dryrun test-01.torproject.org
+    python3 -m fabric_tpa.decom --parent-host unifolium.torproject.org --dryrun test-01.torproject.org
