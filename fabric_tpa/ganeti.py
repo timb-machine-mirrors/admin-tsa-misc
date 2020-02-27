@@ -170,10 +170,11 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     disk_spec = ''
     i = 0
     for path, disk in inventory['disks'].items():
-        disk_spec += ' --disk %d:adopt=%s' % (i, disk['filename_local'])
+        disk_spec += ' --disk %d:adopt=%s' % (i, disk['basename'])
         # TODO: guess what goes on the HDDs!
         i += 1
 
+    inventory['memory_human'] = naturalsize(inventory['memory'])
     logging.info('launching adopted instance...')
     command = f'''gnt-instance add -t plain \
     --net 0:ip=pool,network=gnt-fsn \
@@ -182,7 +183,8 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     -o debootstrap+default \
     -n {ganeti_node} \
     {disk_spec} \
-    --backend-parameters memory={inventory['memory']},vcpus={inventory['cpu']}\
+    --backend-parameters \
+    memory={inventory['memory_human']},vcpus={inventory['cpu']}
     {instance_con.host}'''
     logging.debug('command: %s', command)
     ganeti_master_con = Connection(getmaster(ganeti_node_con))
