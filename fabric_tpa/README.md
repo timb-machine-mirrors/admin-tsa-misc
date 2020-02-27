@@ -3,14 +3,14 @@ available jobs with:
 
     fab --list
 
-For example, commands in `host_decom` can be called individually with:
+For example, tasks can be called individually with:
 
     fab -H unifolium.torproject.org --dry libvirt.instance-running test.torproject.org
 
 Otherwise, some modules are also designed to be called directly, for
 example:
 
-    python3 -m fabric_tpa.decom --parent-host unifolium.torproject.org --dryrun test-01.torproject.org
+    python3 -m fabric_tpa.retire --parent-host unifolium.torproject.org --dryrun test-01.torproject.org
 
 WARNING: All the code here has only been tested summarily and should
 be handled with extreme care. Use `--dry` to see what will happen

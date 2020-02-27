@@ -67,8 +67,8 @@ def instance_running(con, instance, hide=True, dry=False):
 
 
 @task
-def decom_instance(host_con, instance):
-    '''decomission a libvirt instance
+def retire_instance(host_con, instance):
+    '''retire a libvirt instance
 
     This shuts down the instance, removes the configuration and its
     disk.

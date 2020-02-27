@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-'''decomission an instance'''
+'''retire an instance'''
 # Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ from . import ganeti
 
 __description__ = '''Part of the host retirement procedure defined at
 https://help.torproject.org/tsa/howto/retire-a-host/.  Can also be
-called with something like: `fab -c host_decom -H
+called with something like: `fab -c retire -H
 unifolium.torproject.org --dry kvm_instance_running
 test.torproject.org`.'''
 
@@ -60,13 +60,13 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--puppet-host', default='pauli.torproject.org',
                         help='puppet master host (default: %(default)s)')
     parser.add_argument('instance', nargs='+',
-                        help='the instance to decomission')
+                        help='the instance to retire')
     return parser.parse_args(args=args)
 
 
 @task
-def decom_instance(host_con, instance):
-    '''decom instance, depending on its type
+def retire_instance(host_con, instance):
+    '''retire instance, depending on its type
 
     Checks if it's a ganeti node and otherwise assunmes it's
     libvirt...
@@ -77,9 +77,9 @@ def decom_instance(host_con, instance):
         try:
             ganeti.getmaster(host_con)
         except invoke.exceptions.Failure:
-            libvirt.decom_instance(host_con, instance)
+            libvirt.retire_instance(host_con, instance)
         else:
-            raise NotImplementedError('ganeti host decom not supported')
+            raise NotImplementedError('ganeti host retirement not supported')
 
 
 @task
@@ -111,9 +111,9 @@ def main(args):
     for instance in args.instance:
         # STEP 1, 3, 4, 5
         try:
-            decom_instance(host_con, instance)
+            retire_instance(host_con, instance)
         except invoke.exceptions.Failure as e:
-            logging.error('failed to decomission instance %s on host %s: %s',
+            logging.error('failed to retire instance %s on host %s: %s',
                           instance, host_con.host, e)
             return 1
         # STEP 13
@@ -143,7 +143,7 @@ def main(args):
         # STEP 11: let's encrypt
         # STEP 12: DNSWL
         # STEP 14: docs
-        # STEP 15: upstream decom
+        # STEP 15: upstream decommissioning
 
 
 if __name__ == '__main__':

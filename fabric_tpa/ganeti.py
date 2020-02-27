@@ -57,7 +57,7 @@ def empty_node(con, node):
     from this node, towards their secondary node. This is generally
     done in preperation for a reboot.
 
-    It is *not* sufficient to decomission a node, for that a full
+    This is *not* sufficient to retire a node, for that a full
     "evacuation" (including secondary nodes) needs to be performed.
     '''
     command = 'gnt-node migrate -f %s' % node
