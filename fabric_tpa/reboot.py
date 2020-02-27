@@ -60,6 +60,8 @@ def parse_args(args=sys.argv[1:]):
                         help='how long to wait between nodes (default: %(default)s seconds)')  # noqa: E501
     parser.add_argument('--delay-shutdown', default=10, type=int,
                         help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
+    parser.add_argument('--reason', default='rebooting for security upgrades',
+                        help='reason to give users (default: %(default)s)')
     return parser.parse_args(args=args)
 
 
@@ -185,7 +187,7 @@ def main(args):
 
         logging.info('rebooting node %s', node)
         if not reboot_and_wait(node_con,
-                               reason='rebooting...',
+                               reason=args.reason,
                                delay_down=args.delay_down,
                                delay_up=args.delay_up,
                                delay_shutdown=delay_shutdown):
