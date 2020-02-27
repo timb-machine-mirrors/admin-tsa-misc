@@ -98,9 +98,11 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
     libvirt_con = Connection(libvirt_host)
     ganeti_node_con = Connection(ganeti_node)
 
+    # STEP 1, 2: inventory
     inventory = libvirt.instance_inventory(libvirt_con, instance_con.host)
     logging.debug('got inventory: %s', inventory)
 
+    # STEP 3: authorized_keys hack
     pubkey = host.fetch_ssh_host_pubkey(ganeti_node_con)
     logging.info('fetched %s host key: %s', ganeti_node, pubkey)
 
@@ -109,6 +111,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
     logging.info('allowed host %s to connect to %s as root',
                  ganeti_node, libvirt_host)
 
+    # STEP 4: copy disks
     # TODO: check for free space
     logging.info('copying disks from %s to %s...', libvirt_host, ganeti_node)
     for path, disk in inventory['disks'].items():
@@ -121,11 +124,12 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
         logging.debug('command: %s', command)
         ganeti_node_con.run(command, pty=True)
 
+    # STEP 5: create volumes
     logging.info('creating logical volumes...')
     for path, disk in inventory['disks'].items():
         command = 'lvcreate -L {virtual-size}B -n {basename} vg_ganeti'.format(**disk)  # noqa: E501
         ganeti_node_con.run(command)
-        disk['device_path'] = '/dev/vg_ganeti/' + disk['device_name']
+        disk['device_path'] = '/dev/vg_ganeti/' + disk['basename']
 
         if disk['basename'].endswith('-swap'):
             logging.info('creating swap UUID %s in %s',
@@ -138,6 +142,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
             command = 'qemu-img convert {filename_local}  -O raw {device_path}'.format(**disk)  # noqa: E501
             ganeti_node_con.run(command)
 
+    # STEP 6: launch instance
     disk_spec = ''
     i = 0
     for path, disk in inventory['disks'].items():
