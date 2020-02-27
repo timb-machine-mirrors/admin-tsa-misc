@@ -68,7 +68,7 @@ def parse_args(args=sys.argv[1:]):
 @task
 def wait_for_shutdown(con, timeout):
     for i in range(timeout):
-        if ping_node(con):
+        if tcp_ping_host(con):
             # port is open, so we didn't timeout, sleep the required delay
             # TODO: discount the ping time to get a real one second delay?
             time.sleep(1)
@@ -81,7 +81,7 @@ def wait_for_shutdown(con, timeout):
 def wait_for_boot(con, timeout):
     for i in range(timeout):
         # this will "sleep" one second if host is unreachable
-        if ping_node(con):
+        if tcp_ping_host(con):
             return True
 
 
@@ -132,7 +132,7 @@ def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
 
 
 @task
-def ping_node(con, port=22, timeout=1):
+def tcp_ping_host(con, port=22, timeout=1):
     # TODO: use fabric instead?
     try:
         with closing(socket.create_connection((con.host, port),
