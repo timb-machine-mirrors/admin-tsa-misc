@@ -115,7 +115,6 @@ def instance_parse_cpu(xml_root):
         yield int(tag.text)
 
 
-@task
 def instance_fetch_libvirt_xml(con, instance):
     '''download the XML configuration for an instance'''
     buffer = io.BytesIO()
