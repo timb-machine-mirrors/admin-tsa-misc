@@ -40,9 +40,6 @@ import invoke
 from . import ganeti
 
 
-# FIXME: rewrite this with fabric/invoke tasks
-
-
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog='''''')
@@ -66,9 +63,10 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args=args)
 
 
-def wait_for_shutdown(node, timeout):
+@task
+def wait_for_shutdown(con, timeout):
     for i in range(timeout):
-        if ping_node(node):
+        if ping_node(con):
             # port is open, so we didn't timeout, sleep the required delay
             # TODO: discount the ping time to get a real one second delay?
             time.sleep(1)
@@ -77,10 +75,11 @@ def wait_for_shutdown(node, timeout):
     return False
 
 
-def wait_for_boot(node, timeout):
+@task
+def wait_for_boot(con, timeout):
     for i in range(timeout):
         # this will "sleep" one second if host is unreachable
-        if ping_node(node):
+        if ping_node(con):
             return True
 
 
@@ -111,13 +110,13 @@ def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
     time.sleep(delay_shutdown * 60)
 
     logging.info('waiting up to %d seconds for host to go down', delay_down)
-    if not wait_for_shutdown(con.host, delay_down):
+    if not wait_for_shutdown(con, delay_down):
         logging.warning('host %s was still up after %d seconds, aborting',
                         con.host, delay_down)
         return False
 
     logging.info('waiting %d seconds for host to go up', delay_up)
-    if not wait_for_boot(con.host, delay_up):
+    if not wait_for_boot(con, delay_up):
         logging.warning('host %s did not return after %d seconds, aborting',
                         con.host, delay_up)
         return False
@@ -130,21 +129,25 @@ def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
     return True
 
 
-def ping_node(node, port=22, timeout=1):
+@task
+def ping_node(con, port=22, timeout=1):
     # TODO: use fabric instead?
     try:
-        with closing(socket.create_connection((node, port), timeout=timeout)):
+        with closing(socket.create_connection((con.host, port),
+                                              timeout=timeout)):
             # do nothing with the socket, just test if it opens
-            logging.debug('socket opened to %s:%d', node, port)
+            logging.debug('socket opened to %s:%d', con.host, port)
             return True
     except socket.timeout:
-        logging.debug('timeout waiting for socket open to %s:%d', node, port)
+        logging.debug('timeout waiting for socket open to %s:%d',
+                      con.host, port)
         return False
     except (socket.herror, socket.gaierror) as e:
         logging.error('address-related error in ping: %s', e)
         return False
     except OSError as e:
-        logging.debug('connect to %s:%d failed: %s, sleeping', node, port, e)
+        logging.debug('connect to %s:%d failed: %s, sleeping',
+                      con.host, port, e)
         time.sleep(1)
         return False
 
