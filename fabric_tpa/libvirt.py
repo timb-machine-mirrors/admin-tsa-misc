@@ -170,7 +170,6 @@ def instance_inventory(con, instance):
                  naturalsize(inventory['memory'], binary=True),
                  naturalsize(inventory['memory']))
 
-    swap = {}
     disks = {}
     for disk in instance_list_disks(con, instance):
         j = instance_disk_json(con, disk)
@@ -178,21 +177,20 @@ def instance_inventory(con, instance):
 
         if disk.endswith('-swap'):
             swap_uuid = instance_swap_uuid(con, disk)
+            disk_info['swap_uuid'] = swap_uuid
             logging.info('found swap %s: %s bytes (%s/%s) UUID:%s',
                          os.path.basename(disk),
                          disk_info['virtual-size'],
                          naturalsize(disk_info['virtual-size'], binary=True),
                          naturalsize(disk_info['virtual-size']),
                          swap_uuid)
-            disk_info['swap_uuid'] = swap_uuid
-            swap[disk] = disk_info
         else:
-            disks[disk] = disk_info
             logging.info('disk %s: %s bytes (%s/%s)',
                          os.path.basename(disk),
                          disk_info['virtual-size'],
                          naturalsize(disk_info['virtual-size'], binary=True),
                          naturalsize(disk_info['virtual-size']))
+        disks[disk] = disk_info
 
     inventory['disks'] = disks
     return inventory
