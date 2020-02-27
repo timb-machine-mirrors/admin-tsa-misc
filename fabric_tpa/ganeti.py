@@ -115,11 +115,11 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host):
     # TODO: check for free space
     logging.info('copying disks from %s to %s...', libvirt_host, ganeti_node)
     for path, disk in inventory['disks'].items():
+        disk['basename'] = os.path.basename(disk['filename'])
+        disk['filename_local'] = '/srv/' + disk['basename']
         if disk['filename'].endswith('-swap'):
             logging.info('skipping swap file %s', disk['filename'])
             continue
-        disk['basename'] = os.path.basename(disk['filename'])
-        disk['filename_local'] = '/srv/' + disk['basename']
         command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (libvirt_host, path, disk['filename_local'])  # noqa: E501
         logging.debug('command: %s', command)
         ganeti_node_con.run(command, pty=True)
