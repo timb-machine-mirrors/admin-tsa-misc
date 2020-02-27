@@ -175,14 +175,14 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
         i += 1
 
     logging.info('launching adopted instance...')
-    command = f'''gnt-instance add -t plain
-    --net 0:ip=pool,network=gnt-fsn
-    --no-name-check
-    --no-ip-check
-    -o debootstrap+default
-    -n {ganeti_node}
-    {disk_spec}
-    --backend-parameters memory={inventory['memory']},vcpus={inventory['cpu']}
+    command = f'''gnt-instance add -t plain \
+    --net 0:ip=pool,network=gnt-fsn \
+    --no-name-check \
+    --no-ip-check \
+    -o debootstrap+default \
+    -n {ganeti_node} \
+    {disk_spec} \
+    --backend-parameters memory={inventory['memory']},vcpus={inventory['cpu']}\
     {instance_con.host}'''
     logging.debug('command: %s', command)
     ganeti_master_con = Connection(getmaster(ganeti_node_con))
