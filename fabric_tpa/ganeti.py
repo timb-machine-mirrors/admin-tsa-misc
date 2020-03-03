@@ -104,9 +104,10 @@ def copy_disks(libvirt_con, ganeti_con, disks):
     'libvirt-host': 'libvirt host to import instance from',
     'copy': 'copy the disks between the nodes (default: True)',
     'adopt': 'adopt the instance in ganeti (default: False)',
+    'suspend': 'suspend the node while copying disks (default: False)',
 })
 def libvirt_import(instance_con, ganeti_node, libvirt_host,
-                   copy=True, adopt=False):
+                   copy=True, adopt=False, suspend=False):
     '''import instance into ganeti
 
     This will import the given hosts (INSTANCE_CON) from the KVM_HOST
@@ -117,6 +118,11 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
 
     By default, the resulting disk is not "adopted", or "added" if you
     will, into Ganeti, set *adopt* to False to skip that step.
+
+    Use SUSPEND to suspend the instance before the copy, which is
+    preferable to get a consistent disk image, but might be disruptive
+    for production host (False by default).
+
     '''
     # check for required options, workaround for:
     # https://github.com/pyinvoke/invoke/issues/new
@@ -143,7 +149,6 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
 
     # STEP 4: copy disks
     # TODO: check for free space
-    # TODO: suspend VM to stop disk writing during rsync (`virsh suspend`)
     # set some base variables for all disks
     # TODO: should be moved back to inventory?
     for path, disk in inventory['disks'].items():
@@ -152,7 +157,15 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
     if copy:
         logging.info('copying disks from %s to %s...',
                      libvirt_host, ganeti_node)
-        copy_disks(libvirt_con, ganeti_node_con, inventory['disks'])
+        if suspend:
+            try:
+                with libvirt.suspend_then_resume(libvirt_con, instance_con.host):  # noqa: E501
+                    copy_disks(libvirt_con, ganeti_node_con, inventory['disks'])  # noqa: E501
+            except invoke.exceptions.UnexpectedExit as e:
+                logging.error('failed to suspend or resume host: %s', e.result)
+                return False
+        else:
+            copy_disks(libvirt_con, ganeti_node_con, inventory['disks'])
     else:
         logging.info('skipping disk copy as requested')
 

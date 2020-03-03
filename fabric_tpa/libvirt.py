@@ -21,6 +21,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 from collections import OrderedDict, namedtuple
+from contextlib import contextmanager
 import io
 import json
 import logging
@@ -58,6 +59,26 @@ def shutdown(con, instance):
 def undefine(con, instance):
     '''remove instance configuration file'''
     return virsh(con, "undefine '%s'" % instance)
+
+
+@task
+def suspend(con, instance, hide=True, dry=False):
+    '''suspend an instance'''
+    return virsh(con, "suspend '%s'" % instance, hide=hide, dry=dry)
+
+
+@task
+def resume(con, instance, hide=True, dry=False):
+    '''suspend an instance'''
+    return virsh(con, "resume '%s'" % instance, hide=hide, dry=dry)
+
+
+@contextmanager
+def suspend_then_resume(con, instance):
+    try:
+        yield suspend(con, instance)
+    finally:
+        return resume(con, instance)
 
 
 @task
