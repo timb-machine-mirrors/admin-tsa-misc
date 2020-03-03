@@ -88,10 +88,10 @@ def empty_node(con, node):
     'ganeti-node': 'ganeti node to import instance into',
     'libvirt-host': 'libvirt host to import instance from',
     'copy': 'copy the disks between the nodes (default: True)',
-    'adopt': 'adopt the instance in ganeti (default: True)',
+    'adopt': 'adopt the instance in ganeti (default: False)',
 })
 def libvirt_import(instance_con, ganeti_node, libvirt_host,
-                   copy=True, adopt=True):
+                   copy=True, adopt=False):
     '''import instance into ganeti
 
     This will import the given hosts (INSTANCE_CON) from the KVM_HOST
@@ -100,8 +100,8 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
     is fast, but it can still be pretty slow to run this command
     repeatedly because rsync still needs to check the entire disk.
 
-    By default, the resulting disk is "adopted", or "added" if you
-    will, into Ganeti, set *skip_adopt* to False to skip that step.
+    By default, the resulting disk is not "adopted", or "added" if you
+    will, into Ganeti, set *adopt* to False to skip that step.
     '''
     # check for required options, workaround for:
     # https://github.com/pyinvoke/invoke/issues/new
