@@ -110,7 +110,6 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
 
     # STEP 1, 2: inventory
     inventory = libvirt.instance_inventory(libvirt_con, instance_con.host)
-    logging.debug('got inventory: %s', inventory)
 
     # STEP 3: authorized_keys hack
     pubkey = host.fetch_ssh_host_pubkey(ganeti_node_con)

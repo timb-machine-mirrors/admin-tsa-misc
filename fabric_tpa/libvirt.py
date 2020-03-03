@@ -214,4 +214,5 @@ def instance_inventory(con, instance):
         disks[path] = disk_info
 
     inventory['disks'] = disks
+    logging.debug('generated inventory: %s', inventory)
     return inventory
