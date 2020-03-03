@@ -61,21 +61,21 @@ def undefine(con, instance):
 
 
 @task
-def instance_running(con, instance, hide=True, dry=False):
+def is_running(con, instance, hide=True, dry=False):
     '''check if an instance is running'''
     result = con.run('virsh list --state-running --name', hide=hide, dry=dry)
     return instance in result.stdout
 
 
 @task
-def retire_instance(host_con, instance):
+def retire(host_con, instance):
     '''retire a libvirt instance
 
     This shuts down the instance, removes the configuration and its
     disk.
     '''
     # STEP 3
-    if instance_running(host_con, instance):
+    if is_running(host_con, instance):
         logging.info('shutting down instance %s on host %s',
                      instance, host_con.host)
         shutdown(host_con, instance)
@@ -102,7 +102,7 @@ def retire_instance(host_con, instance):
         host.schedule_delete(host_con, disk, '7 days')
 
 
-def instance_parse_memory(xml_root):
+def parse_memory(xml_root):
     '''find memory specs in parsed XML'''
     for tag in xml_root.findall('memory'):
         unit = tag.get('unit')
@@ -110,7 +110,7 @@ def instance_parse_memory(xml_root):
         yield int(tag.text) * 1024
 
 
-def instance_parse_cpu(xml_root):
+def parse_cpu(xml_root):
     '''find CPU specs in parsed XML'''
     for tag in xml_root.findall('vcpu'):
         yield int(tag.text)
@@ -122,7 +122,7 @@ def instance_parse_cpu(xml_root):
 disk_tuple = namedtuple('disk_tuple', ('dev', 'path', 'type'))
 
 
-def instance_parse_disks(xml_root):
+def parse_disks(xml_root):
     '''list disk paths in order, as a disk_tuple'''
     for devices in xml_root.findall('devices'):
         for disk in devices.findall('disk'):
@@ -134,7 +134,7 @@ def instance_parse_disks(xml_root):
             yield disk_tuple(dev, path, type)
 
 
-def instance_fetch_libvirt_xml(con, instance):
+def fetch_xml(con, instance):
     '''download the XML configuration for an instance'''
     buffer = io.BytesIO()
     instance_config = '/etc/libvirt/qemu/%s.xml' % instance
@@ -147,7 +147,7 @@ def instance_fetch_libvirt_xml(con, instance):
     return buffer.getvalue()
 
 
-def instance_list_disks(con, instance):
+def disks_lists(con, instance):
     '''find the instance disks'''
     sftp = con.sftp()
     for disk in sftp.listdir_iter('/srv/vmstore/%s' % instance):
@@ -155,7 +155,7 @@ def instance_list_disks(con, instance):
         yield '/srv/vmstore/%s/%s' % (instance, disk.filename)
 
 
-def instance_disk_json(con, disk_path, hide=True):
+def disk_json(con, disk_path, hide=True):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
@@ -166,7 +166,7 @@ def instance_disk_json(con, disk_path, hide=True):
     return result.stdout
 
 
-def instance_swap_uuid(con, disk_path, hide=True):
+def swap_uuid(con, disk_path, hide=True):
     '''find the UUID of the given SWAP file or disk'''
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
                      hide=hide)
@@ -174,37 +174,35 @@ def instance_swap_uuid(con, disk_path, hide=True):
 
 
 @task
-def instance_inventory(con, instance):
+def inventory(con, instance):
     '''fetch instance characteristics'''
     inventory = {}
     logging.info('fetching instance %s inventory from %s...',
                  instance, con.host)
-    xml_root = ET.fromstring(instance_fetch_libvirt_xml(con,
-                                                        instance))
+    xml_root = ET.fromstring(fetch_xml(con, instance))
     # XXX: we drop duplicates in cpu and memory here
-    inventory['cpu'], = list(instance_parse_cpu(xml_root))
+    inventory['cpu'], = list(parse_cpu(xml_root))
     logging.info('CPU: %s', inventory['cpu'])
-    inventory['memory'], = list(instance_parse_memory(xml_root))
+    inventory['memory'], = list(parse_memory(xml_root))
     logging.info('memory: %s bytes (%s/%s)', inventory['memory'],
                  naturalsize(inventory['memory'], binary=True),
                  naturalsize(inventory['memory']))
 
     disks = OrderedDict()
-    for dev, path, type in instance_parse_disks(xml_root):
-        j = instance_disk_json(con, path)
+    for dev, path, type in parse_disks(xml_root):
+        j = disk_json(con, path)
         disk_info = json.loads(j)
         disk_info['xml_dev'] = dev
         disk_info['xml_type'] = type
 
         if path.endswith('-swap'):
-            swap_uuid = instance_swap_uuid(con, path)
-            disk_info['swap_uuid'] = swap_uuid
+            disk_info['swap_uuid'] = swap_uuid(con, path)
             logging.info('found swap %s: %s bytes (%s/%s) UUID:%s',
                          os.path.basename(path),
                          disk_info['virtual-size'],
                          naturalsize(disk_info['virtual-size'], binary=True),
                          naturalsize(disk_info['virtual-size']),
-                         swap_uuid)
+                         disk_info['swap_uuid'])
         else:
             logging.info('disk %s: %s bytes (%s/%s)',
                          os.path.basename(path),

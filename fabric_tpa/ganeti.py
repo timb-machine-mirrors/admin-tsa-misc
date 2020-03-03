@@ -109,7 +109,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     ganeti_node_con = Connection(ganeti_node)
 
     # STEP 1, 2: inventory
-    inventory = libvirt.instance_inventory(libvirt_con, instance_con.host)
+    inventory = libvirt.inventory(libvirt_con, instance_con.host)
 
     # STEP 3: authorized_keys hack
     pubkey = host.fetch_ssh_host_pubkey(ganeti_node_con)

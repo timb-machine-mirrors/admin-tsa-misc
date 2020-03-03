@@ -62,7 +62,7 @@ def parse_args(args=sys.argv[1:]):
 
 
 @task
-def retire_instance(host_con, instance):
+def retire(host_con, instance):
     '''retire instance, depending on its type
 
     Checks if it's a ganeti node and otherwise assunmes it's
@@ -74,7 +74,7 @@ def retire_instance(host_con, instance):
         try:
             ganeti.getmaster(host_con)
         except invoke.exceptions.Failure:
-            libvirt.retire_instance(host_con, instance)
+            libvirt.retire(host_con, instance)
         else:
             raise NotImplementedError('ganeti host retirement not supported')
 
@@ -108,7 +108,7 @@ def main(args):
     for instance in args.instance:
         # STEP 1, 3, 4, 5
         try:
-            retire_instance(host_con, instance)
+            retire(host_con, instance)
         except invoke.exceptions.Failure as e:
             logging.error('failed to retire instance %s on host %s: %s',
                           instance, host_con.host, e)
