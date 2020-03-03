@@ -51,20 +51,26 @@ from . import host
 @task
 def shutdown(con, instance):
     '''turn off instance with virsh'''
-    con.run("virsh shutdown '%s'" % instance)
+    return virsh(con, "shutdown '%s'" % instance)
 
 
 @task
 def undefine(con, instance):
     '''remove instance configuration file'''
-    con.run("virsh undefine '%s'" % instance)
+    return virsh(con, "undefine '%s'" % instance)
 
 
 @task
 def is_running(con, instance, hide=True, dry=False):
     '''check if an instance is running'''
-    result = con.run('virsh list --state-running --name', hide=hide, dry=dry)
+    result = virsh(con, 'list --state-running --name', hide=hide, dry=dry)
     return instance in result.stdout
+
+
+@task
+def virsh(con, command, hide=True, dry=False):
+    '''run an arbitrary virsh command'''
+    return con.run('virsh %s' % command, hide=hide, dry=dry)
 
 
 @task
