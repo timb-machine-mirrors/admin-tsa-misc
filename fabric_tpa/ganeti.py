@@ -169,6 +169,8 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     # STEP 6: launch instance
     disk_spec = ''
     i = 0
+    # TODO: order matters here! in cupani, -lvm ended up before -root
+    # and that broke the bootloader
     for path, disk in inventory['disks'].items():
         disk_spec += ' --disk %d:adopt=%s' % (i, disk['basename'])
         # TODO: guess what goes on the HDDs!
