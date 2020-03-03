@@ -132,8 +132,8 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
     if not ganeti_node:
         logging.error('ganeti node not provided')
         return False
-    libvirt_con = Connection(libvirt_host)
-    ganeti_node_con = Connection(ganeti_node)
+    libvirt_con = Connection(libvirt_host, config=instance_con.config)
+    ganeti_node_con = Connection(ganeti_node, config=instance_con.config)
 
     # STEP 1, 2: inventory
     inventory = libvirt.inventory(libvirt_con, instance_con.host)

@@ -80,5 +80,7 @@ def append_to_file(con, path, content):
     '''append bytes to a file
 
     This does not check for duplicates.'''
+    if con.config.run.dry:
+        return
     with con.sftp().file(path, mode='ab') as fp:
         fp.write(content)

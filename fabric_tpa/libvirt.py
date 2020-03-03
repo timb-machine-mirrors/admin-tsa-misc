@@ -174,21 +174,21 @@ def fetch_xml(con, instance):
     return buffer.getvalue()
 
 
-def disk_json(con, disk_path, hide=True):
+def disk_json(con, disk_path, hide=True, dry=False):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
-        result = con.run(command, hide=hide)
+        result = con.run(command, hide=hide, dry=dry)
     except OSError as e:
         logging.error('failed to run %s: %s', command, e)
         return False
     return result.stdout
 
 
-def swap_uuid(con, disk_path, hide=True):
+def swap_uuid(con, disk_path, hide=True, dry=False):
     '''find the UUID of the given SWAP file or disk'''
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
-                     hide=hide)
+                     hide=hide, dry=dry)
     return result.stdout.strip()
 
 
