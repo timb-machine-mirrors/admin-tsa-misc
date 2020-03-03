@@ -191,3 +191,52 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     logging.debug('command: %s', command)
     ganeti_master_con = Connection(getmaster(ganeti_node_con))
     ganeti_master_con.run(command)
+
+    # TODO: remove old disks
+
+    # TODO: remaining procedure:
+    # STEP 9. IP address change on new instance:
+    #
+    #      edit `/etc/hosts` and `/etc/network/interfaces` by hand and add
+    #      IPv4 and IPv6 ip. IPv4 configuration can be found in:
+    #
+    #          gnt-instance show $INSTANCE
+    #
+    #      Latter can be guessed by concatenating `2a01:4f8:fff0:4f::` and
+    #      the IPv6 local local address without `fe80::`. For example: a
+    #      link local address of `fe80::266:37ff:fe65:870f/64` should yield
+    #      the following configuration:
+    #
+    #          iface eth0 inet6 static
+    #              accept_ra 0
+    #              address 2a01:4f8:fff0:4f:266:37ff:fe65:870f/64
+    #              gateway 2a01:4f8:fff0:4f::1
+    #
+    #      TODO: reuse `gnt-debian-interfaces` from the ganeti puppet
+    #      module script here?
+    #
+    # STEP 10. functional tests: change your `/etc/hosts` to point to the new
+    #     server and see if everything still kind of works
+    #
+    # STEP 11. shutdown original instance
+    #
+    # STEP 12. resync and reconvert image, on the Ganeti MASTER NODE:
+    #
+    #         gnt-instance stop $INSTANCE
+    #
+    # [...]
+    #
+    # STEP 13. switch to DRBD, still on the Ganeti MASTER NODE:
+    #
+    #         gnt-instance modify -t drbd $INSTANCE
+    #         gnt-instance failover $INSTANCE
+    #         gnt-instance startup $INSTANCE
+    #
+    # STEP 14. redo IP adress change in `/etc/network/interfaces` and
+    # `/etc/hosts`
+    #
+    # STEP 15. final functional test
+    #
+    # STEP 16. global IP address change
+    #
+    # STEP 17. decomission old instance ([[retire-a-host]])
