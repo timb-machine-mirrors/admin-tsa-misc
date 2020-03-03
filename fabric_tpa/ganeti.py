@@ -88,8 +88,10 @@ def empty_node(con, node):
     'ganeti-node': 'ganeti node to import instance into',
     'libvirt-host': 'libvirt host to import instance from',
     'copy': 'copy the disks between the nodes (default: True)',
+    'adopt': 'adopt the instance in ganeti (default: True)',
 })
-def libvirt_import(instance_con, ganeti_node, libvirt_host, copy=True):
+def libvirt_import(instance_con, ganeti_node, libvirt_host,
+                   copy=True, adopt=True):
     '''import instance into ganeti
 
     This will import the given hosts (INSTANCE_CON) from the KVM_HOST
@@ -97,6 +99,9 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, copy=True):
     avoid running rsync if a copy of the disks already exists. rsync
     is fast, but it can still be pretty slow to run this command
     repeatedly because rsync still needs to check the entire disk.
+
+    By default, the resulting disk is "adopted", or "added" if you
+    will, into Ganeti, set *skip_adopt* to False to skip that step.
     '''
     # check for required options, workaround for:
     # https://github.com/pyinvoke/invoke/issues/new
@@ -177,7 +182,6 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, copy=True):
         i += 1
 
     inventory['memory_human'] = naturalsize(inventory['memory'], gnu=True)
-    logging.info('launching adopted instance...')
     command = f'''gnt-instance add -t plain \
     --net 0:ip=pool,network=gnt-fsn \
     --no-name-check \
@@ -189,8 +193,12 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, copy=True):
     memory={inventory['memory_human']},vcpus={inventory['cpu']} \
     {instance_con.host}'''
     logging.debug('command: %s', command)
-    ganeti_master_con = Connection(getmaster(ganeti_node_con))
-    ganeti_master_con.run(command)
+    if adopt:
+        logging.info('launching adopted instance...')
+        ganeti_master_con = Connection(getmaster(ganeti_node_con))
+        ganeti_master_con.run(command)
+    else:
+        logging.info('skipping ganeti adoption: %s', command)
 
     # TODO: remove old disks
 
