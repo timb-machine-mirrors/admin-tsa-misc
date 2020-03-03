@@ -147,14 +147,6 @@ def fetch_xml(con, instance):
     return buffer.getvalue()
 
 
-def disks_lists(con, instance):
-    '''find the instance disks'''
-    sftp = con.sftp()
-    for disk in sftp.listdir_iter('/srv/vmstore/%s' % instance):
-        logging.debug('found disk %s', disk.filename)
-        yield '/srv/vmstore/%s/%s' % (instance, disk.filename)
-
-
 def disk_json(con, disk_path, hide=True):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
