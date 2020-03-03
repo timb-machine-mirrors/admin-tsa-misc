@@ -20,6 +20,7 @@
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
+from collections import OrderedDict, namedtuple
 import io
 import json
 import logging
@@ -115,6 +116,24 @@ def instance_parse_cpu(xml_root):
         yield int(tag.text)
 
 
+# a device name (e.g. "sda"), path
+# (e.g. /srv/vmstore/test.torproject.org/test.torproject.org-root) and
+# type (e.g. "qcow2") as found in the libvirt XML file
+disk_tuple = namedtuple('disk_tuple', ('dev', 'path', 'type'))
+
+
+def instance_parse_disks(xml_root):
+    '''list disk paths in order, as a disk_tuple'''
+    for devices in xml_root.findall('devices'):
+        for disk in devices.findall('disk'):
+            assert disk.get('type') == 'file' and disk.get('device') == 'disk'
+            type = disk.find('driver').get('type')
+            assert type in ('raw', 'qcow2')
+            path = disk.find('source').get('file')
+            dev = disk.find('target').get('dev')
+            yield disk_tuple(dev, path, type)
+
+
 def instance_fetch_libvirt_xml(con, instance):
     '''download the XML configuration for an instance'''
     buffer = io.BytesIO()
@@ -170,27 +189,29 @@ def instance_inventory(con, instance):
                  naturalsize(inventory['memory'], binary=True),
                  naturalsize(inventory['memory']))
 
-    disks = {}
-    for disk in instance_list_disks(con, instance):
-        j = instance_disk_json(con, disk)
+    disks = OrderedDict()
+    for dev, path, type in instance_parse_disks(xml_root):
+        j = instance_disk_json(con, path)
         disk_info = json.loads(j)
+        disk_info['xml_dev'] = dev
+        disk_info['xml_type'] = type
 
-        if disk.endswith('-swap'):
-            swap_uuid = instance_swap_uuid(con, disk)
+        if path.endswith('-swap'):
+            swap_uuid = instance_swap_uuid(con, path)
             disk_info['swap_uuid'] = swap_uuid
             logging.info('found swap %s: %s bytes (%s/%s) UUID:%s',
-                         os.path.basename(disk),
+                         os.path.basename(path),
                          disk_info['virtual-size'],
                          naturalsize(disk_info['virtual-size'], binary=True),
                          naturalsize(disk_info['virtual-size']),
                          swap_uuid)
         else:
             logging.info('disk %s: %s bytes (%s/%s)',
-                         os.path.basename(disk),
+                         os.path.basename(path),
                          disk_info['virtual-size'],
                          naturalsize(disk_info['virtual-size'], binary=True),
                          naturalsize(disk_info['virtual-size']))
-        disks[disk] = disk_info
+        disks[path] = disk_info
 
     inventory['disks'] = disks
     return inventory
