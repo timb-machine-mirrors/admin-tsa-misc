@@ -87,14 +87,15 @@ def empty_node(con, node):
 @task(help={
     'ganeti-node': 'ganeti node to import instance into',
     'libvirt-host': 'libvirt host to import instance from',
+    'copy': 'copy the disks between the nodes (default: True)',
 })
-def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
+def libvirt_import(instance_con, ganeti_node, libvirt_host, copy=True):
     '''import instance into ganeti
 
     This will import the given hosts (INSTANCE_CON) from the KVM_HOST
-    (string) into the GANETI_NODE. You can use SKIP_COPY to avoid
-    running rsync if a copy of the disks already exists. rsync is
-    fast, but it can still be pretty slow to run this command
+    (string) into the GANETI_NODE. You can set *copy* to False to
+    avoid running rsync if a copy of the disks already exists. rsync
+    is fast, but it can still be pretty slow to run this command
     repeatedly because rsync still needs to check the entire disk.
     '''
     # check for required options, workaround for:
@@ -127,7 +128,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host, skip_copy=False):
     for path, disk in inventory['disks'].items():
         disk['basename'] = os.path.basename(disk['filename'])
         disk['filename_local'] = '/srv/' + disk['basename']
-        if skip_copy:
+        if not copy:
             continue
         if disk['filename'].endswith('-swap'):
             logging.info('skipping swap file %s', disk['filename'])
