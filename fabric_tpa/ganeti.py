@@ -179,6 +179,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
     for path, disk in inventory['disks'].items():
         disk['basename'] = os.path.basename(disk['filename'])
         disk['filename_local'] = spool_dir + disk['basename']
+        disk['device_path'] = '/dev/vg_ganeti/' + disk['basename']
         logging.info('creating %s logical volume vg_ganeti/%s on host %s',
                      naturalsize(disk['virtual-size'], binary=True),
                      disk['basename'],
@@ -192,8 +193,9 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
                 continue
             else:
                 raise e
-        disk['device_path'] = '/dev/vg_ganeti/' + disk['basename']
 
+    logging.info('initializing disks...')
+    for path, disk in inventory['disks'].items():
         if disk['basename'].endswith('-swap'):
             logging.info('creating swap UUID %s in %s',
                          disk['swap_uuid'], disk['device_path'])
