@@ -179,7 +179,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
         disk['basename'] = os.path.basename(disk['filename'])
         disk['filename_local'] = spool_dir + disk['basename']
         logging.info('creating %s logical volume vg_ganeti/%s on host %s',
-                     naturalsize(disk['virtual-size']),
+                     naturalsize(disk['virtual-size'], binary=True),
                      disk['basename'],
                      ganeti_node)
         command = 'lvcreate -L {virtual-size}B -n {basename} vg_ganeti'.format(**disk)  # noqa: E501

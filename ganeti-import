@@ -59,7 +59,7 @@ def parse_args(args=sys.argv[1:]):
 def main(args):
     if args.dryrun:
         raise NotImplementedError('--dryrun has no effect, use ganeti wrapper instead')  # noqa: E501
-    logging.warning('this wrapper is deprecated, use `./ganeti -H instance import -g ganeti-node -l libvirt-node` instead')  # noqa: E501
+    logging.warning('this wrapper is deprecated, use `./ganeti -H instance libvirt-import -g ganeti-node -l libvirt-node` instead')  # noqa: E501
     con = Connection(args.instance)
     ganeti.libvirt_import(con, args.ganeti_node, args.libvirt_host,
                           args.skip_copy)
