@@ -156,6 +156,7 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
         logging.info('copying disks from %s to %s...',
                      libvirt_host, ganeti_node)
         if suspend:
+            # TODO: warn users about downtime
             try:
                 with libvirt.suspend_then_resume(libvirt_con, instance_con.host):  # noqa: E501
                     copy_disks(libvirt_con,

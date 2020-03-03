@@ -76,8 +76,10 @@ def resume(con, instance, hide=True, dry=False):
 @contextmanager
 def suspend_then_resume(con, instance):
     try:
+        logging.info('suspending instance %s on host %s', instance, con.host)
         yield suspend(con, instance)
     finally:
+        logging.info('resuming instance %s on host %s', instance, con.host)
         return resume(con, instance)
 
 
