@@ -84,7 +84,7 @@ def empty_node(con, node):
     )
 
 
-def copy_disks(libvirt_con, ganeti_con, disks):
+def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
     '''helper function to copy disks between instances
 
     Relies heavily on a modified inventory as provided by
@@ -94,7 +94,7 @@ def copy_disks(libvirt_con, ganeti_con, disks):
         if disk['filename'].endswith('-swap'):
             logging.info('skipping swap file %s', disk['filename'])
             continue
-        command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (libvirt_con.host, path, disk['filename_local'])  # noqa: E501
+        command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (libvirt_con.host, path, target_dir)  # noqa: E501
         logging.debug('command: %s', command)
         ganeti_con.run(command, pty=True)
 
@@ -148,30 +148,36 @@ def libvirt_import(instance_con, ganeti_node, libvirt_host,
                  ganeti_node, libvirt_host)
 
     # STEP 4: copy disks
-    # TODO: check for free space
-    # set some base variables for all disks
-    # TODO: should be moved back to inventory?
-    for path, disk in inventory['disks'].items():
-        disk['basename'] = os.path.basename(disk['filename'])
-        disk['filename_local'] = '/srv/' + disk['basename']
+    spool_dir = '/srv/'
+    # rest of the code assumes this has a trailing slash
+    assert spool_dir.endswith('/')
     if copy:
+        # TODO: check for free space
         logging.info('copying disks from %s to %s...',
                      libvirt_host, ganeti_node)
         if suspend:
             try:
                 with libvirt.suspend_then_resume(libvirt_con, instance_con.host):  # noqa: E501
-                    copy_disks(libvirt_con, ganeti_node_con, inventory['disks'])  # noqa: E501
+                    copy_disks(libvirt_con,
+                               ganeti_node_con,
+                               spool_dir,
+                               inventory['disks'])
             except invoke.exceptions.UnexpectedExit as e:
                 logging.error('failed to suspend or resume host: %s', e.result)
                 return False
         else:
-            copy_disks(libvirt_con, ganeti_node_con, inventory['disks'])
+                    copy_disks(libvirt_con,
+                               ganeti_node_con,
+                               spool_dir,
+                               inventory['disks'])
     else:
         logging.info('skipping disk copy as requested')
 
     # STEP 5: create volumes
     logging.info('creating logical volumes...')
     for path, disk in inventory['disks'].items():
+        disk['basename'] = os.path.basename(disk['filename'])
+        disk['filename_local'] = spool_dir + disk['basename']
         logging.info('creating %s logical volume vg_ganeti/%s on host %s',
                      naturalsize(disk['virtual-size']),
                      disk['basename'],
