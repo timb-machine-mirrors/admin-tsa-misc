@@ -144,6 +144,13 @@ def shutdown(con,
     return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
 
 
+# https://github.com/fabric/fabric/issues/2061
+class FabricException(OSError,
+                      paramiko.ssh_exception.SSHException,
+                      socket.error):
+    pass
+
+
 @task
 def reboot_and_wait(con,
                     reason=DEFAULT_REASON,
@@ -173,9 +180,7 @@ def reboot_and_wait(con,
     except invoke.UnexpectedExit as e:
         logging.error('unexpected error issuing reboot on %s: %s', con.host, e)
         return False
-    except (OSError, invoke.Failure,
-            paramiko.ssh_exception.SSHException,
-            socket.error) as e:
+    except FabricException as e:
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
 
@@ -199,9 +204,7 @@ def reboot_and_wait(con,
     logging.info('host %s should be back online, checking uptime', con.host)
     try:
         con.run('uptime')
-    except (OSError, invoke.Failure,
-            paramiko.ssh_exception.SSHException,
-            socket.error) as e:
+    except FabricException as e:
         logging.error('host %s cannot be reached by fabric: ', con.host, e)
         return False
 
