@@ -29,7 +29,7 @@ import sys
 import time
 
 try:
-    from fabric import task, Connection, Config, Result
+    from fabric import task, Connection, Config
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
