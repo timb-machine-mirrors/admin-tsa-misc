@@ -151,6 +151,23 @@ def reboot_and_wait(con,
                     delay_down=DEFAULT_DELAY_DOWN,
                     delay_up=DEFAULT_DELAY_UP):
     '''shutdown the machine and wait for the box to return'''
+    # TODO: check if reboot required
+    # TODO: check reboot policy, especially for reboot delays
+    try:
+        master = ganeti.getmaster(con)
+    except invoke.exceptions.Failure:
+        logging.info('host %s is not a ganeti node', con.host)
+    else:
+        master_con = Connection(master, config=con.config, user='root')
+
+        # shorter delay, as the node will be empty
+        delay_shutdown = 1
+        logging.info('ganeti node detection, migrating instances from  %s',
+                     con.host)
+        if not ganeti.empty_node(master_con, con.host):
+            logging.error('failed to empty node %s, aborting', con.host)
+            return False
+
     try:
         shutdown(con, ShutdownType.reboot, reason, delay_shutdown)
     except invoke.UnexpectedExit as e:
@@ -249,22 +266,6 @@ def main(args):
             time.sleep(args.delay_nodes)
         node_con = Connection(node, config=config, user='root')
         delay_shutdown = args.delay_shutdown
-        # TODO: check if reboot required
-        # TODO: check reboot policy, especially for reboot delays
-        try:
-            master = ganeti.getmaster(node_con)
-        except invoke.exceptions.Failure:
-            logging.info('host %s is not a ganeti node', node)
-        else:
-            master_con = Connection(master, config=config, user='root')
-
-            # shorter delay, as the node will be empty
-            delay_shutdown = 1
-            logging.info('ganeti node detection, migrating instances from  %s',
-                         node)
-            if not ganeti.empty_node(master_con, node):
-                logging.error('failed to empty node %s, aborting', node)
-                break
 
         logging.info('rebooting node %s', node)
         if not reboot_and_wait(node_con,
