@@ -61,8 +61,9 @@ class VerboseProgram(Fab):
             logging.getLogger('').setLevel(logging.DEBUG)
         elif self.args.verbose.value:
             logging.getLogger('').setLevel(logging.INFO)
-        # reset formatter
+        # kick the base logger so it sets up a basic stream
         logging.debug('reseting logging formats')
+        # reset formatter
         for h in logging.getLogger('').handlers:
             f = logging.Formatter()
             h.setFormatter(f)
