@@ -61,6 +61,9 @@ def getmaster(con, hide=True):
                                     '%s is not a ganeti node' % con.host)
 
 
+# troubleshooting:
+# Fri Feb 21 16:42:18 2020  - WARNING: Can't find disk on node fsn-node-03.torproject.org  # noqa: E501
+# gnt-instance activate-disks onionoo-backend-02.torproject.org
 @task
 def empty_node(con, node):
     '''migrate primary instances
