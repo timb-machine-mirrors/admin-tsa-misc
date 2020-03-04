@@ -135,6 +135,9 @@ def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
     '''shutdown the machine and wait for the box to return'''
     try:
         shutdown(con, ShutdownType.reboot, reason, delay_shutdown)
+    except invoke.UnexpectedExit as e:
+        logging.error('unexpected error issuing reboot on %s: %s', con.host, e)
+        return False
     except invoke.Failure as e:
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
