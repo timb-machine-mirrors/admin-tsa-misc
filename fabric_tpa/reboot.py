@@ -156,7 +156,9 @@ def reboot_and_wait(con,
     except invoke.UnexpectedExit as e:
         logging.error('unexpected error issuing reboot on %s: %s', con.host, e)
         return False
-    except invoke.Failure as e:
+    except (OSError, invoke.Failure,
+            paramiko.ssh_exception.SSHException,
+            socket.error) as e:
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
 
