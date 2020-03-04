@@ -56,17 +56,13 @@ class VerboseProgram(Fab):
         return core_args + extra_args
 
     def parse_core(self, argv):
+        # override basic format
+        logging.basicConfig(format='%(message)s')
         super().parse_core(argv)
         if self.args.debug.value:
             logging.getLogger('').setLevel(logging.DEBUG)
         elif self.args.verbose.value:
             logging.getLogger('').setLevel(logging.INFO)
-        # kick the base logger so it sets up a basic stream
-        logging.debug('reseting logging formats')
-        # reset formatter
-        for h in logging.getLogger('').handlers:
-            f = logging.Formatter()
-            h.setFormatter(f)
         # override default logging policies in submodules
         #
         # without this, we get debugging info from paramiko with --verbose
