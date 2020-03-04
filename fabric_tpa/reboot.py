@@ -35,6 +35,7 @@ except ImportError:
     raise
 # no check required, fabric depends on invoke
 import invoke
+import paramiko.ssh_exception
 
 
 from . import ganeti
@@ -177,8 +178,12 @@ def reboot_and_wait(con,
         return False
 
     logging.info('host %s should be back online, checking uptime', con.host)
-    if con.run('uptime', warn=True).failed:
-        logging.error('host %s cannot be reached by fabric', con.host)
+    try:
+        con.run('uptime')
+    except (OSError, invoke.Failure,
+            paramiko.ssh_exception.SSHException,
+            socket.error) as e:
+        logging.error('host %s cannot be reached by fabric: ', con.host, e)
         return False
 
     return True
