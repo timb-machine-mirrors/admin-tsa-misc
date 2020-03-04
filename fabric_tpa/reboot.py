@@ -114,6 +114,15 @@ class ShutdownType(str, Enum):
     wall = '-k'
     cancel = '-c'
 
+    def __str__(self):
+        '''return the actual string representation
+
+        the default string representation of an Enum is Class.field,
+        not the actual value's representation. so instead of returning
+        (say) 'ShutdownType.reboot', we return '-r' here.
+        '''
+        return self.value
+
 
 @task
 def shutdown(con, kind, reason, delay):
