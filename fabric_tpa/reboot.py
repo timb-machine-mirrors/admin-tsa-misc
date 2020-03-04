@@ -39,6 +39,12 @@ import invoke
 
 from . import ganeti
 
+DEFAULT_DELAY_DOWN = 30  # in seconds
+DEFAULT_DELAY_UP = 300  # in seconds
+DEFAULT_DELAY_NODES = 5  # in seconds
+DEFAULT_DELAY_SHUTDOWN = 10  # in minutes
+DEFAULT_REASON = 'no reason given'
+
 
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description=__doc__,
@@ -52,21 +58,21 @@ def parse_args(args=sys.argv[1:]):
                         help="node(s) to reboot")
     parser.add_argument('--dryrun', '-n', action='store_true',
                         help='do not reboot servers (but do migrate)')
-    parser.add_argument('--delay-down', default=30, type=int,
+    parser.add_argument('--delay-down', default=DEFAULT_DELAY_DOWN, type=int,
                         help='how long to wait for host to shutdown (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-up', default=300, type=int,
+    parser.add_argument('--delay-up', default=DEFAULT_DELAY_UP, type=int,
                         help='how long to wait for host to come back up (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-nodes', default=5, type=int,
+    parser.add_argument('--delay-nodes', default=DEFAULT_DELAY_UP, type=int,
                         help='how long to wait between nodes (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-shutdown', default=10, type=int,
-                        help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
+    parser.add_argument('--delay-shutdown', default=DEFAULT_DELAY_SHUTDOWN,
+                        type=int, help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
     parser.add_argument('--reason', default='rebooting for security upgrades',
                         help='reason to give users (default: %(default)s)')
     return parser.parse_args(args=args)
 
 
 @task
-def wait_for_shutdown(con, wait_timeout, wait_confirm=3):
+def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
     '''wait for host to shutdown
 
     This pings the node and waits one second until timeout is expired
@@ -90,7 +96,7 @@ def wait_for_shutdown(con, wait_timeout, wait_confirm=3):
 
 
 @task
-def wait_for_boot(con, timeout):
+def wait_for_boot(con, timeout=DEFAULT_DELAY_UP):
     '''wait for host to ping
 
     This tries to ping the host until it responds or until the timeout
@@ -129,13 +135,20 @@ class ShutdownType(str, Enum):
 
 
 @task
-def shutdown(con, kind, reason, delay):
+def shutdown(con,
+             kind=ShutdownType.reboot,
+             reason=DEFAULT_REASON,
+             delay=DEFAULT_DELAY_SHUTDOWN):
     '''trigger a shutdown or reboot on the host'''
     return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
 
 
 @task
-def reboot_and_wait(con, reason, delay_shutdown, delay_down, delay_up):
+def reboot_and_wait(con,
+                    reason=DEFAULT_REASON,
+                    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+                    delay_down=DEFAULT_DELAY_DOWN,
+                    delay_up=DEFAULT_DELAY_UP):
     '''shutdown the machine and wait for the box to return'''
     try:
         shutdown(con, ShutdownType.reboot, reason, delay_shutdown)
