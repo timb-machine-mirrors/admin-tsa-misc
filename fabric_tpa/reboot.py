@@ -237,7 +237,14 @@ def main(args):
         }
     })
 
+    first = True
     for node in args.node:
+        if first:
+            first = False
+        else:
+            logging.info('sleeping %d seconds before rebooting %s',
+                         args.delay_nodes, node)
+            time.sleep(args.delay_nodes)
         node_con = Connection(node, config=config, user='root')
         delay_shutdown = args.delay_shutdown
         # TODO: check if reboot required
@@ -266,9 +273,7 @@ def main(args):
             logging.error('rebooting node %s failed, aborting', node)
             break
 
-        logging.info('done with node %s, sleeping %d seconds',
-                     node, args.delay_nodes)
-        time.sleep(args.delay_nodes)
+        logging.info('done with node %s', node)
     # TODO: rebalance ganeti cluster if nodes were migrated
 
 
