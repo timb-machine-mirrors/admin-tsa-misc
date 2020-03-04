@@ -66,7 +66,7 @@ def parse_args(args=sys.argv[1:]):
 
 
 @task
-def wait_for_shutdown(con, timeout):
+def wait_for_shutdown(con, wait_timeout, wait_confirm=3):
     '''wait for host to shutdown
 
     This pings the node and waits one second until timeout is expired
@@ -75,14 +75,18 @@ def wait_for_shutdown(con, timeout):
     Returns True if the box stops pinging before timeout, or False if
     the box still pings after the timeout expired.
     '''
-    for i in range(timeout):
+    confirmations = 0
+    for i in range(wait_timeout):
         if tcp_ping_host(con):
             # port is open, so we didn't timeout, sleep the required delay
             # TODO: discount the ping time to get a real one second delay?
             time.sleep(1)
         else:
-            return True
-    return not tcp_ping_host(con)
+            if confirmations >= wait_confirm:
+                break
+            else:
+                confirmations += 1
+    return confirmations >= wait_confirm
 
 
 @task
