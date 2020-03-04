@@ -20,7 +20,6 @@
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
-import argparse
 import logging
 import sys
 
@@ -34,27 +33,6 @@ from invoke import Argument, Collection
 
 
 from fabric_tpa import ganeti
-
-
-def parse_args(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     epilog='''migrate a KVM instance to the Ganeti cluster''')  # noqa: E501
-    parser.add_argument('--verbose', '-v', dest='log_level',
-                        action='store_const', const='info', default='warning')
-    parser.add_argument('--debug', '-d', dest='log_level',
-                        action='store_const', const='debug', default='warning')
-    parser.add_argument('--dryrun', '-n', action='store_true',
-                        help='do nothing')
-    parser.add_argument('--libvirt-host', required=True,
-                        help='host to migrate the instance from')
-    parser.add_argument('--ganeti-master',
-                        help='ganeti master node')
-    parser.add_argument('--ganeti-node',
-                        help='spare ganeti node to migrate the instance to')
-    parser.add_argument('--instance', required=True,
-                        help='host to migrate')
-    parser.add_argument('--skip-copy', action='store_true')
-    return parser.parse_args(args=args)
 
 
 class VerboseProgram(Fab):
