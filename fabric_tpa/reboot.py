@@ -145,6 +145,7 @@ def shutdown(con,
 
 
 # https://github.com/fabric/fabric/issues/2061
+# TODO: replace OSError by this everywhere?
 class FabricException(OSError, paramiko.ssh_exception.SSHException):
     pass
 
