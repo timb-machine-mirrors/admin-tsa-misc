@@ -129,20 +129,29 @@ iface eth0 inet6 static
 
 
 @task
-def ipv6_slaac(con, ipv6_subnet, mac):
+def ipv6_slaac(con, ipv6_subnet, mac, hide=True):
     '''compute IPv6 SLAAC address from subnet and MAC address
 
     This uses the ipv6calc command.
 
-    .. TODO:: rewrite in python-only?'''
+    .. TODO:: rewrite in python-only?
+    '''
     command = ['ipv6calc', '--action', 'prefixmac2ipv6',
                '--in', 'prefix+mac', '--out', 'ipv6',
                ipv6_subnet, mac]
     logging.debug('manual SLAAC allocation with: %s', ' '.join(command))
     try:
-        return con.run(' '.join(command)).stdout.strip()
+        return con.run(' '.join(command), hide=hide).stdout.strip()
     except invoke.exceptions.UnexpectedExit as e:
         logging.error('cannot find IPv6 address, install ipv6calc: %s', e)
+
+
+def test_ipv6_slaac():
+    con = invoke.Context()
+    mac = '00:66:37:f1:bb:6b'
+    network = '2a01:4f8:fff0:4f::'
+    expected = '2a01:4f8:fff0:4f:266:37ff:fef1:bb6b'
+    assert expected == ipv6_slaac(con, network, mac)
 
 
 @task
