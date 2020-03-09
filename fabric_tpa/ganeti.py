@@ -133,7 +133,20 @@ def find_instance_ipconfig(ganeti_con, instance):
         # TODO: ugly AF, use a dict match or something
         facts[match.group(1)] = match.group(2)
     logging.debug('found networking facts: %s', facts)
-    return facts
+    ipv4_subnet = facts['Subnet'].split('/')[-1]
+    ipv6_net, ipv6_subnet = facts['IPv6 Subnet'].split('/')
+    # HACK: we use a local invoke context instead of the remote
+    ipv6 = host.ipv6_slaac(invoke.Context(),
+                           ipv6_net,
+                           facts['MAC'])
+    conf = host.ipconfig(facts['IP'],
+                         ipv4_subnet,
+                         facts['Gateway'],
+                         ipv6,
+                         ipv6_subnet,
+                         facts['IPv6 Gateway'])
+    logging.debug('ipconfig: %s', conf)
+    return conf
 
 
 def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
