@@ -22,6 +22,7 @@ from __future__ import print_function, unicode_literals
 
 import logging
 import os.path
+import re
 import sys
 
 try:
@@ -85,6 +86,54 @@ def empty_node(con, node):
                 or ("No primary instances on node %s, exiting." % con.host) in result.stdout  # noqa: E501
             )
     )
+
+
+@task
+def renumber_instance(ganeti_con, instance, disk, ipconfig):
+    # TODO: mount/unmount should be a context manager
+    host.mount(ganeti_con, disk, '/mnt')
+    host.rewrite_interfaces(ganeti_con, ipconfig,
+                            path='/mnt/etc/network/interfaces')
+    host.umount(ganeti_con, '/mnt')
+
+
+@task
+def fetch_instance_info(ganeti_con, instance):
+    info = ganeti_con.run('gnt-instance info %s' % instance)
+    logging.debug('loaded instance %s info from %s: %s',
+                  instance, ganeti_con.host, info)
+    return info
+
+
+@task
+def fetch_network_info(ganeti_con, network='gnt-fsn'):
+    info = ganeti_con.run('gnt-network info %s' % network)
+    logging.debug('loaded network %s information from %s: %s',
+                  network, ganeti_con.host, info)
+    return info
+
+
+GANETI_INSTANCE_INFO_REGEX = r'^\s+(MAC|IP|network):\s+(.*)$'
+GANETI_NETWORK_REGEX = r'^\s+(Subnet|Gateway|IPv6 Subnet|IPv6 Gateway):\s+(.*)$'  # noqa: E501
+
+
+@task
+def find_instance_ipconfig(ganeti_con, instance):
+    instance_info = fetch_instance_info(ganeti_con, instance)
+    facts = {}
+    for match in re.finditer(GANETI_INSTANCE_INFO_REGEX,
+                             instance_info.stdout,
+                             re.MULTILINE):
+        # TODO: ugly AF, use a dict match or something
+        facts[match.group(1)] = match.group(2)
+    network_info = fetch_network_info(ganeti_con, facts['network'])
+    for match in re.finditer(GANETI_NETWORK_REGEX,
+                             network_info.stdout,
+                             re.MULTILINE):
+        # TODO: ugly AF, use a dict match or something
+        facts[match.group(1)] = match.group(2)
+    logging.debug('found networking facts: %s', facts)
+    return facts
 
 
 def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
