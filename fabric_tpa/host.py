@@ -122,6 +122,7 @@ iface eth0 inet6 static
     address {ipconfig.ipv6}/{ipconfig.ipv6_subnet}
     gateway {ipconfig.ipv6_gateway}
 '''
+    logging.debug('generated %s: %s', path, content)
     rewrite_file(con, path, content)
 
 
@@ -156,4 +157,5 @@ def rewrite_file(con, path, content):
     backup_path = path + '.bak'
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
     con.sftp().rename(path, backup_path)
+    logging.info('writing file %d bytes in %s on %s', len(content), path, con.host)
     append_to_file(con, path, content)
