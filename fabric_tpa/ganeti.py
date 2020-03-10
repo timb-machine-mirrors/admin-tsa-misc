@@ -50,7 +50,7 @@ from . import host
 def getmaster(con, hide=True):
     '''find master ganeti
 
-    This can be used to detect if a node is running ganeti or note.'''
+    This can be used to detect if a node is running ganeti or not.'''
     master = False
     logging.info('checking for ganeti master on node %s', con.host)
     result = con.run('gnt-cluster getmaster',
