@@ -67,7 +67,7 @@ def getmaster(con, hide=True):
 # Fri Feb 21 16:42:18 2020  - WARNING: Can't find disk on node fsn-node-03.torproject.org  # noqa: E501
 # gnt-instance activate-disks onionoo-backend-02.torproject.org
 @task
-def empty_node(con, node):
+def empty_node(node_con, master_host=None):
     '''migrate primary instances
 
     This migrates (using gnt-node migrate) *primary* instances away
@@ -77,14 +77,18 @@ def empty_node(con, node):
     This is *not* sufficient to retire a node, for that a full
     "evacuation" (including secondary nodes) needs to be performed.
     '''
-    command = 'gnt-node migrate -f %s' % node
-    logging.info('sending command %s to node %s', command, con.host)
-    result = con.run(command, warn=True)
+    if master_host is None:
+        master_host = getmaster(node_con)
+    master_con = host.find_context(master_host, config=node_con.config)
+
+    command = 'gnt-node migrate -f %s' % node_con.host
+    logging.info('sending command %s to node %s', command, master_con.host)
+    result = master_con.run(command, warn=True)
     # TODO: failover master?
     return (result.ok
             and (
                 "All instances migrated successfully." in result.stdout
-                or ("No primary instances on node %s, exiting." % con.host) in result.stdout  # noqa: E501
+                or ("No primary instances on node %s, exiting." % master_con.host) in result.stdout  # noqa: E501
             )
     )
 
