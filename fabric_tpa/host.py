@@ -89,9 +89,9 @@ def append_to_file(con, path, content):
 
 
 @task
-def mount(con, device, path, options=''):
+def mount(con, device, path, options='', warn=False):
     command = 'mount %s %s %s' % (device, path, options)
-    return con.run(command)
+    return con.run(command, warn=warn)
 
 
 @task

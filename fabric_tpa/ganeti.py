@@ -90,12 +90,42 @@ def empty_node(con, node):
 
 
 @task
-def renumber_instance(ganeti_con, instance, disk, ipconfig):
+def stop(ganeti_con, instance):
+    logging.info('stopping instance %s on %s', instance, ganeti_con.host)
+    return ganeti_con.run('gnt-instance stop %s' % instance)
+
+
+@task
+def start(ganeti_con, instance):
+    logging.info('starting instance %s on %s', instance, ganeti_con.host)
+    return ganeti_con.run('gnt-instance start %s' % instance)
+
+
+@task
+def renumber_instance(ganeti_con, instance):
+    ganeti_master_con = Connection(getmaster(ganeti_con))
+    instance_info = fetch_instance_info(ganeti_master_con, instance)
+    data, = YAML().load(instance_info)
+    disks = data['Disks']
+    disk0 = disks[0]
+    assert 'disk/0' in disk0
+    disk_path = disk0['on primary'].split(' ')[0]
+    ipconfig = find_instance_ipconfig(ganeti_master_con, instance,
+                                      instance_info)
+    stop(ganeti_master_con, instance)
     # TODO: mount/unmount should be a context manager
-    host.mount(ganeti_con, disk, '/mnt')
+    res = host.mount(ganeti_con, disk_path, '/mnt', warn=True)
+    if res.failed:
+        logging.warning('cannot mount partition directly: %s', res.stderr)
+        logging.info('trying kpartx activation')
+        res = ganeti_con.run('kpartx -av %s' % disk_path)
+        # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048
+        _, _, part, _ = res.stdout.split(' ', 3)
+        host.mount(ganeti_con, '/dev/mapper/%s' % part, '/mnt')
     host.rewrite_interfaces(ganeti_con, ipconfig,
                             path='/mnt/etc/network/interfaces')
     host.umount(ganeti_con, '/mnt')
+    start(ganeti_master_con, instance)
 
 
 @task
