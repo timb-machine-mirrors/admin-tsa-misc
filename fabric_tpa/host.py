@@ -137,7 +137,7 @@ iface eth0 inet6 static
 
 
 @task
-def mount(con, device, path, options='', warn=False):
+def mount(con, device, path, options='', warn=None):
     '''mount a device'''
     command = 'mount %s %s %s' % (device, path, options)
     return con.run(command, warn=warn)
@@ -150,7 +150,7 @@ def umount(con, path):
 
 
 @contextmanager
-def mount_then_umount(con, device, path, options='', warn=False):
+def mount_then_umount(con, device, path, options='', warn=None):
     '''convenient context manager for mount/umount'''
     try:
         yield mount(con, device, path, options, warn)

@@ -62,13 +62,13 @@ def undefine(con, instance):
 
 
 @task
-def suspend(con, instance, hide=True, dry=False):
+def suspend(con, instance, hide=None, dry=None):
     '''suspend an instance'''
     return virsh(con, "suspend '%s'" % instance, hide=hide, dry=dry)
 
 
 @task
-def resume(con, instance, hide=True, dry=False):
+def resume(con, instance, hide=None, dry=None):
     '''suspend an instance'''
     return virsh(con, "resume '%s'" % instance, hide=hide, dry=dry)
 
@@ -84,14 +84,14 @@ def suspend_then_resume(con, instance):
 
 
 @task
-def is_running(con, instance, hide=True, dry=False):
+def is_running(con, instance, hide=None, dry=None):
     '''check if an instance is running'''
     result = virsh(con, 'list --state-running --name', hide=hide, dry=dry)
     return instance in result.stdout
 
 
 @task
-def virsh(con, command, hide=True, dry=False):
+def virsh(con, command, hide=None, dry=None):
     '''run an arbitrary virsh command'''
     return con.run('virsh %s' % command, hide=hide, dry=dry)
 
@@ -176,7 +176,7 @@ def fetch_xml(con, instance):
     return buffer.getvalue()
 
 
-def disk_json(con, disk_path, hide=True, dry=False):
+def disk_json(con, disk_path, hide=None, dry=None):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
@@ -187,7 +187,7 @@ def disk_json(con, disk_path, hide=True, dry=False):
     return result.stdout
 
 
-def swap_uuid(con, disk_path, hide=True, dry=False):
+def swap_uuid(con, disk_path, hide=None, dry=None):
     '''find the UUID of the given SWAP file or disk'''
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
                      hide=hide, dry=dry)
