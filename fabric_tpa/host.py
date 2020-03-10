@@ -90,25 +90,16 @@ def append_to_file(con, path, content):
 
 
 @task
-def mount(con, device, path, options='', warn=False):
-    command = 'mount %s %s %s' % (device, path, options)
-    return con.run(command, warn=warn)
-
-
-@task
-def umount(con, path):
-    return con.run('umount %s' % path)
-
-
-@contextmanager
-def mount_then_umount(con, device, path, options='', warn=False):
-    try:
-        yield mount(con, device, path, options, warn)
-    finally:
-        return umount(con, path)
-
-
-ipconfig = namedtuple('ipconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subnet ipv6_gateway')  # noqa: E501
+def rewrite_file(con, path, content):
+    backup_path = path + '.bak'
+    logging.info('renaming %s to %s on %s', path, backup_path, con.host)
+    if not con.config.run.dry:
+        con.sftp().rename(path, backup_path)
+    logging.info('writing file %d bytes in %s on %s',
+                 len(content), path, con.host)
+    append_to_file(con, path, content)
+    res = con.run('diff -u %s %s' % (backup_path, path))
+    logging.debug('file diff: %s', res.stdout)
 
 
 @task
@@ -136,6 +127,28 @@ iface eth0 inet6 static
 
 
 @task
+def mount(con, device, path, options='', warn=False):
+    command = 'mount %s %s %s' % (device, path, options)
+    return con.run(command, warn=warn)
+
+
+@task
+def umount(con, path):
+    return con.run('umount %s' % path)
+
+
+@contextmanager
+def mount_then_umount(con, device, path, options='', warn=False):
+    try:
+        yield mount(con, device, path, options, warn)
+    finally:
+        return umount(con, path)
+
+
+ipconfig = namedtuple('ipconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subnet ipv6_gateway')  # noqa: E501
+
+
+@task
 def ipv6_slaac(con, ipv6_subnet, mac, hide=True):
     '''compute IPv6 SLAAC address from subnet and MAC address
 
@@ -159,16 +172,3 @@ def test_ipv6_slaac():
     network = '2a01:4f8:fff0:4f::'
     expected = '2a01:4f8:fff0:4f:266:37ff:fef1:bb6b'
     assert expected == ipv6_slaac(con, network, mac)
-
-
-@task
-def rewrite_file(con, path, content):
-    backup_path = path + '.bak'
-    logging.info('renaming %s to %s on %s', path, backup_path, con.host)
-    if not con.config.run.dry:
-        con.sftp().rename(path, backup_path)
-    logging.info('writing file %d bytes in %s on %s',
-                 len(content), path, con.host)
-    append_to_file(con, path, content)
-    res = con.run('diff -u %s %s' % (backup_path, path))
-    logging.debug('file diff: %s', res.stdout)
