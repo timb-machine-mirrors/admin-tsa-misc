@@ -69,6 +69,9 @@ def puppet_revoke(con, instance):
     '''revoke certificates of given instance on puppet master'''
     con.run('puppet node clean %s' % instance)
     con.run('puppet node deactivate %s' % instance)
+    con.run('service apache2 restart')   # reload the CRL
+    # reload puppetdb so it knows about the deactivation
+    con.run('service puppetdb restart')
 
 
 @task
