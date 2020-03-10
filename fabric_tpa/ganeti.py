@@ -91,18 +91,40 @@ def empty_node(con, node):
 
 @task
 def stop(ganeti_con, instance):
+    '''stop an instance
+
+    This just stops an instance, on what is assumed to be the ganeti master.
+    '''
     logging.info('stopping instance %s on %s', instance, ganeti_con.host)
     return ganeti_con.run('gnt-instance stop %s' % instance)
 
 
 @task
 def start(ganeti_con, instance):
+    '''stop an instance
+
+    This just stops an instance, on what is assumed to be the ganeti master.
+    '''
     logging.info('starting instance %s on %s', instance, ganeti_con.host)
     return ganeti_con.run('gnt-instance start %s' % instance)
 
 
 @task
 def renumber_instance(ganeti_con, instance):
+    '''change the IP address of an instance
+
+    This does the following:
+
+    1. connects to ganeti node
+    2. finds its master
+    3. fetches network information from the master
+       (fetch-instance-info and find-instance-ipconfig)
+    4. stops the instance
+    5. mounts its disk
+    6. rewrites the interfaces file (with host.rewrite-interfaces)
+    7. unmounts the disk
+    8. starts the instance
+    '''
     ganeti_master_con = Connection(getmaster(ganeti_con))
     instance_info = fetch_instance_info(ganeti_master_con, instance)
     data, = YAML().load(instance_info)
@@ -135,6 +157,11 @@ def renumber_instance(ganeti_con, instance):
 
 @task
 def fetch_instance_info(ganeti_con, instance):
+    '''fetch the instance information
+
+    This just runs gnt-instance info on the ganeti server and returns
+    the output. It's mostly an internal function.
+    '''
     info = ganeti_con.run('gnt-instance info %s' % instance).stdout
     logging.debug('loaded instance %s info from %s: %s',
                   instance, ganeti_con.host, info)
@@ -143,6 +170,11 @@ def fetch_instance_info(ganeti_con, instance):
 
 @task
 def fetch_network_info(ganeti_con, network='gnt-fsn'):
+    '''fetch the network information
+
+    This just runs gnt-network info on the given network and returns
+    the output. It's mostly an internal function.
+    '''
     info = ganeti_con.run('gnt-network info %s' % network).stdout
     logging.debug('loaded network %s information from %s: %s',
                   network, ganeti_con.host, info)
@@ -155,6 +187,16 @@ GANETI_NETWORK_REGEX = r'^\s+(Subnet|Gateway|IPv6 Subnet|IPv6 Gateway):\s+(.*)$'
 
 @task
 def find_instance_ipconfig(ganeti_con, instance, instance_info=None):
+    '''compute the network information for the given instance
+
+    This connects to the ganeti node (assumed to be a ganeti master)
+    and fetches IP address information from the node. From there, it
+    also fetches information from the ganeti network to get parameters
+    like the network and gateway.
+
+    It returns a host.ipconfig tuple and is therefore mostly for
+    internal use.
+    '''
     # allow using a cache for this expensive check
     if instance_info is None:
         instance_info = fetch_instance_info(ganeti_con, instance)

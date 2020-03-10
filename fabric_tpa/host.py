@@ -91,6 +91,11 @@ def append_to_file(con, path, content):
 
 @task
 def rewrite_file(con, path, content):
+    '''write a new file, keeping a backup
+
+    This overwrites the given PATH with CONTENT, keeping a backup in a
+    .bak file and showing a diff.
+    '''
     backup_path = path + '.bak'
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
     if not con.config.run.dry:
@@ -105,6 +110,11 @@ def rewrite_file(con, path, content):
 @task
 def rewrite_interfaces(con, ipconfig=(),
                        path='/etc/network/interfaces'):
+    '''write an /etc/network/interfaces file
+
+    This writes the given ipconfig namedtuple into the given
+    interfaces(5) file, keeping a backup (uses rewrite-file).
+    '''
     content = f'''# This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -128,17 +138,20 @@ iface eth0 inet6 static
 
 @task
 def mount(con, device, path, options='', warn=False):
+    '''mount a device'''
     command = 'mount %s %s %s' % (device, path, options)
     return con.run(command, warn=warn)
 
 
 @task
 def umount(con, path):
+    '''umount a device'''
     return con.run('umount %s' % path)
 
 
 @contextmanager
 def mount_then_umount(con, device, path, options='', warn=False):
+    '''convenient context manager for mount/umount'''
     try:
         yield mount(con, device, path, options, warn)
     finally:
