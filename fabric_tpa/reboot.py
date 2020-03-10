@@ -2,6 +2,9 @@
 # coding: utf-8
 
 ''''''
+
+# TODO: move most of this to host, and make that a wrapper
+
 # Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -150,6 +153,7 @@ class FabricException(OSError, paramiko.ssh_exception.SSHException):
     pass
 
 
+# TODO: make shutdown type customizable?
 @task
 def reboot_and_wait(con,
                     reason=DEFAULT_REASON,
