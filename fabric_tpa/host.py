@@ -162,7 +162,7 @@ ipconfig = namedtuple('ipconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subne
 
 
 @task
-def ipv6_slaac(con, ipv6_subnet, mac, hide=True):
+def ipv6_slaac(con, ipv6_subnet, mac, hide=True, dry=False):
     '''compute IPv6 SLAAC address from subnet and MAC address
 
     This uses the ipv6calc command.
@@ -174,7 +174,7 @@ def ipv6_slaac(con, ipv6_subnet, mac, hide=True):
                ipv6_subnet, mac]
     logging.debug('manual SLAAC allocation with: %s', ' '.join(command))
     try:
-        return con.run(' '.join(command), hide=hide).stdout.strip()
+        return con.run(' '.join(command), hide=hide, dry=dry).stdout.strip()
     except invoke.exceptions.UnexpectedExit as e:
         logging.error('cannot find IPv6 address, install ipv6calc: %s', e)
 

@@ -103,7 +103,7 @@ def suspend_then_resume(instance_con, parent_host):
 
 
 @task
-def is_running(instance_con, parent_host, hide=None, dry=None):
+def is_running(instance_con, parent_host, hide=True, dry=False):
     '''check if an instance is running'''
     result = virsh(parent_host, 'list --state-running --name',
                    hide=hide, dry=dry, config=instance_con.config)
@@ -199,7 +199,7 @@ def fetch_xml(instance_con, parent_con):
     return buffer.getvalue()
 
 
-def disk_json(disk_path, parent_con, hide=None, dry=None):
+def disk_json(disk_path, parent_con, hide=True, dry=False):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
@@ -210,7 +210,7 @@ def disk_json(disk_path, parent_con, hide=None, dry=None):
     return result.stdout
 
 
-def swap_uuid(disk_path, con, hide=None, dry=None):
+def swap_uuid(disk_path, con, hide=True, dry=False):
     '''find the UUID of the given SWAP file or disk'''
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
                      hide=hide, dry=dry)

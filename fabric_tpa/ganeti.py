@@ -47,14 +47,14 @@ from . import host
 
 
 @task
-def getmaster(con, hide=True):
+def getmaster(con, hide=True, dry=False):
     '''find master ganeti
 
     This can be used to detect if a node is running ganeti or not.'''
     master = False
     logging.info('checking for ganeti master on node %s', con.host)
     result = con.run('gnt-cluster getmaster',
-                     hide=hide, dry=False, warn=True)
+                     hide=hide, dry=dry, warn=True)
     if result.ok:
         master = result.stdout.strip()
         logging.info('ganeti node detected with master %s', master)
@@ -173,7 +173,8 @@ def renumber_instance(instance_con, ganeti_node):
     logging.info('use this to add the new IP to local DNS: %s', cmd)
 
 
-def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org', hide=True):
+def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org',
+                        hide=True, dry=False):
     '''fetch the instance information
 
     This just runs gnt-instance info on the ganeti server and returns
@@ -181,19 +182,20 @@ def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org', 
     '''
     master_con = host.find_context(master_host, config=instance_con.config)
     info = master_con.run('gnt-instance info %s' % instance_con.host,
-                          hide=hide).stdout
+                          hide=hide, dry=dry).stdout
     logging.debug('loaded instance %s info from %s: %s',
                   instance_con.host, master_con.host, info)
     return info
 
 
-def fetch_network_info(ganeti_con, network='gnt-fsn', hide=True):
+def fetch_network_info(ganeti_con, network='gnt-fsn', hide=True, dry=False):
     '''fetch the network information
 
     This just runs gnt-network info on the given network and returns
     the output. It's mostly an internal function.
     '''
-    info = ganeti_con.run('gnt-network info %s' % network, hide=hide).stdout
+    info = ganeti_con.run('gnt-network info %s' % network,
+                          hide=hide, dry=dry).stdout
     logging.debug('loaded network %s information from %s: %s',
                   network, ganeti_con.host, info)
     return info
