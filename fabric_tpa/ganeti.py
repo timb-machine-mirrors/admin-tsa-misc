@@ -154,10 +154,10 @@ def renumber_instance(ganeti_con, instance):
         ganeti_con.run('kpartx -dv %s' % disk_path)
 
     start(ganeti_master_con, instance)
-    cmd = 'printf "%s %s\n%s %s\n" >> /etc/hosts' % (ipconfig.ipv4,
-                                                     instance,
-                                                     ipconfig.ipv6,
-                                                     instance)
+    cmd = 'printf "%s %s\\n%s %s\\n" >> /etc/hosts' % (ipconfig.ipv4,
+                                                       instance,
+                                                       ipconfig.ipv6,
+                                                       instance)
     logging.info('use this to add the new IP to local DNS: %s', cmd)
 
 
