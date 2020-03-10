@@ -46,7 +46,7 @@ def retire_instance(host_con, instance):
     Checks if it's a ganeti node and otherwise assunmes it's
     libvirt...
 
-    TODO: to be expanded.
+    TODO: to be expanded to cover for physical machines and ganeti
     '''
     try:
         ganeti.getmaster(host_con)
