@@ -191,4 +191,4 @@ def find_context(hostname, config=None):
     if isinstance(hostname, (Connection, invoke.Context)):
         return hostname
     else:
-        return Connection(hostname, config=None)
+        return Connection(hostname, config=config)
