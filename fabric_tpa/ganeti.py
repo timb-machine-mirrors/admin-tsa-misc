@@ -162,26 +162,26 @@ def renumber_instance(ganeti_con, instance):
 
 
 @task
-def fetch_instance_info(ganeti_con, instance):
+def fetch_instance_info(ganeti_con, instance, hide=True):
     '''fetch the instance information
 
     This just runs gnt-instance info on the ganeti server and returns
     the output. It's mostly an internal function.
     '''
-    info = ganeti_con.run('gnt-instance info %s' % instance).stdout
+    info = ganeti_con.run('gnt-instance info %s' % instance, hide=hide).stdout
     logging.debug('loaded instance %s info from %s: %s',
                   instance, ganeti_con.host, info)
     return info
 
 
 @task
-def fetch_network_info(ganeti_con, network='gnt-fsn'):
+def fetch_network_info(ganeti_con, network='gnt-fsn', hide=True):
     '''fetch the network information
 
     This just runs gnt-network info on the given network and returns
     the output. It's mostly an internal function.
     '''
-    info = ganeti_con.run('gnt-network info %s' % network).stdout
+    info = ganeti_con.run('gnt-network info %s' % network, hide=hide).stdout
     logging.debug('loaded network %s information from %s: %s',
                   network, ganeti_con.host, info)
     return info
