@@ -136,17 +136,23 @@ def renumber_instance(ganeti_con, instance):
                                       instance_info)
     # this succeeds even if already stopped
     stop(ganeti_master_con, instance)
+    need_kpartx_deactivate = False
     with host.mount_then_umount(ganeti_con, disk_path,
                                 '/mnt', warn=True) as res:
         if res.failed:
             logging.warning('cannot mount partition directly: %s', res.stderr)
             logging.info('trying kpartx activation')
             res = ganeti_con.run('kpartx -av %s' % disk_path)
+            need_kpartx_deactivate = True
             # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048
             _, _, part, _ = res.stdout.split(' ', 3)
             host.mount(ganeti_con, '/dev/mapper/%s' % part, '/mnt')
         host.rewrite_interfaces(ganeti_con, ipconfig,
                                 path='/mnt/etc/network/interfaces')
+    if need_kpartx_deactivate:
+        logging.info('disabling kpartx mappings')
+        ganeti_con.run('kpartx -dv %s' % disk_path)
+
     start(ganeti_master_con, instance)
     cmd = 'printf "%s %s\n%s %s\n" >> /etc/hosts' % (ipconfig.ipv4,
                                                      instance,
