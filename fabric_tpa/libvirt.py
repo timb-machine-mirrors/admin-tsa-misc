@@ -69,6 +69,8 @@ def undefine(con, instance):
             return
         else:
             raise
+    else:
+        return res
 
 
 @task
