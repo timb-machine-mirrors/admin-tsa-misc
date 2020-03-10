@@ -21,6 +21,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 from collections import namedtuple
+from contextlib import contextmanager
 import io
 import logging
 import sys
@@ -97,6 +98,14 @@ def mount(con, device, path, options='', warn=False):
 @task
 def umount(con, path):
     return con.run('umount %s' % path)
+
+
+@contextmanager
+def mount_then_umount(con, device, path, options='', warn=False):
+    try:
+        yield mount(con, device, path, options, warn)
+    finally:
+        return umount(con, path)
 
 
 ipconfig = namedtuple('ipconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subnet ipv6_gateway')  # noqa: E501
