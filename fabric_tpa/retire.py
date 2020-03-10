@@ -65,7 +65,7 @@ def remove_backups(backup_con, instance):
 
 
 @task
-def puppet_revoke(con, instance):
+def revoke_puppet(con, instance):
     '''revoke certificates of given instance on puppet master'''
     con.run('puppet node clean %s' % instance)
     con.run('puppet node deactivate %s' % instance)
