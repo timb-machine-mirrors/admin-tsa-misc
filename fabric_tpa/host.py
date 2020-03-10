@@ -28,7 +28,7 @@ import sys
 
 
 try:
-    from fabric import task
+    from fabric import task, Connection
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -185,3 +185,10 @@ def test_ipv6_slaac():
     network = '2a01:4f8:fff0:4f::'
     expected = '2a01:4f8:fff0:4f:266:37ff:fef1:bb6b'
     assert expected == ipv6_slaac(con, network, mac)
+
+
+def find_context(hostname, config=None):
+    if isinstance(hostname, (Connection, invoke.Context)):
+        return hostname
+    else:
+        return Connection(hostname, config=None)
