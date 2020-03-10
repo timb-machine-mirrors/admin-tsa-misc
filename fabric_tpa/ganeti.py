@@ -187,7 +187,7 @@ def fetch_network_info(ganeti_con, network='gnt-fsn'):
     return info
 
 
-GANETI_INSTANCE_INFO_REGEX = r'^\s+(MAC|IP|network):\s+(.*)$'
+# this regex should match the output of gnt-network info
 GANETI_NETWORK_REGEX = r'^\s+(Subnet|Gateway|IPv6 Subnet|IPv6 Gateway):\s+(.*)$'  # noqa: E501
 
 
@@ -226,7 +226,6 @@ def find_instance_ipconfig(ganeti_con, instance, instance_info=None):
     for match in re.finditer(GANETI_NETWORK_REGEX,
                              network_info,
                              re.MULTILINE):
-        # TODO: ugly AF, use a dict match or something
         facts[match.group(1)] = match.group(2)
     logging.debug('found networking facts: %s', facts)
     ipv4_subnet = facts['Subnet'].split('/')[-1]
