@@ -165,6 +165,10 @@ def test_ipv6_slaac():
 def rewrite_file(con, path, content):
     backup_path = path + '.bak'
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
-    con.sftp().rename(path, backup_path)
-    logging.info('writing file %d bytes in %s on %s', len(content), path, con.host)
+    if not con.config.run.dry:
+        con.sftp().rename(path, backup_path)
+    logging.info('writing file %d bytes in %s on %s',
+                 len(content), path, con.host)
     append_to_file(con, path, content)
+    res = con.run('diff -u %s %s' % (backup_path, path))
+    logging.debug('file diff: %s', res.stdout)
