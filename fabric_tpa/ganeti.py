@@ -112,6 +112,7 @@ def renumber_instance(ganeti_con, instance):
     disk_path = disk0['on primary'].split(' ')[0]
     ipconfig = find_instance_ipconfig(ganeti_master_con, instance,
                                       instance_info)
+    # this succeeds even if already stopped
     stop(ganeti_master_con, instance)
     with host.mount_then_umount(ganeti_con, disk_path,
                                 '/mnt', warn=True) as res:
