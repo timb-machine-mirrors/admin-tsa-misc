@@ -40,6 +40,7 @@ except ImportError:
     def naturalsize(size, *args, **kwargs):
         return size + 'B'
 
+from ruamel.yaml import YAML
 
 from . import libvirt
 from . import host
@@ -99,7 +100,7 @@ def renumber_instance(ganeti_con, instance, disk, ipconfig):
 
 @task
 def fetch_instance_info(ganeti_con, instance):
-    info = ganeti_con.run('gnt-instance info %s' % instance)
+    info = ganeti_con.run('gnt-instance info %s' % instance).stdout
     logging.debug('loaded instance %s info from %s: %s',
                   instance, ganeti_con.host, info)
     return info
@@ -107,7 +108,7 @@ def fetch_instance_info(ganeti_con, instance):
 
 @task
 def fetch_network_info(ganeti_con, network='gnt-fsn'):
-    info = ganeti_con.run('gnt-network info %s' % network)
+    info = ganeti_con.run('gnt-network info %s' % network).stdout
     logging.debug('loaded network %s information from %s: %s',
                   network, ganeti_con.host, info)
     return info
@@ -118,17 +119,29 @@ GANETI_NETWORK_REGEX = r'^\s+(Subnet|Gateway|IPv6 Subnet|IPv6 Gateway):\s+(.*)$'
 
 
 @task
-def find_instance_ipconfig(ganeti_con, instance):
-    instance_info = fetch_instance_info(ganeti_con, instance)
+def find_instance_ipconfig(ganeti_con, instance, instance_info=None):
+    # allow using a cache for this expensive check
+    if instance_info is None:
+        instance_info = fetch_instance_info(ganeti_con, instance)
+    data, = YAML().load(instance_info)
+    nics = data['NICs']
+    # TODO: support multiple NICs
+    ipv4 = nics[0]['IP']
+    mac = nics[0]['MAC']
+    network = nics[0]['network']
     facts = {}
-    for match in re.finditer(GANETI_INSTANCE_INFO_REGEX,
-                             instance_info.stdout,
-                             re.MULTILINE):
-        # TODO: ugly AF, use a dict match or something
-        facts[match.group(1)] = match.group(2)
-    network_info = fetch_network_info(ganeti_con, facts['network'])
+    # XXX: looks like the output of `gnt-network info` is *not* YAML,
+    # at least ruamel.yaml freaks out with:
+    #
+    # ScannerError: mapping values are not allowed here
+    #   in "<unicode string>", line 4, column 9:
+    #       Subnet: 116.202.120.160/27
+    #             ^ (line: 4)
+    #
+    # so revert back to using a regex
+    network_info = fetch_network_info(ganeti_con, network)
     for match in re.finditer(GANETI_NETWORK_REGEX,
-                             network_info.stdout,
+                             network_info,
                              re.MULTILINE):
         # TODO: ugly AF, use a dict match or something
         facts[match.group(1)] = match.group(2)
@@ -138,8 +151,8 @@ def find_instance_ipconfig(ganeti_con, instance):
     # HACK: we use a local invoke context instead of the remote
     ipv6 = host.ipv6_slaac(invoke.Context(),
                            ipv6_net,
-                           facts['MAC'])
-    conf = host.ipconfig(facts['IP'],
+                           mac)
+    conf = host.ipconfig(ipv4,
                          ipv4_subnet,
                          facts['Gateway'],
                          ipv6,
