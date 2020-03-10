@@ -264,13 +264,13 @@ def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
 
 
 @task(help={
-    'ganeti-node': 'ganeti node to import instance into',
     'libvirt-host': 'libvirt host to import instance from',
+    'ganeti-node': 'ganeti node to import instance into',
     'copy': 'copy the disks between the nodes (default: True)',
     'adopt': 'adopt the instance in ganeti (default: False)',
     'suspend': 'suspend the node while copying disks (default: False)',
 })
-def libvirt_import(instance_con, ganeti_node, libvirt_host,
+def libvirt_import(instance_con, libvirt_host, ganeti_node,
                    copy=True, adopt=False, suspend=False):
     '''import instance into ganeti
 
