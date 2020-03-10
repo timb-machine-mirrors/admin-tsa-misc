@@ -31,10 +31,11 @@ import xml.etree.ElementTree as ET
 
 
 try:
-    from fabric import task
+    from fabric import task, Connection
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
+import invoke
 import invoke.exceptions
 
 try:
@@ -50,22 +51,24 @@ from . import host
 
 
 @task
-def shutdown(con, instance):
+def shutdown(instance_con, parent_host):
     '''turn off instance with virsh'''
-    return virsh(con, "shutdown '%s'" % instance)
+    return virsh(parent_host, "shutdown '%s'" % instance_con.host,
+                 config=instance_con.config)
 
 
 @task
-def undefine(con, instance):
+def undefine(instance_con, parent_host):
     '''remove instance configuration file'''
     try:
-        res = virsh(con, "undefine '%s'" % instance)
+        res = virsh(parent_host, "undefine '%s'" % instance_con.host,
+                    config=instance_con.config)
     except invoke.exceptions.UnexpectedExit as e:
         err = str(e.result.stderr)
         if ('failed to get domain' in err and
                 'Domain not found: no domain with matching name' in err):
             logging.warning('instance %s not found on %s assuming retired: %s',
-                            instance, con.host, err)
+                            instance_con.host, parent_host, err)
             return
         else:
             raise
@@ -74,52 +77,60 @@ def undefine(con, instance):
 
 
 @task
-def suspend(con, instance, hide=None, dry=None):
+def suspend(instance_con, parent_host, hide=None, dry=None):
     '''suspend an instance'''
-    return virsh(con, "suspend '%s'" % instance, hide=hide, dry=dry)
+    return virsh(parent_host, "suspend '%s'" % instance_con.host,
+                 hide=hide, dry=dry, config=instance_con.config)
 
 
 @task
-def resume(con, instance, hide=None, dry=None):
+def resume(instance_con, parent_host, hide=None, dry=None):
     '''suspend an instance'''
-    return virsh(con, "resume '%s'" % instance, hide=hide, dry=dry)
+    return virsh(parent_host, "resume '%s'" % instance_con.host,
+                 hide=hide, dry=dry, config=instance_con.config)
 
 
 @contextmanager
-def suspend_then_resume(con, instance):
+def suspend_then_resume(instance_con, parent_host):
     try:
-        logging.info('suspending instance %s on host %s', instance, con.host)
-        yield suspend(con, instance)
+        logging.info('suspending instance %s on host %s',
+                     instance_con.host, parent_host)
+        yield suspend(instance_con, parent_host)
     finally:
-        logging.info('resuming instance %s on host %s', instance, con.host)
-        return resume(con, instance)
+        logging.info('resuming instance %s on host %s',
+                     instance_con.host, parent_host)
+        return resume(instance_con, parent_host)
 
 
 @task
-def is_running(con, instance, hide=None, dry=None):
+def is_running(instance_con, parent_host, hide=None, dry=None):
     '''check if an instance is running'''
-    result = virsh(con, 'list --state-running --name', hide=hide, dry=dry)
-    return instance in result.stdout
+    result = virsh(parent_host, 'list --state-running --name',
+                   hide=hide, dry=dry, config=instance_con.config)
+    return instance_con.host in result.stdout
 
 
 @task
-def virsh(con, command, hide=None, dry=None):
+def virsh(con, command, hide=None, dry=None, config=None):
     '''run an arbitrary virsh command'''
+    con = host.find_context(con, config=config)
     return con.run('virsh %s' % command, hide=hide, dry=dry)
 
 
 @task
-def retire(host_con, instance):
+def retire(instance_con, parent_host):
     '''retire a libvirt instance
 
     This shuts down the instance, removes the configuration and its
     disk.
     '''
+    parent_host_con = host.find_context(parent_host,
+                                        config=instance_con.config)
     # STEP 3
-    if is_running(host_con, instance):
+    if is_running(instance_con, parent_host_con):
         logging.info('shutting down instance %s on host %s',
-                     instance, host_con.host)
-        shutdown(host_con, instance)
+                     instance_con.host, parent_host_con.host)
+        shutdown(instance_con, parent_host_con)
 
         # TODO: wait for shutdown properly? maybe reuse the
         # shutdown procedure from the reboot system, to give
@@ -128,19 +139,19 @@ def retire(host_con, instance):
         raise NotImplementedError("need to wait for shutdown")
     else:
         logging.info('instance %s not running, no shutdown required',
-                     instance)
+                     instance_con.host)
 
     # STEP 4
     logging.info('undefining instance %s on host %s',
-                 instance, host_con.host)
-    undefine(host_con, instance)
+                 instance_con.host, parent_host_con.host)
+    undefine(instance_con, parent_host_con)
 
     logging.info('scheduling %s disk deletion on host %s',
-                 instance, host_con.host)
+                 instance_con.host, parent_host_con.host)
     # TODO: lvm removal
-    disk = '/srv/vmstore/%s/' % instance
-    if host.path_exists(host_con, disk):
-        host.schedule_delete(host_con, disk, '7 days')
+    disk = '/srv/vmstore/%s/' % instance_con.host
+    if host.path_exists(parent_host_con, disk):
+        host.schedule_delete(parent_host_con, disk, '7 days')
 
 
 def parse_memory(xml_root):
@@ -175,12 +186,12 @@ def parse_disks(xml_root):
             yield disk_tuple(dev, path, type)
 
 
-def fetch_xml(con, instance):
+def fetch_xml(instance_con, parent_con):
     '''download the XML configuration for an instance'''
     buffer = io.BytesIO()
-    instance_config = '/etc/libvirt/qemu/%s.xml' % instance
+    instance_config = '/etc/libvirt/qemu/%s.xml' % instance_con.host
     try:
-        con.get(instance_config, local=buffer)
+        parent_con.get(instance_config, local=buffer)
     except OSError as e:
         logging.error('cannot fetch instance config from %s: %s',
                       instance_config, e)
@@ -188,18 +199,18 @@ def fetch_xml(con, instance):
     return buffer.getvalue()
 
 
-def disk_json(con, disk_path, hide=None, dry=None):
+def disk_json(disk_path, parent_con, hide=None, dry=None):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
-        result = con.run(command, hide=hide, dry=dry)
+        result = parent_con.run(command, hide=hide, dry=dry)
     except OSError as e:
         logging.error('failed to run %s: %s', command, e)
         return False
     return result.stdout
 
 
-def swap_uuid(con, disk_path, hide=None, dry=None):
+def swap_uuid(disk_path, con, hide=None, dry=None):
     '''find the UUID of the given SWAP file or disk'''
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
                      hide=hide, dry=dry)
@@ -207,12 +218,14 @@ def swap_uuid(con, disk_path, hide=None, dry=None):
 
 
 @task
-def inventory(con, instance):
+def inventory(instance_con, parent_host):
     '''fetch instance characteristics'''
     inventory = {}
+    parent_host_con = host.find_context(parent_host,
+                                        config=instance_con.config)
     logging.info('fetching instance %s inventory from %s...',
-                 instance, con.host)
-    xml_root = ET.fromstring(fetch_xml(con, instance))
+                 instance_con.host, parent_host_con.host)
+    xml_root = ET.fromstring(fetch_xml(instance_con, parent_host_con))
     # XXX: we drop duplicates in cpu and memory here
     inventory['cpu'], = list(parse_cpu(xml_root))
     logging.info('CPU: %s', inventory['cpu'])
@@ -223,13 +236,13 @@ def inventory(con, instance):
 
     disks = OrderedDict()
     for dev, path, type in parse_disks(xml_root):
-        j = disk_json(con, path)
+        j = disk_json(path, parent_host_con)
         disk_info = json.loads(j)
         disk_info['xml_dev'] = dev
         disk_info['xml_type'] = type
 
         if path.endswith('-swap'):
-            disk_info['swap_uuid'] = swap_uuid(con, path)
+            disk_info['swap_uuid'] = swap_uuid(path, parent_host_con)
             logging.info('found swap %s: %s bytes (%s/%s) UUID:%s',
                          os.path.basename(path),
                          disk_info['virtual-size'],

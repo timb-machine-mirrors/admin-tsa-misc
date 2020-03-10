@@ -94,32 +94,36 @@ def empty_node(node_con, master_host=None):
 
 
 @task
-def stop(ganeti_con, instance):
+def stop(instance_con, master_host='fsn-node-01.torproject.org'):
     '''stop an instance
 
     This just stops an instance, on what is assumed to be the ganeti master.
     '''
-    logging.info('stopping instance %s on %s', instance, ganeti_con.host)
-    return ganeti_con.run('gnt-instance stop %s' % instance)
+    master_con = host.find_context(master_host, config=instance_con.config)
+    logging.info('stopping instance %s on %s',
+                 instance_con.host, master_con.host)
+    return master_con.run('gnt-instance stop %s' % instance_con.host)
 
 
 @task
-def start(ganeti_con, instance):
+def start(instance_con, master_host='fsn-node-01.torproject.org'):
     '''stop an instance
 
     This just stops an instance, on what is assumed to be the ganeti master.
     '''
-    logging.info('starting instance %s on %s', instance, ganeti_con.host)
-    return ganeti_con.run('gnt-instance start %s' % instance)
+    master_con = host.find_context(master_host, config=instance_con.config)
+    logging.info('starting instance %s on %s',
+                 instance_con.host, master_con.host)
+    return master_con.run('gnt-instance start %s' % instance_con.host)
 
 
 @task
-def renumber_instance(ganeti_con, instance):
+def renumber_instance(instance_con, ganeti_node):
     '''change the IP address of an instance
 
     This does the following:
 
-    1. connects to ganeti node
+    1. connects to the primary ganeti node
     2. finds its master
     3. fetches network information from the master
        (fetch-instance-info and find-instance-ipconfig)
@@ -129,56 +133,60 @@ def renumber_instance(ganeti_con, instance):
     7. unmounts the disk
     8. starts the instance
     '''
-    ganeti_master_con = Connection(getmaster(ganeti_con))
-    instance_info = fetch_instance_info(ganeti_master_con, instance)
+    ganeti_node_con = host.find_context(ganeti_node,
+                                        config=instance_con.config)
+    ganeti_master_con = Connection(getmaster(ganeti_node_con),
+                                   config=instance_con.config)
+    instance_info = fetch_instance_info(instance_con, ganeti_master_con)
     data, = YAML().load(instance_info)
     disks = data['Disks']
     disk0 = disks[0]
     assert 'disk/0' in disk0
     disk_path = disk0['on primary'].split(' ')[0]
-    ipconfig = find_instance_ipconfig(ganeti_master_con, instance,
+    ipconfig = find_instance_ipconfig(instance_con,
+                                      ganeti_master_con,
                                       instance_info)
     # this succeeds even if already stopped
-    stop(ganeti_master_con, instance)
+    stop(instance_con, ganeti_master_con)
     need_kpartx_deactivate = False
-    with host.mount_then_umount(ganeti_con, disk_path,
+    with host.mount_then_umount(ganeti_node_con, disk_path,
                                 '/mnt', warn=True) as res:
         if res.failed:
             logging.warning('cannot mount partition directly: %s', res.stderr)
             logging.info('trying kpartx activation')
-            res = ganeti_con.run('kpartx -av %s' % disk_path)
+            res = ganeti_node_con.run('kpartx -av %s' % disk_path)
             need_kpartx_deactivate = True
-            # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048
+            # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048  # noqa: E501
             _, _, part, _ = res.stdout.split(' ', 3)
-            host.mount(ganeti_con, '/dev/mapper/%s' % part, '/mnt')
-        host.rewrite_interfaces(ganeti_con, ipconfig,
+            host.mount(ganeti_node_con, '/dev/mapper/%s' % part, '/mnt')
+        host.rewrite_interfaces(ganeti_node_con, ipconfig,
                                 path='/mnt/etc/network/interfaces')
     if need_kpartx_deactivate:
         logging.info('disabling kpartx mappings')
-        ganeti_con.run('kpartx -dv %s' % disk_path)
+        ganeti_node_con.run('kpartx -dv %s' % disk_path)
 
-    start(ganeti_master_con, instance)
+    start(instance_con, ganeti_master_con)
     cmd = 'printf "%s %s\\n%s %s\\n" >> /etc/hosts' % (ipconfig.ipv4,
-                                                       instance,
+                                                       instance_con.host,
                                                        ipconfig.ipv6,
-                                                       instance)
+                                                       instance_con.host)
     logging.info('use this to add the new IP to local DNS: %s', cmd)
 
 
-@task
-def fetch_instance_info(ganeti_con, instance, hide=True):
+def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org', hide=True):
     '''fetch the instance information
 
     This just runs gnt-instance info on the ganeti server and returns
     the output. It's mostly an internal function.
     '''
-    info = ganeti_con.run('gnt-instance info %s' % instance, hide=hide).stdout
+    master_con = host.find_context(master_host, config=instance_con.config)
+    info = master_con.run('gnt-instance info %s' % instance_con.host,
+                          hide=hide).stdout
     logging.debug('loaded instance %s info from %s: %s',
-                  instance, ganeti_con.host, info)
+                  instance_con.host, master_con.host, info)
     return info
 
 
-@task
 def fetch_network_info(ganeti_con, network='gnt-fsn', hide=True):
     '''fetch the network information
 
@@ -196,7 +204,9 @@ GANETI_NETWORK_REGEX = r'^\s+(Subnet|Gateway|IPv6 Subnet|IPv6 Gateway):\s+(.*)$'
 
 
 @task
-def find_instance_ipconfig(ganeti_con, instance, instance_info=None):
+def find_instance_ipconfig(instance_con,
+                           master_host='fsn-node-01.torproject.org',
+                           instance_info=None):
     '''compute the network information for the given instance
 
     This connects to the ganeti node (assumed to be a ganeti master)
@@ -206,10 +216,13 @@ def find_instance_ipconfig(ganeti_con, instance, instance_info=None):
 
     It returns a host.ipconfig tuple and is therefore mostly for
     internal use.
+
+    instance-info is an internal parameter and should be ignored.
     '''
+    master_con = host.find_context(master_host, config=instance_con.config)
     # allow using a cache for this expensive check
     if instance_info is None:
-        instance_info = fetch_instance_info(ganeti_con, instance)
+        instance_info = fetch_instance_info(instance_con, master_con)
     data, = YAML().load(instance_info)
     nics = data['NICs']
     # TODO: support multiple NICs
@@ -226,7 +239,7 @@ def find_instance_ipconfig(ganeti_con, instance, instance_info=None):
     #             ^ (line: 4)
     #
     # so revert back to using a regex
-    network_info = fetch_network_info(ganeti_con, network)
+    network_info = fetch_network_info(master_con, network)
     for match in re.finditer(GANETI_NETWORK_REGEX,
                              network_info,
                              re.MULTILINE):
@@ -296,11 +309,12 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
     if not ganeti_node:
         logging.error('ganeti node not provided')
         return False
-    libvirt_con = Connection(libvirt_host, config=instance_con.config)
-    ganeti_node_con = Connection(ganeti_node, config=instance_con.config)
+    libvirt_con = host.find_context(libvirt_host, config=instance_con.config)
+    ganeti_node_con = host.find_context(ganeti_node,
+                                        config=instance_con.config)
 
     # STEP 1, 2: inventory
-    inventory = libvirt.inventory(libvirt_con, instance_con.host)
+    inventory = libvirt.inventory(instance_con, libvirt_con)
 
     # STEP 3: authorized_keys hack
     pubkey = host.fetch_ssh_host_pubkey(ganeti_node_con)
@@ -322,7 +336,7 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
         if suspend:
             # TODO: warn users about downtime
             try:
-                with libvirt.suspend_then_resume(libvirt_con, instance_con.host):  # noqa: E501
+                with libvirt.suspend_then_resume(instance_con, libvirt_con):  # noqa: E501
                     copy_disks(libvirt_con,
                                ganeti_node_con,
                                spool_dir,
@@ -395,7 +409,8 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
     logging.debug('command: %s', command)
     if adopt:
         logging.info('launching adopted instance...')
-        ganeti_master_con = Connection(getmaster(ganeti_node_con))
+        ganeti_master_con = host.find_context(getmaster(ganeti_node_con),
+                                              config=instance_con.config)
         ganeti_master_con.run(command)
     else:
         logging.info('skipping ganeti adoption: %s', command)
