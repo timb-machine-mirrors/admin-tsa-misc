@@ -35,7 +35,7 @@ try:
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
-
+import invoke.exceptions
 
 try:
     from humanize import naturalsize
@@ -58,7 +58,17 @@ def shutdown(con, instance):
 @task
 def undefine(con, instance):
     '''remove instance configuration file'''
-    return virsh(con, "undefine '%s'" % instance)
+    try:
+        res = virsh(con, "undefine '%s'" % instance)
+    except invoke.exceptions.UnexpectedExit as e:
+        err = str(e.result.stderr)
+        if ('failed to get domain' in err and
+                'Domain not found: no domain with matching name' in err):
+            logging.warning('instance %s not found on %s assuming retired: %s',
+                            instance, con.host, err)
+            return
+        else:
+            raise
 
 
 @task
