@@ -323,7 +323,7 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
     logging.info('fetched %s host key: %s', ganeti_node, pubkey)
 
     content = b"# %b pubkey for %b transfer\n%b\n" % (ganeti_node.encode('ascii'), instance_con.host.encode('ascii'), pubkey)  # noqa: E501
-    host.append_to_file(libvirt_con, '/etc/ssh/userkeys/root', content)
+    host.ensure_line(libvirt_con, '/etc/ssh/userkeys/root', content)
     logging.info('allowed host %s to connect to %s as root',
                  ganeti_node, libvirt_host)
 

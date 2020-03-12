@@ -24,6 +24,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 import io
 import logging
+import re
 import sys
 
 
@@ -87,6 +88,67 @@ def append_to_file(con, path, content):
         return
     with con.sftp().file(path, mode='ab') as fp:
         fp.write(content)
+
+
+@task
+def ensure_line(con, path, line):
+    if con.config.run.dry:
+        return
+    with con.sftp().file(path, mode='w+b') as fp:
+        ensure_line_stream(fp, line)
+
+
+def ensure_line_stream(stream, line, match=None, ensure_line=True):
+    '''ensure that line is present in the given stream, adding it if missing
+
+    Will ensure the given line is present in the stream. If match is
+    provided, it's treated as a regular expression for a pattern to
+    look for. It will *not* replace the line matching the pattern,
+    just look for it. If match is not provided, it defaults to the
+    full line on its own line.
+
+    If ensure_line is specified (the default), it will also append a
+    newline character even if missing from the line.
+
+    This is inspired by Puppet's stdlib file_line resource:
+
+    https://github.com/puppetlabs/puppetlabs-stdlib/'''
+    if match is None:
+        match = b'^' + line + b'$'
+    rep = re.compile(match, flags=re.MULTILINE)
+    if ensure_line and not line.endswith(b"\n"):
+        line += b"\n"
+    stream.seek(0)
+    # TODO: loads entire file in memory, could be optimized
+    if rep.search(stream.read()):
+        logging.debug('line present in stream %s, skipping: %s',
+                      stream, line)
+    else:
+        logging.debug('line not found in stream %s, appending: %s',
+                      stream, line)
+        stream.seek(0, 2)  # EOF
+        stream.write(line)
+    return stream
+
+
+def test_ensure_line_stream():
+    '''test for ensure_line_stream'''
+    import io
+    stream = io.BytesIO()
+    ensure_line_stream(stream, b"// test", ensure_line=False)
+    assert stream.seek(0) == 0
+    assert stream.read() == b"// test"
+    stream = io.BytesIO()
+    ensure_line_stream(stream, b"// test")
+    assert stream.seek(0) == 0
+    assert stream.read() == b"// test\n"
+    ensure_line_stream(stream, b"test")
+    stream.seek(0)
+    assert stream.read() == b"// test\ntest\n"
+    stream = io.BytesIO(b"// test\n")
+    ensure_line_stream(stream, b"test", match=b"^.*test.*$")
+    stream.seek(0)
+    assert stream.read() == b"// test\n"
 
 
 @task
