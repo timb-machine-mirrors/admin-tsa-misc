@@ -115,14 +115,26 @@ def ensure_line_stream(stream, line, match=None, ensure_line=True):
     https://github.com/puppetlabs/puppetlabs-stdlib/'''
     if match is None:
         match = b'^' + line + b'$'
-    rep = re.compile(match, flags=re.MULTILINE)
+    rep = re.compile(match, flags=re.MULTILINE | re.DOTALL)
     if ensure_line and not line.endswith(b"\n"):
         line += b"\n"
     stream.seek(0)
     # TODO: loads entire file in memory, could be optimized
-    if rep.search(stream.read()):
-        logging.debug('line present in stream %s, skipping: %s',
-                      stream, line)
+    content = stream.read()
+    res = rep.search(content)
+    if res:
+        if res.group(0).strip() == line.strip():
+            logging.debug('line present in stream %s, skipping: %s',
+                          stream, line)
+        else:
+            logging.debug('match found in stream %s: %s; replacing with %s',
+                          stream, res.group(0), line)
+            stream.seek(0)
+            content_new = rep.sub(line, content)
+            logging.debug('before: %s; after: %s', content, content_new)
+            stream.seek(0)
+            stream.truncate(0)
+            stream.write(content_new)
     else:
         logging.debug('line not found in stream %s, appending: %s',
                       stream, line)
@@ -137,18 +149,21 @@ def test_ensure_line_stream():
     stream = io.BytesIO()
     ensure_line_stream(stream, b"// test", ensure_line=False)
     assert stream.seek(0) == 0
-    assert stream.read() == b"// test"
+    assert stream.read() == b"// test", 'appends if empty, without newline'
     stream = io.BytesIO()
     ensure_line_stream(stream, b"// test")
     assert stream.seek(0) == 0
-    assert stream.read() == b"// test\n"
+    assert stream.read() == b"// test\n", 'appends if empty, with newline'
     ensure_line_stream(stream, b"test")
     stream.seek(0)
-    assert stream.read() == b"// test\ntest\n"
+    assert stream.read() == b"// test\ntest\n", 'appends if not full match'
     stream = io.BytesIO(b"// test\n")
+    ensure_line_stream(stream, b"// test", match=b"^.*test.*$")
+    stream.seek(0)
+    assert stream.read() == b"// test\n", 'does not append on partial'
     ensure_line_stream(stream, b"test", match=b"^.*test.*$")
     stream.seek(0)
-    assert stream.read() == b"// test\n"
+    assert stream.read() == b"test\n", 'replaces on partial'
 
 
 @task
@@ -196,6 +211,32 @@ iface eth0 inet6 static
 '''
     logging.debug('generated %s: %s', path, content)
     rewrite_file(con, path, content)
+
+
+@task
+def rewrite_hosts(con, ipconfig=(), path='/etc/hosts'):
+    pass
+
+
+def rewrite_hosts_file(stream, fqdn, hostname, ipconfig=()):
+    line = b'%s %s %s' % (ipconfig.ipv4, fqdn, hostname)
+    ensure_line_stream(stream, line, match=b'^.* %s.*$' % fqdn)
+
+
+def test_rewrite_hosts_file():
+    import io
+    stream = io.BytesIO()
+    i = ipconfig(b'1.2.3.4', '', '', '', '', '')
+    rewrite_hosts_file(stream, b'test.example.com', b'test', i)
+    stream.seek(0)
+    assert stream.read() == b"1.2.3.4 test.example.com test\n"
+    rewrite_hosts_file(stream, b'test.example.com', b'test', i)
+    stream.seek(0)
+    assert stream.read() == b"1.2.3.4 test.example.com test\n"
+    i = ipconfig(b'1.2.3.5', '', '', '', '', '')
+    rewrite_hosts_file(stream, b'test.example.com', b'test', i)
+    stream.seek(0)
+    assert stream.read() == b"1.2.3.5 test.example.com test\n"
 
 
 @task

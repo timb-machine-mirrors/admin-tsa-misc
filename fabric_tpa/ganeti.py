@@ -161,6 +161,8 @@ def renumber_instance(instance_con, ganeti_node):
             host.mount(ganeti_node_con, '/dev/mapper/%s' % part, '/mnt')
         host.rewrite_interfaces(ganeti_node_con, ipconfig,
                                 path='/mnt/etc/network/interfaces')
+        host.rewrite_hosts(ganeti_node_con, ipconfig,
+                           path='/mnt/etc/hosts')
     if need_kpartx_deactivate:
         logging.info('disabling kpartx mappings')
         ganeti_node_con.run('kpartx -dv %s' % disk_path)
