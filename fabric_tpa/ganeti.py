@@ -133,6 +133,9 @@ def renumber_instance(instance_con, ganeti_node):
     7. unmounts the disk
     8. starts the instance
     '''
+    # STEP 9. IP address change on new instance
+    # STEP 14. redo IP adress change in `/etc/network/interfaces` and
+    # `/etc/hosts`
     ganeti_node_con = host.find_context(ganeti_node,
                                         config=instance_con.config)
     ganeti_master_con = Connection(getmaster(ganeti_node_con),
@@ -168,11 +171,34 @@ def renumber_instance(instance_con, ganeti_node):
         ganeti_node_con.run('kpartx -dv %s' % disk_path)
 
     start(instance_con, ganeti_master_con)
+    # TODO: all this could be done for real:
+    # STEP 10. functional tests: change your `/etc/hosts` to point to the new
+    #     server and see if everything still kind of works
+    #
     cmd = 'printf "%s %s\\n%s %s\\n" >> /etc/hosts' % (ipconfig.ipv4,
                                                        instance_con.host,
                                                        ipconfig.ipv6,
                                                        instance_con.host)
-    logging.info('use this to add the new IP to local DNS: %s', cmd)
+    logging.warning('use this to add the new IP to local DNS: %s', cmd)
+    logging.warning('perform tests, then redo the sync procedure and this procedure, then...')
+    logging.warning('make sure you change the external DNS as well')
+    # STEP 15. final functional test
+    # STEP 16. global IP address change
+    logging.warning('commands:')
+    logging.warning('# ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"')  # noqa: E501
+    logging.warning('# ssh pauli.torproject.org puppet agent -t')
+    magic_grep = 'grep -n -r -e %s -e %s' % (ipconfig.ipv4, ipconfig.ipv6)
+    commands = [
+        # on the host, in /etc and /srv
+        'ssh %s %s /etc /srv' % (instance_con.host, magic_grep),
+        # on all hosts, in /etc
+        "cumin-all '%s /etc'" % magic_grep,
+        # in all the tor source
+        '%s ~/src/tor' % magic_grep,
+    ]
+    for command in commands:
+        logging.warning('# %s', command)
+    logging.warning('also do upstream reverse DNS')
 
 
 def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org',
@@ -420,38 +446,11 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
         logging.info('skipping ganeti adoption: %s', command)
 
     # TODO: remove old disks
-
-    # TODO: remaining procedure:
-    # STEP 9. IP address change on new instance:
-    #
-    #      edit `/etc/hosts` and `/etc/network/interfaces` by hand and add
-    #      IPv4 and IPv6 ip. IPv4 configuration can be found in:
-    #
-    #          gnt-instance show $INSTANCE
-    #
-    #      Latter can be guessed by concatenating `2a01:4f8:fff0:4f::` and
-    #      the IPv6 local local address without `fe80::`. For example: a
-    #      link local address of `fe80::266:37ff:fe65:870f/64` should yield
-    #      the following configuration:
-    #
-    #          iface eth0 inet6 static
-    #              accept_ra 0
-    #              address 2a01:4f8:fff0:4f:266:37ff:fe65:870f/64
-    #              gateway 2a01:4f8:fff0:4f::1
-    #
-    #      TODO: reuse `gnt-debian-interfaces` from the ganeti puppet
-    #      module script here?
-    #
-    # STEP 10. functional tests: change your `/etc/hosts` to point to the new
-    #     server and see if everything still kind of works
-    #
     # STEP 11. shutdown original instance
     #
     # STEP 12. resync and reconvert image, on the Ganeti MASTER NODE:
     #
     #         gnt-instance stop $INSTANCE
-    #
-    # [...]
     #
     # STEP 13. switch to DRBD, still on the Ganeti MASTER NODE:
     #
@@ -459,11 +458,6 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
     #         gnt-instance failover $INSTANCE
     #         gnt-instance startup $INSTANCE
     #
-    # STEP 14. redo IP adress change in `/etc/network/interfaces` and
-    # `/etc/hosts`
-    #
-    # STEP 15. final functional test
-    #
-    # STEP 16. global IP address change
+    # STEP 14, 15, 16 delegated to renumber-instance
     #
     # STEP 17. decomission old instance ([[retire-a-host]])
