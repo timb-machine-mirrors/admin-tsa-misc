@@ -79,7 +79,7 @@ def revoke_puppet(instance_con, puppetmaster='pauli.torproject.org'):
 
 @task
 def retire_all(instance_con,
-               parent_host,
+               parent_host=None,
                backup_host='bungei.torproject.org',
                puppet_host='pauli.torproject.org'):
     '''retire an instance from its parent, backups and puppet'''
@@ -91,6 +91,9 @@ def retire_all(instance_con,
             logging.error('failed to retire instance %s on host %s: %s',
                           instance_con.host, parent_host, e)
             return 1
+    else:
+        logging.warning('not wiping instance %s data: no parent host',
+                        instance_con.host)
     # STEP 13
     if backup_host:
         logging.info('scheduling %s backup disks removal on host %s',
