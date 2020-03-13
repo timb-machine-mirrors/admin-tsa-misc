@@ -3,8 +3,6 @@
 
 ''''''
 
-# TODO: move most of this to host, and make that a wrapper
-
 # Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,7 +21,6 @@
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
-import argparse
 from enum import Enum
 from contextlib import closing
 import logging
@@ -32,7 +29,7 @@ import sys
 import time
 
 try:
-    from fabric import task, Config
+    from fabric import task
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -49,31 +46,6 @@ DEFAULT_DELAY_UP = 300  # in seconds
 DEFAULT_DELAY_NODES = 5  # in seconds
 DEFAULT_DELAY_SHUTDOWN = 10  # in minutes
 DEFAULT_REASON = 'no reason given'
-
-
-def parse_args(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     epilog='''''')
-    parser.add_argument('--verbose', '-v', dest='log_level',
-                        action='store_const', const='info', default='warning')
-    parser.add_argument('--debug', '-d', dest='log_level',
-                        action='store_const', const='debug', default='warning')
-    # TODO: autodetect from master list or PuppetDB
-    parser.add_argument('--node', nargs='+',
-                        help="node(s) to reboot")
-    parser.add_argument('--dryrun', '-n', action='store_true',
-                        help='do not reboot servers (but do migrate)')
-    parser.add_argument('--delay-down', default=DEFAULT_DELAY_DOWN, type=int,
-                        help='how long to wait for host to shutdown (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-up', default=DEFAULT_DELAY_UP, type=int,
-                        help='how long to wait for host to come back up (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-nodes', default=DEFAULT_DELAY_UP, type=int,
-                        help='how long to wait between nodes (default: %(default)s seconds)')  # noqa: E501
-    parser.add_argument('--delay-shutdown', default=DEFAULT_DELAY_SHUTDOWN,
-                        type=int, help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
-    parser.add_argument('--reason', default='rebooting for security upgrades',
-                        help='reason to give users (default: %(default)s)')
-    return parser.parse_args(args=args)
 
 
 @task
@@ -250,45 +222,3 @@ def tcp_ping_host(con, port=22, timeout=1):
                       con.host, port, e)
         time.sleep(1)
         return False
-
-
-def main(args):
-    config = Config({
-        'run': {
-            'dry': args.dryrun,
-        }
-    })
-
-    first = True
-    for node in args.node:
-        if first:
-            first = False
-        else:
-            logging.info('sleeping %d seconds before rebooting %s',
-                         args.delay_nodes, node)
-            time.sleep(args.delay_nodes)
-        node_con = host.find_context(node, config=config)
-        delay_shutdown = args.delay_shutdown
-
-        logging.info('rebooting node %s', node)
-        if not reboot_and_wait(node_con,
-                               reason=args.reason,
-                               delay_down=args.delay_down,
-                               delay_up=args.delay_up,
-                               delay_shutdown=delay_shutdown):
-            logging.error('rebooting node %s failed, aborting', node)
-            break
-
-        logging.info('done with node %s', node)
-    # TODO: rebalance ganeti cluster if nodes were migrated
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    logging.basicConfig(format='%(message)s', level=args.log_level.upper())
-    # override default logging policies in submodules
-    #
-    # without this, we get debugging info from paramiko with --verbose
-    for mod in 'fabric', 'paramiko', 'invoke':
-        logging.getLogger(mod).setLevel('WARNING')
-    main(args)
