@@ -94,6 +94,7 @@ def retire_all(instance_con,
     else:
         logging.warning('not wiping instance %s data: no parent host',
                         instance_con.host)
+        # TODO: destroy actual on-disk data
     # STEP 13
     if backup_host:
         logging.info('scheduling %s backup disks removal on host %s',
