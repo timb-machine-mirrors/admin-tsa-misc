@@ -42,6 +42,10 @@ from fabric_tpa.reboot import (DEFAULT_DELAY_DOWN,
                                reboot_and_wait)
 
 
+# TODO: don't use argparse: use Fabric's "Fab" program wrapper. We
+# don't do this yet because we haven't figured out how to do the
+# "sleep between hosts" policy. This probably requires overriding the
+# Executor class? See also https://github.com/fabric/fabric/issues/2069
 def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog='''''')
