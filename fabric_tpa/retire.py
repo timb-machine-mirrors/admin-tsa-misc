@@ -62,7 +62,7 @@ def retire_instance(instance_con, parent_host):
 def remove_backups(instance_con, backup_host):
     '''delete instance backups from the bacula storage host'''
     backup_dir = '/srv/backups/bacula/%s/' % instance_con.host
-    backup_con = Connection(instance_con, user='root',
+    backup_con = Connection(backup_host, user='root',
                             config=instance_con.config)
     if host.path_exists(backup_con, backup_dir):
         host.schedule_delete(backup_con, backup_dir, '30 days')
@@ -71,7 +71,7 @@ def remove_backups(instance_con, backup_host):
 @task
 def revoke_puppet(instance_con, puppetmaster='pauli.torproject.org'):
     '''revoke certificates of given instance on puppet master'''
-    con = Connection(instance_con, user='root', config=instance_con.config)
+    con = Connection(puppetmaster, user='root', config=instance_con.config)
     con.run('puppet node clean %s' % instance_con.host)
     con.run('puppet node deactivate %s' % instance_con.host)
     con.run('service apache2 restart')   # reload the CRL
