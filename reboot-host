@@ -7,6 +7,8 @@ if [ -z "$HOST" ]; then
     exit 1
 fi
 
+echo "DEPRECATED: remove this script after we converted from libvirt"
+
 # no prompt because tor-libvirt-reboot prompts
 
 echo "showing motd to see affected guests" &&

@@ -8,6 +8,8 @@ if [ -z "$HOST" ]; then
     exit 1
 fi
 
+echo "DEPRECATED: use 'reboot --node $HOST' instead"
+
 printf "about to reboot host %s, continue? " "$HOST"
 
 read -r _
