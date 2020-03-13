@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-'''KVM/libvirt to Ganeti migration script'''
+'''TPA Ganeti ad-hoc commands'''
 # Copyright (C) 2020 Antoine Beaupré <anarcat@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
