@@ -31,7 +31,7 @@ import xml.etree.ElementTree as ET
 
 
 try:
-    from fabric import task, Connection
+    from fabric import task
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise

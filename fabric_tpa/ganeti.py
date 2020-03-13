@@ -26,7 +26,7 @@ import re
 import sys
 
 try:
-    from fabric import task, Connection
+    from fabric import task
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -138,8 +138,8 @@ def renumber_instance(instance_con, ganeti_node):
     # `/etc/hosts`
     ganeti_node_con = host.find_context(ganeti_node,
                                         config=instance_con.config)
-    ganeti_master_con = Connection(getmaster(ganeti_node_con),
-                                   config=instance_con.config)
+    ganeti_master_con = host.find_context(getmaster(ganeti_node_con),
+                                          config=instance_con.config)
     instance_info = fetch_instance_info(instance_con, ganeti_master_con)
     data, = YAML().load(instance_info)
     disks = data['Disks']

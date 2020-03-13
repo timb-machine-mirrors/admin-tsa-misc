@@ -32,7 +32,7 @@ import sys
 import time
 
 try:
-    from fabric import task, Connection, Config
+    from fabric import task, Config
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -42,6 +42,7 @@ import paramiko.ssh_exception
 
 
 from . import ganeti
+from . import host
 
 DEFAULT_DELAY_DOWN = 30  # in seconds
 DEFAULT_DELAY_UP = 300  # in seconds
@@ -168,7 +169,7 @@ def reboot_and_wait(con,
     except invoke.exceptions.Failure:
         logging.info('host %s is not a ganeti node', con.host)
     else:
-        master_con = Connection(master, config=con.config, user='root')
+        master_con = host.find_context(master, config=con.config)
 
         # shorter delay, as the node will be empty
         delay_shutdown = 1
@@ -266,7 +267,7 @@ def main(args):
             logging.info('sleeping %d seconds before rebooting %s',
                          args.delay_nodes, node)
             time.sleep(args.delay_nodes)
-        node_con = Connection(node, config=config, user='root')
+        node_con = host.find_context(node, config=config)
         delay_shutdown = args.delay_shutdown
 
         logging.info('rebooting node %s', node)

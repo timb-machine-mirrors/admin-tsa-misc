@@ -25,7 +25,7 @@ import sys
 
 
 try:
-    from fabric import task, Connection
+    from fabric import task
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
@@ -48,8 +48,7 @@ def retire_instance(instance_con, parent_host):
 
     TODO: to be expanded to cover for physical machines and ganeti
     '''
-    host_con = Connection(parent_host, user='root',
-                          config=instance_con.config)
+    host_con = host.find_context(parent_host, config=instance_con.config)
     try:
         ganeti.getmaster(host_con)
     except invoke.exceptions.Failure:
@@ -62,8 +61,7 @@ def retire_instance(instance_con, parent_host):
 def remove_backups(instance_con, backup_host):
     '''delete instance backups from the bacula storage host'''
     backup_dir = '/srv/backups/bacula/%s/' % instance_con.host
-    backup_con = Connection(backup_host, user='root',
-                            config=instance_con.config)
+    backup_con = host.find_context(backup_host, config=instance_con.config)
     if host.path_exists(backup_con, backup_dir):
         host.schedule_delete(backup_con, backup_dir, '30 days')
 
@@ -71,7 +69,7 @@ def remove_backups(instance_con, backup_host):
 @task
 def revoke_puppet(instance_con, puppetmaster='pauli.torproject.org'):
     '''revoke certificates of given instance on puppet master'''
-    con = Connection(puppetmaster, user='root', config=instance_con.config)
+    con = host.find_context(puppetmaster, config=instance_con.config)
     con.run('puppet node clean %s' % instance_con.host)
     con.run('puppet node deactivate %s' % instance_con.host)
     con.run('service apache2 restart')   # reload the CRL
