@@ -43,7 +43,7 @@ from . import host
 
 DEFAULT_DELAY_DOWN = 30  # in seconds
 DEFAULT_DELAY_UP = 300  # in seconds
-DEFAULT_DELAY_NODES = 5  # in seconds
+DEFAULT_DELAY_NODES = 120  # in seconds
 DEFAULT_DELAY_SHUTDOWN = 10  # in minutes
 DEFAULT_REASON = 'no reason given'
 
