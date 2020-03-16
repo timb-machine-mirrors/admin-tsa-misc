@@ -65,7 +65,7 @@ def schedule_delete(host_con, path, delay):
                         warn=True).ok
 
 
-@task
+@task(autoprint=True)
 def fetch_ssh_host_pubkey(con, type='ed25519'):
     '''fetch public host key from server'''
     buffer = io.BytesIO()

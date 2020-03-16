@@ -46,7 +46,7 @@ from . import libvirt
 from . import host
 
 
-@task
+@task(autoprint=True)
 def getmaster(con, hide=True, dry=False):
     '''find master ganeti
 
