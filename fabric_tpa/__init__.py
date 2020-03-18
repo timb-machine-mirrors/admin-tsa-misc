@@ -47,7 +47,11 @@ class VerboseProgram(Fab):
             logging.getLogger(mod).setLevel('WARNING')
 
 
-class SaferConnection(Connection):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.client.set_missing_host_key_policy(RejectPolicy())
+# hack to enforce a different key policy: https://github.com/fabric/fabric/issues/2071
+def safe_open(self):
+    self.client.set_missing_host_key_policy(RejectPolicy())
+    Connection.open_orig(self)
+
+
+Connection.open_orig = Connection.open
+Connection.open = safe_open

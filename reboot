@@ -34,6 +34,9 @@ except ImportError:
     raise
 
 
+# get the safe_open hack
+import fabric_tpa  # noqa: F401
+
 from fabric_tpa import host
 from fabric_tpa.reboot import (DEFAULT_DELAY_DOWN,
                                DEFAULT_DELAY_UP,
