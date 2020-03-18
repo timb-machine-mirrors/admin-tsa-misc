@@ -2,12 +2,13 @@ import logging
 import sys
 
 try:
-    from fabric import Config
+    from fabric import Config, Connection
     from fabric.main import Fab, Executor
 except ImportError:
     sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
     raise
 
+from paramiko.client import RejectPolicy
 from invoke import Argument
 
 
@@ -44,3 +45,9 @@ class VerboseProgram(Fab):
         # without this, we get debugging info from paramiko with --verbose
         for mod in 'fabric', 'paramiko', 'invoke':
             logging.getLogger(mod).setLevel('WARNING')
+
+
+class SaferConnection(Connection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client.set_missing_host_key_policy(RejectPolicy())
