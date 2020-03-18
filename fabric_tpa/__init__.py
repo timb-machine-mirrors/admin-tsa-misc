@@ -1,4 +1,5 @@
 import logging
+import os.path
 import sys
 
 try:
@@ -47,10 +48,27 @@ class VerboseProgram(Fab):
             logging.getLogger(mod).setLevel('WARNING')
 
 
-# hack to enforce a different key policy: https://github.com/fabric/fabric/issues/2071
+# hack to fix Fabric key policy:
+# https://github.com/fabric/fabric/issues/2071
 def safe_open(self):
-    self.client.set_missing_host_key_policy(RejectPolicy())
+    SaferConnection.setup_ssh_client(self)
     Connection.open_orig(self)
+
+
+class SaferConnection(Connection):
+    # this function is a copy-paste from
+    # https://github.com/fabric/fabric/pull/2072
+    def setup_ssh_client(self):
+        if self.default_host_key_policy is not None:
+            logging.debug('host key policy: %s', self.default_host_key_policy)
+            self.client.set_missing_host_key_policy(self.default_host_key_policy())
+        known_hosts = self.ssh_config.get('UserKnownHostsFile'.lower(),
+                                          '~/.ssh/known_hosts')
+        logging.debug('loading host keys from %s', known_hosts)
+        # multiple keys, seperated by whitespace, can be provided
+        for filename in [os.path.expanduser(f) for f in known_hosts.split()]:
+            if os.path.exists(filename):
+                self.client.load_host_keys(filename)
 
 
 Connection.open_orig = Connection.open
