@@ -24,6 +24,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 import io
 import logging
+from pathlib import Path
 import re
 import sys
 
@@ -297,13 +298,23 @@ def find_context(hostname, config=None):
         return Connection(hostname, config=config)
 
 
-def install_hetzner(ipv4_address, hostname, fingerprint):
+@task
+def install_hetzner_robot(con,
+                          hostname,
+                          fai_disk_config,
+                          package_list,
+                          post_scripts_dir,
+                          boot_disks=['/dev/nvme0n1']):
     '''install a new hetzner server
 
     As an exception, the `--hosts` (`-H`) argument *must* be the IP
     address here. The actual hostname, provided as an argument, will
     be *set* on the host.
     '''
+
+    # TODO: automatically guess package_list and post_scripts_dir
+    # based on current path
+
     # summary of the new-machine-hetzner-robot procedure:
     #
     # STEP 1: login over SSH, checking fingerprint
@@ -318,4 +329,93 @@ def install_hetzner(ipv4_address, hostname, fingerprint):
     # STEP 10: close volumes
     # STEP 11: document root password
     # STEP 12: reboot
-    con = Connection(ipv4_address)
+
+    # STEP 1: TODO: wrap this function with a magic Con object that
+    # will check the fingerprint properly
+
+    # STEP 2
+    logging.info('setting hostname to %s', hostname)
+    con.run('hostname %s' % hostname)
+
+    sftp = con.sftp()
+
+    # keep trailing slash
+    remote_conf_path = '/etc/tpa-installer/'
+    sftp.mkdir(remote_conf_path)
+
+    # STEP 3
+    logging.info('deploying disk config %s', fai_disk_config)
+    fai_disk_config_remote = remote_conf_path + fai_disk_config
+    con.put(fai_disk_config, remote=fai_disk_config_remote)
+
+    logging.info('installing fai-setup-storage(8)')
+    con.run('apt update && apt install -y fai-setup-storage')
+
+    logging.info('partitionning disks')
+    con.run("setup-storage -f '%s' -X" % fai_disk_config_remote)
+
+    # TODO: test if we can skip that test by passing `$ROOT_PARTITION`
+    # as a `--target` to `grml-debootstrap`. Probably not.
+    logging.info('mounting partitions from FAI')
+    # TODO: parse the .sh file ourselves?
+    con.run('. /tmp/fai/disk_var.sh && mkdir /target && mount "$ROOT_PARTITION" /target && mkdir /target/boot && mount "$BOOT_DEVICE" /target/boot')  # noqa: E501
+
+    # STEP 4: run grml-debootstrap with packages and post-scripts
+    logging.info('uploading package list %s', package_list)
+    package_list_remote = remote_conf_path + package_list
+    con.put(package_list, remote=package_list_remote)
+
+    # TODO: those post-scripts *could* be turned into one nice fabric
+    # recipe instead, after all we still have access to the chroot
+    # after and know what we need to do at the end (ie. rebuild
+    # initramfs and install grub)
+    logging.info('uploading post-scripts %s', post_scripts_dir)
+    post_scripts_dir_remote = remote_conf_path + 'post-scripts/'
+    sftp.mkdir(post_scripts_dir_remote)
+    for post_script in Path(post_scripts_dir).iterdir():
+        filename = str(post_script.resolve())
+        logging.debug('uploading %s', filename)
+        con.put(filename, remote=post_scripts_dir_remote)
+
+    # TODO: do we really need grml-deboostrap here? why not just use
+    # plain debootstrap?
+    logging.info('running grml-debootstrap')
+    installer = '''mkdir -p /target/run && \
+        mount -t tmpfs tgt-run /target/run && \
+        mkdir /target/run/udev && \
+        mount -o bind /run/udev /target/run/udev && \
+        apt-get install -y grml-debootstrap && \
+        grml-debootstrap \
+            --grub "%s" \
+            --target /target \
+            --hostname `hostname` \
+            --release buster \
+            --mirror https://mirror.hetzner.de/debian/packages/ \
+            --packages %s \
+            --post-scripts %s \
+            --nopassword \
+            --remove-configs \
+            --defaultinterfaces && \
+        umount /target/run/udev /target/run''' % (
+            boot_disks[0],
+            package_list_remote,
+            post_scripts_dir_remote,
+        )
+    con.run(installer)
+
+    # STEP 5
+    logging.info('locking down /target/etc/luks')
+    con.run('chmod 0 /target/etc/luks/')
+
+    # STEP 6
+    con.run('cat /target/etc/crypttab')
+
+    # STEP 7
+    con.run('cat /target/etc/network/interfaces')
+    # TODO: setup interfaces correctly
+
+    # STEP 8: rebuild initramfs and grub (TODO?)
+    # STEP 9: unmount things (TODO)
+    # STEP 10: close things (TODO)
+    # STEP 11: document LUKS and root password in pwmanager (TODO)
+    # STEP 12: reboot (TODO)
