@@ -295,3 +295,27 @@ def find_context(hostname, config=None):
         return hostname
     else:
         return Connection(hostname, config=config)
+
+
+def install_hetzner(ipv4_address, hostname, fingerprint):
+    '''install a new hetzner server
+
+    As an exception, the `--hosts` (`-H`) argument *must* be the IP
+    address here. The actual hostname, provided as an argument, will
+    be *set* on the host.
+    '''
+    # summary of the new-machine-hetzner-robot procedure:
+    #
+    # STEP 1: login over SSH, checking fingerprint
+    # STEP 2: set hostname
+    # STEP 3: partition disks
+    # STEP 4: run grml-debootstrap with packages and post-scripts
+    # STEP 5: setup dropbear-initramfs (in the post-scripts)
+    # STEP 6: crypto config
+    # STEP 7: network config
+    # STEP 8: regenerate initramfs if relevant
+    # STEP 9: unmount
+    # STEP 10: close volumes
+    # STEP 11: document root password
+    # STEP 12: reboot
+    con = Connection(ipv4_address)
