@@ -15,10 +15,13 @@ from invoke import Argument
 
 class VerboseProgram(Fab):
     # cargo-culted from fab's main.py
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args,
+                 executor_class=Executor,
+                 config_class=Config,
+                 **kwargs):
         super().__init__(*args,
-                         executor_class=Executor,
-                         config_class=Config,
+                         executor_class=executor_class,
+                         config_class=config_class,
                          **kwargs)
 
     def core_args(self):
