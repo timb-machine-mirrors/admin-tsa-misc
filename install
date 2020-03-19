@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+# coding: utf-8
+
+''''''
+
+# Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import division, absolute_import
+from __future__ import print_function, unicode_literals
+
+from binascii import hexlify
+import hashlib
+
+from paramiko import MissingHostKeyPolicy, SSHException
+from invoke import Argument, Collection
+from fabric import Collection
+
+from fabric_tpa import host
+from fabric_tpa import VerboseProgram
+
+
+class MatchingHostKeyPolicy(MissingHostKeyPolicy):
+    fingerprints_md5_colons = []
+
+    def missing_host_key(self, client, hostname, key):
+        hash = hexlify(hashlib.md5(key.asbytes()), ':', 2)
+        if hash not in self.fingerprints_md5_colons:
+            raise SSHException(
+                "Server {!r} not in trusted fingerprints: {}".format(
+                    hostname, self.fingerprints_md5_colons
+                )
+            )
+
+
+class CustomFingerprintProgram(VerboseProgram):
+    def core_args(self):
+        core_args = super().core_args()
+        extra_args = [
+            Argument(
+                names=('fingerprint',),
+                default=False,
+                help="expected server fingerprint"
+            ),
+        ]
+        return core_args + extra_args
+
+
+def main():
+    col = Collection()
+    col.add_task(host.install_hetzner_robot, name='hetzner-robot')
+    program = VerboseProgram(namespace=col)
+    MatchingHostKeyPolicy.fingerprints_md5_colons = program.args.fingerprint.split(' ')
+    Connection.default_host_key_policy = MatchingHostKeyPolicy
+    program.run()
+
+
+if __name__ == '__main__':
+    main()
