@@ -50,6 +50,7 @@ class VerboseProgram(Fab):
 
 Connection.default_host_key_policy = RejectPolicy
 
+
 # hack to fix Fabric key policy:
 # https://github.com/fabric/fabric/issues/2071
 def safe_open(self):
