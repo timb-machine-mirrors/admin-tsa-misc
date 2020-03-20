@@ -24,6 +24,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 import io
 import logging
+import os.path
 from pathlib import Path
 import re
 import sys
@@ -353,8 +354,9 @@ def install_hetzner_robot(con,
             pass
 
     # STEP 3
-    logging.info('deploying disk config %s', fai_disk_config)
-    fai_disk_config_remote = remote_conf_path + fai_disk_config
+    fai_disk_config_remote = remote_conf_path + os.path.basename(fai_disk_config)
+    logging.info('deploying disk config %s to %s',
+                 fai_disk_config, fai_disk_config_remote)
     con.put(fai_disk_config, remote=fai_disk_config_remote)
 
     logging.info('installing fai-setup-storage(8)')
@@ -371,7 +373,7 @@ def install_hetzner_robot(con,
 
     # STEP 4: run grml-debootstrap with packages and post-scripts
     logging.info('uploading package list %s', package_list)
-    package_list_remote = remote_conf_path + package_list
+    package_list_remote = remote_conf_path + os.path.basename(package_list)
     con.put(package_list, remote=package_list_remote)
 
     # TODO: those post-scripts *could* be turned into one nice fabric
@@ -388,8 +390,9 @@ def install_hetzner_robot(con,
             pass
     for post_script in Path(post_scripts_dir).iterdir():
         filename = str(post_script.resolve())
-        logging.debug('uploading %s', filename)
-        con.put(filename, remote=post_scripts_dir_remote)
+        remote = post_scripts_dir_remote + os.path.basename(filename)
+        logging.debug('uploading %s to %s', filename, remote)
+        con.put(filename, remote=remote)
 
     # TODO: do we really need grml-deboostrap here? why not just use
     # plain debootstrap?
