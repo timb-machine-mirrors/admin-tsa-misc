@@ -428,13 +428,18 @@ def install_hetzner_robot(con,
             package_list_remote,
             post_scripts_dir_remote,
         )
-    # TODO: extract the resulting SSH keys and inject in a local
-    # known_hosts for further bootstrapping
     try:
         con.run(installer)
     except Exception as e:
         logging.error('installer failed: %s', e)
     con.run('umount /target/run/udev /target/run || true')
+
+    # TODO: extract the resulting SSH keys and inject in a local
+    # known_hosts for further bootstrapping. e.g.:
+    logging.info('dumping SSH keys')
+    con.run('cat /target/etc/ssh/ssh_host_*.pub')
+    con.run('for key in /target/etc/dropbear-initramfs/dropbear_*_host_key; do'
+            'dropbearkey -y -f $key; done')
 
     # STEP 5
     logging.info('locking down /target/etc/luks')
