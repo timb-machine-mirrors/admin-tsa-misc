@@ -401,15 +401,19 @@ def install_hetzner_robot(con,
         logging.debug('uploading %s to %s', filename, remote)
         con.put(filename, remote=remote)
 
+    logging.info('installing grml-debootstrap')
+    con.run('apt-get install -y grml-debootstrap')
+
+    logging.info('setting up grml-debootstrap')
+    con.run('''mkdir -p /target/run && \
+        mount -t tmpfs tgt-run /target/run && \
+        mkdir /target/run/udev && \
+        mount -o bind /run/udev /target/run/udev''')
     # TODO: do we really need grml-deboostrap here? why not just use
     # plain debootstrap?
     logging.info('running grml-debootstrap')
-    installer = '''mkdir -p /target/run && \
-        mount -t tmpfs tgt-run /target/run && \
-        mkdir /target/run/udev && \
-        mount -o bind /run/udev /target/run/udev && \
-        apt-get install -y grml-debootstrap && \
-        grml-debootstrap \
+    installer = '''. /tmp/fai/disk_var.sh && \
+        AUTOINSTALL=y grml-debootstrap \
             --grub "%s" \
             --target /target \
             --hostname `hostname` \
@@ -419,13 +423,16 @@ def install_hetzner_robot(con,
             --post-scripts %s \
             --nopassword \
             --remove-configs \
-            --defaultinterfaces && \
-        umount /target/run/udev /target/run''' % (
+            --defaultinterfaces''' % (
             boot_disks[0],
             package_list_remote,
             post_scripts_dir_remote,
         )
-    con.run(installer)
+    try:
+        con.run(installer)
+    except Exception as e:
+        logging.error('installer failed: %s', e)
+    con.run('umount /target/run/udev /target/run')
 
     # STEP 5
     logging.info('locking down /target/etc/luks')
