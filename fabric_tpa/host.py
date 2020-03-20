@@ -428,6 +428,8 @@ def install_hetzner_robot(con,
             package_list_remote,
             post_scripts_dir_remote,
         )
+    # TODO: extract the resulting SSH keys and inject in a local
+    # known_hosts for further bootstrapping
     try:
         con.run(installer)
     except Exception as e:

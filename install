@@ -62,6 +62,13 @@ class MatchingHostKeyPolicy(MissingHostKeyPolicy):
     fingerprints_md5_colons = []
 
     def missing_host_key(self, client, hostname, key):
+        # TODO: use the OpenSSH convention of prefixing the digest
+        # with the digest name, e.g. instead of:
+        # 0d:4a:c0:85:c4:e1:fe:03:15:e0:99:fe:7d:cc:34:f7
+        # you have:
+        # MD5:0d:4a:c0:85:c4:e1:fe:03:15:e0:99:fe:7d:cc:34:f7
+        # or (different hash value):
+        # SHA256:24ocee8jH4jfs69l0xrsqoJPeMDTqVVgEu+0fG76WTI
         hash = hexlify(hashlib.md5(key.asbytes()).digest(), b':', 2).decode('ascii')
         if hash not in self.fingerprints_md5_colons:
             raise SSHException(
