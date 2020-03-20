@@ -386,8 +386,9 @@ def install_hetzner_robot(con,
     # recipe instead, after all we still have access to the chroot
     # after and know what we need to do at the end (ie. rebuild
     # initramfs and install grub)
-    logging.info('uploading post-scripts %s', post_scripts_dir)
     post_scripts_dir_remote = remote_conf_path + 'post-scripts/'
+    logging.info('uploading post-scripts %s to %s',
+                 post_scripts_dir, post_scripts_dir_remote)
     try:
         sftp.mkdir(post_scripts_dir_remote)
     except OSError as e:
