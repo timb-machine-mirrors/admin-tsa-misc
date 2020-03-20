@@ -362,6 +362,12 @@ def install_hetzner_robot(con,
     logging.info('installing fai-setup-storage(8)')
     con.run('apt update && apt install -y fai-setup-storage')
 
+    # the rationale here is that some of the dependencies we need
+    # might have security vulnerabilities, and i have found the rescue
+    # images sometimes don't have the latest
+    logging.info('running upgrades')
+    con.run('apt upgrade -yy')
+
     logging.info('partitionning disks')
     con.run("setup-storage -f '%s' -X" % fai_disk_config_remote)
 
