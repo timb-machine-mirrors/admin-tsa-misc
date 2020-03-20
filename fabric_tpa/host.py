@@ -432,7 +432,7 @@ def install_hetzner_robot(con,
         con.run(installer)
     except Exception as e:
         logging.error('installer failed: %s', e)
-    con.run('umount /target/run/udev /target/run')
+    con.run('umount /target/run/udev /target/run || true')
 
     # STEP 5
     logging.info('locking down /target/etc/luks')
@@ -448,13 +448,13 @@ def install_hetzner_robot(con,
     # STEP 8: rebuild initramfs and grub (TODO?)
     # STEP 9: unmount things
     con.run('umount /target/dev /target/proc /target/sys || true')
-    con.run('umount /target/boot /target')
+    con.run('umount /target/boot /target || true')
     con.run('rmdir /target')
 
     # STEP 10: close things
     con.run('vgchange -a n')
-    con.run('cryptsetup luksClose crypt_dev_md1')
     # TODO: crypt_dev_md2?
+    con.run('cryptsetup luksClose /dev/mapper/crypt_dev_md1')
     con.run('mdadm --stop /dev/md*')
 
     # STEP 11: document LUKS and root password in pwmanager (TODO)
