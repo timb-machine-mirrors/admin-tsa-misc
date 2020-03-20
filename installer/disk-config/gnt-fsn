@@ -21,7 +21,7 @@
 #
 # TODO: make bigger? https://trac.torproject.org/projects/tor/ticket/33387
 disk_config tmpfs
-tmpfs   /tmp    RAM:512m       defaults
+tmpfs   /tmp    512MiB       defaults
 
 disk_config nvme0n1 disklabel:gpt-bios bootable:2 align-at:1M
 # bios grub second stage
