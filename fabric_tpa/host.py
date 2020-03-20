@@ -341,7 +341,16 @@ def install_hetzner_robot(con,
 
     # keep trailing slash
     remote_conf_path = '/etc/tpa-installer/'
-    sftp.mkdir(remote_conf_path)
+    try:
+        sftp.mkdir(remote_conf_path)
+    except OSError as e:
+        # ignore existing directory
+        #
+        # XXX: SFTP doesn't really help us distinguish between real
+        # and "EEXIST" errors, it just returns an error code 4
+        # ("SSH_FX_FAILURE") if the directory exists
+        if 'Failure' in str(e):
+            pass
 
     # STEP 3
     logging.info('deploying disk config %s', fai_disk_config)
@@ -371,7 +380,12 @@ def install_hetzner_robot(con,
     # initramfs and install grub)
     logging.info('uploading post-scripts %s', post_scripts_dir)
     post_scripts_dir_remote = remote_conf_path + 'post-scripts/'
-    sftp.mkdir(post_scripts_dir_remote)
+    try:
+        sftp.mkdir(post_scripts_dir_remote)
+    except OSError as e:
+        # ignore existing directory, see earlier XXX
+        if 'Failure' in str(e):
+            pass
     for post_script in Path(post_scripts_dir).iterdir():
         filename = str(post_script.resolve())
         logging.debug('uploading %s', filename)
