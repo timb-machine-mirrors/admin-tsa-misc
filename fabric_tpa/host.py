@@ -303,15 +303,15 @@ def install_hetzner_robot(con,
                           hostname,
                           fai_disk_config,
                           package_list,
-                          post_scripts_dir,
-                          boot_disks=['/dev/nvme0n1']):
+                          post_scripts_dir):
     '''install a new hetzner server
 
     As an exception, the `--hosts` (`-H`) argument *must* be the IP
     address here. The actual hostname, provided as an argument, will
     be *set* on the host.
     '''
-
+    # TODO: do not hardcode
+    boot_disks = ['/dev/nvme0n1']
     # TODO: automatically guess package_list and post_scripts_dir
     # based on current path
 
