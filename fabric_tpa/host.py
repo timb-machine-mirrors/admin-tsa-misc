@@ -446,7 +446,16 @@ def install_hetzner_robot(con,
     # TODO: setup interfaces correctly
 
     # STEP 8: rebuild initramfs and grub (TODO?)
-    # STEP 9: unmount things (TODO)
-    # STEP 10: close things (TODO)
+    # STEP 9: unmount things
+    con.run('umount /target/dev /target/proc /target/sys || true')
+    con.run('umount /target/boot /target')
+    con.run('rmdir /target')
+
+    # STEP 10: close things
+    con.run('vgchange -a n')
+    con.run('cryptsetup luksClose crypt_dev_md1')
+    # TODO: crypt_dev_md2?
+    con.run('mdadm --stop /dev/md*')
+
     # STEP 11: document LUKS and root password in pwmanager (TODO)
     # STEP 12: reboot (TODO)
