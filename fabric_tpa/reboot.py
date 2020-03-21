@@ -43,7 +43,7 @@ from . import host
 
 DEFAULT_DELAY_DOWN = 30  # in seconds
 DEFAULT_DELAY_UP = 300  # in seconds
-DEFAULT_DELAY_NODES = 120  # in seconds
+DEFAULT_DELAY_HOSTS = 120  # in seconds
 DEFAULT_DELAY_SHUTDOWN = 10  # in minutes
 DEFAULT_REASON = 'no reason given'
 
@@ -52,7 +52,7 @@ DEFAULT_REASON = 'no reason given'
 def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
     '''wait for host to shutdown
 
-    This pings the node and waits one second until timeout is expired
+    This pings the host and waits one second until timeout is expired
     or until it stops pinging.
 
     Returns True if the box stops pinging before timeout, or False if
@@ -79,8 +79,8 @@ def wait_for_boot(con, timeout=DEFAULT_DELAY_UP):
     This tries to ping the host until it responds or until the timeout
     expires.
 
-    This returns true if the node pings or False if the timeout
-    expires and the node still does not ping.
+    This returns true if the host pings or False if the timeout
+    expires and the host still does not ping.
     '''
     for i in range(timeout):
         # this will "sleep" one second if host is unreachable
