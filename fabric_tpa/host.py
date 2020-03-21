@@ -314,7 +314,7 @@ def find_context(hostname, config=None):
 
 @task
 def install_hetzner_robot(con,
-                          hostname,
+                          fqdn,
                           fai_disk_config,
                           package_list,
                           post_scripts_dir):
@@ -348,6 +348,7 @@ def install_hetzner_robot(con,
     # will check the fingerprint properly
 
     # STEP 2
+    hostname, _ = fqdn.split('.', 1)
     logging.info('setting hostname to %s', hostname)
     con.run('hostname %s' % hostname)
 
