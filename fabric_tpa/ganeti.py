@@ -126,7 +126,7 @@ def renumber_instance(instance_con, ganeti_node):
     1. connects to the primary ganeti node
     2. finds its master
     3. fetches network information from the master
-       (fetch-instance-info and find-instance-ipconfig)
+       (fetch-instance-info and find-instance-ifconfig)
     4. stops the instance
     5. mounts its disk
     6. rewrites the interfaces file (with host.rewrite-interfaces)
@@ -146,7 +146,7 @@ def renumber_instance(instance_con, ganeti_node):
     disk0 = disks[0]
     assert 'disk/0' in disk0
     disk_path = disk0['on primary'].split(' ')[0]
-    ipconfig = find_instance_ipconfig(instance_con,
+    ifconfig = find_instance_ifconfig(instance_con,
                                       ganeti_master_con,
                                       instance_info)
     # this succeeds even if already stopped
@@ -162,9 +162,9 @@ def renumber_instance(instance_con, ganeti_node):
             # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048  # noqa: E501
             _, _, part, _ = res.stdout.split(' ', 3)
             host.mount(ganeti_node_con, '/dev/mapper/%s' % part, '/mnt')
-        host.rewrite_interfaces_ipconfig(ganeti_node_con, ipconfig,
+        host.rewrite_interfaces_ifconfig(ganeti_node_con, ifconfig,
                                          path='/mnt/etc/network/interfaces')
-        host.rewrite_hosts(ganeti_node_con, ipconfig,
+        host.rewrite_hosts(ganeti_node_con, ifconfig,
                            path='/mnt/etc/hosts')
     if need_kpartx_deactivate:
         logging.info('disabling kpartx mappings')
@@ -175,9 +175,9 @@ def renumber_instance(instance_con, ganeti_node):
     # STEP 10. functional tests: change your `/etc/hosts` to point to the new
     #     server and see if everything still kind of works
     #
-    cmd = 'printf "%s %s\\n%s %s\\n" >> /etc/hosts' % (ipconfig.ipv4,
+    cmd = 'printf "%s %s\\n%s %s\\n" >> /etc/hosts' % (ifconfig.ipv4,
                                                        instance_con.host,
-                                                       ipconfig.ipv6,
+                                                       ifconfig.ipv6,
                                                        instance_con.host)
     logging.warning('use this to add the new IP to local DNS: %s', cmd)
     logging.warning('perform tests, then redo the sync procedure and this procedure, then...')
@@ -187,7 +187,7 @@ def renumber_instance(instance_con, ganeti_node):
     logging.warning('commands:')
     logging.warning('# ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"')  # noqa: E501
     logging.warning('# ssh pauli.torproject.org puppet agent -t')
-    magic_grep = 'grep -n -r -e %s -e %s' % (ipconfig.ipv4, ipconfig.ipv6)
+    magic_grep = 'grep -n -r -e %s -e %s' % (ifconfig.ipv4, ifconfig.ipv6)
     commands = [
         # on the host, in /etc and /srv
         'ssh %s %s /etc /srv' % (instance_con.host, magic_grep),
@@ -234,7 +234,7 @@ GANETI_NETWORK_REGEX = r'^\s+(Subnet|Gateway|IPv6 Subnet|IPv6 Gateway):\s+(.*)$'
 
 
 @task
-def find_instance_ipconfig(instance_con,
+def find_instance_ifconfig(instance_con,
                            master_host='fsn-node-01.torproject.org',
                            instance_info=None):
     '''compute the network information for the given instance
@@ -244,7 +244,7 @@ def find_instance_ipconfig(instance_con,
     also fetches information from the ganeti network to get parameters
     like the network and gateway.
 
-    It returns a host.ipconfig tuple and is therefore mostly for
+    It returns a host.ifconfig tuple and is therefore mostly for
     internal use.
 
     instance-info is an internal parameter and should be ignored.
@@ -281,13 +281,13 @@ def find_instance_ipconfig(instance_con,
     ipv6 = host.ipv6_slaac(invoke.Context(),
                            ipv6_net,
                            mac)
-    conf = host.ipconfig(ipv4,
+    conf = host.ifconfig(ipv4,
                          ipv4_subnet,
                          facts['Gateway'],
                          ipv6,
                          ipv6_subnet,
                          facts['IPv6 Gateway'])
-    logging.debug('ipconfig: %s', conf)
+    logging.debug('ifconfig: %s', conf)
     return conf
 
 

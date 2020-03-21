@@ -193,16 +193,16 @@ def rewrite_interfaces(con,
                        path='/etc/network/interfaces'):
     '''write an /etc/network/interfaces file
 
-    This writes the given ipconfig namedtuple into the given
+    This writes the given ifconfig namedtuple into the given
     interfaces(5) file, keeping a backup (uses rewrite-file).
     '''
     # TODO: do SLAAC based on ipv6_net?
-    ipconf = ipconfig(ipv4_address, ipv4_subnet, ipv4_gateway,
+    ipconf = ifconfig(ipv4_address, ipv4_subnet, ipv4_gateway,
                       ipv6_address, ipv6_subnet, ipv6_gateway)
-    return rewrite_interfaces_ipconfig(con, ipconf, path)
+    return rewrite_interfaces_ifconfig(con, ipconf, path)
 
 
-def rewrite_interfaces_ipconfig(con, ipconf, path='/etc/network/interfaces'):
+def rewrite_interfaces_ifconfig(con, ipconf, path='/etc/network/interfaces'):
     content = f'''# This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -276,7 +276,7 @@ def mount_then_umount(con, device, path, options='', warn=None):
         return umount(con, path)
 
 
-ipconfig = namedtuple('ipconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subnet ipv6_gateway')  # noqa: E501
+ifconfig = namedtuple('ifconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subnet ipv6_gateway')  # noqa: E501
 
 
 @task
