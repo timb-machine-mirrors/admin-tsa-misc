@@ -144,7 +144,7 @@ def reboot_and_wait(con,
         master_con = host.find_context(master, config=con.config)
 
         # shorter delay, as the node will be empty
-        delay_shutdown = 1
+        delay_shutdown = 0
         logging.info('ganeti node detected, migrating instances from  %s',
                      con.host)
         if not ganeti.empty_node(con, master_con):
