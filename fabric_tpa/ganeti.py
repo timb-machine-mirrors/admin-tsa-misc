@@ -84,12 +84,11 @@ def empty_node(node_con, master_host=None):
     command = 'gnt-node migrate -f %s' % node_con.host
     logging.info('sending command %s to node %s', command, master_con.host)
     result = master_con.run(command, warn=True)
+
     # TODO: failover master?
-    return (result.ok
-            and (
-                "All instances migrated successfully." in result.stdout
-                or ("No primary instances on node %s, exiting." % master_con.host) in result.stdout  # noqa: E501
-            )
+    return ((result.ok
+             and "All instances migrated successfully." in result.stdout)
+            or ("No primary instances on node %s, exiting." % node_con.host) in result.stdout  # noqa: E501
     )
 
 
