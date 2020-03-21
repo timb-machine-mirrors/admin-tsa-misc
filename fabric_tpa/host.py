@@ -187,13 +187,22 @@ def rewrite_file(con, path, content):
 
 
 @task
-def rewrite_interfaces(con, ipconfig=(),
+def rewrite_interfaces(con,
+                       ipv4_address, ipv4_subnet, ipv4_gateway,
+                       ipv6_address, ipv6_subnet, ipv6_gateway,
                        path='/etc/network/interfaces'):
     '''write an /etc/network/interfaces file
 
     This writes the given ipconfig namedtuple into the given
     interfaces(5) file, keeping a backup (uses rewrite-file).
     '''
+    # TODO: do SLAAC based on ipv6_net?
+    ipconf = ipconfig(ipv4_address, ipv4_subnet, ipv4_gateway,
+                      ipv6_address, ipv6_subnet, ipv6_gateway)
+    return rewrite_interfaces_ipconfig(con, ipconf, path)
+
+
+def rewrite_interfaces_ipconfig(con, ipconf, path='/etc/network/interfaces'):
     content = f'''# This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -204,12 +213,12 @@ iface lo inet loopback
 # The primary network interface
 auto eth0
 iface eth0 inet static
-    address {ipconfig.ipv4}/{ipconfig.ipv4_subnet}
-    gateway {ipconfig.ipv4_gateway}
+    address {ipconf.ipv4}/{ipconf.ipv4_subnet}
+    gateway {ipconf.ipv4_gateway}
 iface eth0 inet6 static
     accept_ra 0
-    address {ipconfig.ipv6}/{ipconfig.ipv6_subnet}
-    gateway {ipconfig.ipv6_gateway}
+    address {ipconf.ipv6}/{ipconf.ipv6_subnet}
+    gateway {ipconf.ipv6_gateway}
 '''
     logging.debug('generated %s: %s', path, content)
     rewrite_file(con, path, content)

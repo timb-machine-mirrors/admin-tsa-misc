@@ -162,8 +162,8 @@ def renumber_instance(instance_con, ganeti_node):
             # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048  # noqa: E501
             _, _, part, _ = res.stdout.split(' ', 3)
             host.mount(ganeti_node_con, '/dev/mapper/%s' % part, '/mnt')
-        host.rewrite_interfaces(ganeti_node_con, ipconfig,
-                                path='/mnt/etc/network/interfaces')
+        host.rewrite_interfaces_ipconfig(ganeti_node_con, ipconfig,
+                                         path='/mnt/etc/network/interfaces')
         host.rewrite_hosts(ganeti_node_con, ipconfig,
                            path='/mnt/etc/hosts')
     if need_kpartx_deactivate:
