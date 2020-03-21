@@ -480,3 +480,4 @@ def install_hetzner_robot(con,
 
     # STEP 11: document LUKS and root password in pwmanager (TODO)
     # STEP 12: reboot (TODO)
+    con.run('reboot machine when happy: ./reboot -H root@%s -v --reason "new-machine procedure" --delay-shutdown 0' % con.host)  # noqa: E501
