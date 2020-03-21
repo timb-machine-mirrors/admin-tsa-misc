@@ -216,27 +216,31 @@ iface eth0 inet6 static
 
 
 @task
-def rewrite_hosts(con, ipconfig=(), path='/etc/hosts'):
-    pass
+def rewrite_hosts(con, fqdn, ipv4_address, path='/etc/hosts'):
+    if con.config.run.dry:
+        return
+    with con.sftp().file(path, mode='ab+') as fp:
+        rewrite_hosts_file(fp, fqdn.encode('ascii'), ipv4_address.encode('ascii'))
 
 
-def rewrite_hosts_file(stream, fqdn, hostname, ipconfig=()):
-    line = b'%s %s %s' % (ipconfig.ipv4, fqdn, hostname)
+def rewrite_hosts_file(stream, fqdn, ipv4_address):
+    hostname, _ = fqdn.split(b'.', 1)
+    line = b'%s %s %s' % (ipv4_address, fqdn, hostname)
     ensure_line_stream(stream, line, match=b'^.* %s.*$' % fqdn)
 
 
 def test_rewrite_hosts_file():
     import io
     stream = io.BytesIO()
-    i = ipconfig(b'1.2.3.4', '', '', '', '', '')
-    rewrite_hosts_file(stream, b'test.example.com', b'test', i)
+    i = b'1.2.4'
+    rewrite_hosts_file(stream, b'test.example.com', i)
     stream.seek(0)
     assert stream.read() == b"1.2.3.4 test.example.com test\n"
-    rewrite_hosts_file(stream, b'test.example.com', b'test', i)
+    rewrite_hosts_file(stream, b'test.example.com', i)
     stream.seek(0)
     assert stream.read() == b"1.2.3.4 test.example.com test\n"
-    i = ipconfig(b'1.2.3.5', '', '', '', '', '')
-    rewrite_hosts_file(stream, b'test.example.com', b'test', i)
+    i = b'1.2.3.5'
+    rewrite_hosts_file(stream, b'test.example.com', i)
     stream.seek(0)
     assert stream.read() == b"1.2.3.5 test.example.com test\n"
 
