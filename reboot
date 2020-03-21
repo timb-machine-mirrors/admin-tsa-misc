@@ -82,7 +82,7 @@ def main(args):
     })
 
     first = True
-    for node in args.node:
+    for node in args.host:
         if first:
             first = False
         else:
