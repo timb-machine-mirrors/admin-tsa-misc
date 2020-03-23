@@ -260,3 +260,16 @@ def inventory(instance_con, parent_host):
     inventory['disks'] = disks
     logging.debug('generated inventory: %s', inventory)
     return inventory
+
+
+@task
+def du(instance_con, parent_host):
+    '''show virtual disk usage of instance
+
+    Does a full inventory (see the inventory command) and extracts the
+    disk usage for each disk in the instance.
+
+    It shows the "virtual" disk usage, not actual.
+    '''
+    for path, disk_info in inventory(instance_con, parent_host)['disks'].items():
+        print(naturalsize(disk_info['virtual-size'], binary=True), path)
