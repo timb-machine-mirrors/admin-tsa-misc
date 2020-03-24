@@ -126,7 +126,7 @@ def ensure_line_stream(stream, line, match=None, ensure_newline=True):
     res = rep.search(content)
     if res:
         if res.group(0).strip() == line.strip():
-            logging.debug('line present in stream %s, skipping: %s',
+            logging.debug('exact line present in stream %s, skipping: %s',
                           stream, line)
         else:
             logging.debug('match found in stream %s: %s; replacing with %s',
