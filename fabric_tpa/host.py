@@ -96,7 +96,7 @@ def append_to_file(con, path, content):
 def ensure_line(con, path, line, match=None, ensure_newline=True):
     if con.config.run.dry:
         return
-    with con.sftp().file(path, mode='w+b') as fp:
+    with con.sftp().file(path, mode='ab+') as fp:
         ensure_line_stream(fp, line, match=None, ensure_newline=True)
 
 
