@@ -1,6 +1,17 @@
+import atexit
+import datetime
 import logging
 import os.path
+import psutil
 import sys
+
+try:
+    from humanize import naturalsize
+except ImportError:
+    sys.stderr.write('cannot import humanize, sizes will be ugly')
+
+    def naturalsize(size, *args, **kwargs):
+        return size + 'B'
 
 try:
     from fabric import Config, Connection
@@ -49,6 +60,12 @@ class VerboseProgram(Fab):
         # without this, we get debugging info from paramiko with --verbose
         for mod in 'fabric', 'paramiko', 'invoke':
             logging.getLogger(mod).setLevel('WARNING')
+        self._tpa_timer = Timer()
+        logging.info('starting tasks at %s', self._tpa_timer.stamp)
+        atexit.register(self._tpa_log_completion)
+
+    def _tpa_log_completion(self):
+        logging.info('completed tasks, %s', self._tpa_timer)
 
 
 Connection.default_host_key_policy = RejectPolicy
@@ -79,3 +96,34 @@ class SaferConnection(Connection):
 
 Connection.open_orig = Connection.open
 Connection.open = safe_open
+
+
+class Timer(object):
+    """this class is to track time and resources passed
+
+    originally from bup-cron, but improved to include memory usage"""
+
+    def __init__(self):
+        """initialize the timstamp"""
+        self.stamp = datetime.datetime.now()
+
+    def times(self):
+        """return a string designing resource usage"""
+        return 'user %s system %s chlduser %s chldsystem %s' % os.times()[:4]
+
+    def rss(self):
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss
+
+    def memory(self):
+        return 'RSS %s' % naturalsize(self.rss())
+
+    def diff(self):
+        """a datediff between the creation of the object and now"""
+        return datetime.datetime.now() - self.stamp
+
+    def __str__(self):
+        """return a string representing the time passed and resources used"""
+        return 'elasped: %s (%s %s)' % (str(self.diff()),
+                                        self.times(),
+                                        self.memory())
