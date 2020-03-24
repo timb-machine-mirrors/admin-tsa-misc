@@ -100,7 +100,7 @@ def ensure_line(con, path, line):
         ensure_line_stream(fp, line)
 
 
-def ensure_line_stream(stream, line, match=None, ensure_line=True):
+def ensure_line_stream(stream, line, match=None, ensure_newline=True):
     '''ensure that line is present in the given stream, adding it if missing
 
     Will ensure the given line is present in the stream. If match is
@@ -109,7 +109,7 @@ def ensure_line_stream(stream, line, match=None, ensure_line=True):
     just look for it. If match is not provided, it defaults to the
     full line on its own line.
 
-    If ensure_line is specified (the default), it will also append a
+    If ensure_newline is specified (the default), it will also append a
     newline character even if missing from the line.
 
     This is inspired by Puppet's stdlib file_line resource:
@@ -118,7 +118,7 @@ def ensure_line_stream(stream, line, match=None, ensure_line=True):
     if match is None:
         match = b'^' + line + b'$'
     rep = re.compile(match, flags=re.MULTILINE | re.DOTALL)
-    if ensure_line and not line.endswith(b"\n"):
+    if ensure_newline and not line.endswith(b"\n"):
         line += b"\n"
     stream.seek(0)
     # TODO: loads entire file in memory, could be optimized
