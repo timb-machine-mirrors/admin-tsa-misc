@@ -97,7 +97,7 @@ def ensure_line(con, path, line, match=None, ensure_newline=True):
     if con.config.run.dry:
         return
     with con.sftp().file(path, mode='ab+') as fp:
-        ensure_line_stream(fp, line, match=None, ensure_newline=True)
+        ensure_line_stream(fp, line, match=match, ensure_newline=ensure_newline)
 
 
 def ensure_line_stream(stream, line, match=None, ensure_newline=True):
