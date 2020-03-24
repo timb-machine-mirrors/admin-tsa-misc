@@ -116,7 +116,7 @@ def ensure_line_stream(stream, line, match=None, ensure_newline=True):
 
     https://github.com/puppetlabs/puppetlabs-stdlib/'''
     if match is None:
-        match = b'^' + line + b'$'
+        match = b'^' + re.escape(line) + b'$'
     rep = re.compile(match, flags=re.MULTILINE | re.DOTALL)
     if ensure_newline and not line.endswith(b"\n"):
         line += b"\n"
