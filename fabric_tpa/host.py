@@ -149,7 +149,7 @@ def test_ensure_line_stream():
     '''test for ensure_line_stream'''
     import io
     stream = io.BytesIO()
-    ensure_line_stream(stream, b"// test", ensure_line=False)
+    ensure_line_stream(stream, b"// test", ensure_newline=False)
     assert stream.seek(0) == 0
     assert stream.read() == b"// test", 'appends if empty, without newline'
     stream = io.BytesIO()
@@ -241,7 +241,7 @@ def rewrite_hosts_file(stream, fqdn, ipv4_address):
 def test_rewrite_hosts_file():
     import io
     stream = io.BytesIO()
-    i = b'1.2.4'
+    i = b'1.2.3.4'
     rewrite_hosts_file(stream, b'test.example.com', i)
     stream.seek(0)
     assert stream.read() == b"1.2.3.4 test.example.com test\n"
