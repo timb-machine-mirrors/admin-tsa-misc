@@ -117,7 +117,7 @@ def start(instance_con, master_host='fsn-node-01.torproject.org'):
 
 
 @task
-def renumber_instance(instance_con, ganeti_node):
+def renumber_instance(instance_con, ganeti_node, dostart=True):
     '''change the IP address of an instance
 
     This does the following:
@@ -130,7 +130,7 @@ def renumber_instance(instance_con, ganeti_node):
     5. mounts its disk
     6. rewrites the interfaces file (with host.rewrite-interfaces)
     7. unmounts the disk
-    8. starts the instance
+    8. starts the instance (if --dostart, default)
     '''
     # STEP 9. IP address change on new instance
     # STEP 14. redo IP adress change in `/etc/network/interfaces` and
@@ -169,7 +169,8 @@ def renumber_instance(instance_con, ganeti_node):
         logging.info('disabling kpartx mappings')
         ganeti_node_con.run('kpartx -dv %s' % disk_path)
 
-    start(instance_con, ganeti_master_con)
+    if dostart:
+        start(instance_con, ganeti_master_con)
     # TODO: all this could be done for real:
     # STEP 10. functional tests: change your `/etc/hosts` to point to the new
     #     server and see if everything still kind of works
