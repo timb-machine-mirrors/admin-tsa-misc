@@ -148,10 +148,12 @@ def ensure_line_stream(stream, line, match=None, ensure_newline=True):
 def test_ensure_line_stream():
     '''test for ensure_line_stream'''
     import io
+
     stream = io.BytesIO()
     ensure_line_stream(stream, b"// test", ensure_newline=False)
     assert stream.seek(0) == 0
     assert stream.read() == b"// test", 'appends if empty, without newline'
+
     stream = io.BytesIO()
     ensure_line_stream(stream, b"// test")
     assert stream.seek(0) == 0
@@ -159,6 +161,7 @@ def test_ensure_line_stream():
     ensure_line_stream(stream, b"test")
     stream.seek(0)
     assert stream.read() == b"// test\ntest\n", 'appends if not full match'
+
     stream = io.BytesIO(b"// test\n")
     ensure_line_stream(stream, b"// test", match=b"^.*test.*$")
     stream.seek(0)
