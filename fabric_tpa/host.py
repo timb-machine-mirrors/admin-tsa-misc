@@ -176,6 +176,7 @@ def test_ensure_line_stream():
     ensure_line_stream(stream, b"// test", match=b"^.*test.*$")
     stream.seek(0)
     assert stream.read() == b"// test\n", 'does not append on partial'
+
     ensure_line_stream(stream, b"test", match=b"^.*test.*$")
     stream.seek(0)
     assert stream.read() == b"test\n", 'replaces on partial'
