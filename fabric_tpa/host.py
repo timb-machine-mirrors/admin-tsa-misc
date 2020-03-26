@@ -322,6 +322,26 @@ def test_rewrite_hosts_file():
     stream.seek(0)
     assert stream.read() == b"1.2.3.5 test.example.com test\n"
 
+    stream = io.BytesIO(b"# this is a hosts file\n138.201.212.234        forrestii.torproject.org forrestii\n")
+    rewrite_hosts_file(stream, b'forrestii.torproject.org', i)
+    stream.seek(0)
+    assert stream.read() == b"# this is a hosts file\n1.2.3.5 forrestii.torproject.org forrestii\n"
+
+    stream = io.BytesIO(b"138.201.212.234\tforrestii.torproject.org\tforrestii\n")
+    rewrite_hosts_file(stream, b'forrestii.torproject.org', i)
+    stream.seek(0)
+    assert stream.read() == b"1.2.3.5 forrestii.torproject.org forrestii\n"
+
+    stream = io.BytesIO(b"::1\tforrestii.torproject.org\tforrestii\n")
+    rewrite_hosts_file(stream, b'forrestii.torproject.org', i)
+    stream.seek(0)
+    assert stream.read() == b"::1\tforrestii.torproject.org\tforrestii\n1.2.3.5 forrestii.torproject.org forrestii\n"
+
+    stream = io.BytesIO(b"::1\tforrestii.torproject.org\tforrestii\n")
+    rewrite_hosts_file(stream, b'forrestii.torproject.org', i, b'fe80::')
+    stream.seek(0)
+    assert stream.read() == b"fe80:: forrestii.torproject.org forrestii\n1.2.3.5 forrestii.torproject.org forrestii\n"
+
 
 @task
 def mount(con, device, path, options='', warn=None):
