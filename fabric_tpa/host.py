@@ -100,7 +100,10 @@ def ensure_line(con, path, line, match=None, ensure_newline=True):
         ensure_line_stream(fp, line, match=match, ensure_newline=ensure_newline)
 
 
-def ensure_line_stream(stream, line, match=None, ensure_newline=True):
+def ensure_line_stream(stream, line,
+                       match=None,
+                       ensure_newline=True,
+                       flags=re.MULTILINE):
     '''ensure that line is present in the given stream, adding it if missing
 
     Will ensure the given line is present in the stream. If match is
@@ -117,9 +120,7 @@ def ensure_line_stream(stream, line, match=None, ensure_newline=True):
     https://github.com/puppetlabs/puppetlabs-stdlib/'''
     if match is None:
         match = b'^' + re.escape(line) + b'$'
-    rep = re.compile(match, flags=re.MULTILINE | re.DOTALL)
-    if ensure_newline and not line.endswith(b"\n"):
-        line += b"\n"
+    rep = re.compile(match, flags=flags)
     stream.seek(0)
     # TODO: loads entire file in memory, could be optimized
     content = stream.read()
@@ -142,6 +143,15 @@ def ensure_line_stream(stream, line, match=None, ensure_newline=True):
                       stream, line)
         stream.seek(0, 2)  # EOF
         stream.write(line)
+
+        # append newline only if the line is totally missing, because
+        # otherwise if we replace an existing line the regex doesn't
+        # match the newline (unless the caller passes flags=DOTALL, in
+        # which case they are responsible for the trouble they're
+        # in. see ensure_ssh_key_stream() for what "trouble" looks
+        # like.
+        if ensure_newline and not line.endswith(b"\n"):
+            stream.write(b"\n")
     return stream
 
 
@@ -205,7 +215,7 @@ def ensure_ssh_key_stream(stream, key, comment=None):
     else:
         match = br"(?:^#[^\n]*$)?\s+" + re.escape(key) + b'$'
         key_blob = comment + b"\n" + key
-    ensure_line_stream(stream, key_blob, match=match)
+    ensure_line_stream(stream, key_blob, match=match, flags=re.MULTILINE | re.DOTALL)
 
 
 def test_ensure_ssh_key():
