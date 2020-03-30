@@ -204,12 +204,18 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     # STEP 15. final functional test
     # STEP 16. global IP address change
     logging.warning('commands:')
-    logging.warning('# ssh db.torproject.org ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"')  # noqa: E501
-    logging.warning('# ssh pauli.torproject.org puppet agent -t')
     magic_grep = 'grep -n -r -e %s -e %s' % (ifconfig_old.ipv4, ifconfig_old.ipv6)
     commands = [
+        # LDAP vi
+        'ssh -tt db.torproject.org ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"',  # noqa: E501
+        # puppet on the puppet master, to open up firewall
+        'ssh root@pauli.torproject.org puppet agent -t',
+        # puppet on the host
+        'ssh %s puppet agent -t' % instance_con.host,
         # on the host, in /etc and /srv
         'ssh %s %s /etc /srv' % (instance_con.host, magic_grep),
+        # puppet everywhere
+        'cumin-all puppet agent -t' % instance_con.host,
         # on all hosts, in /etc
         "cumin-all '%s /etc'" % magic_grep,
         # in all the tor source
