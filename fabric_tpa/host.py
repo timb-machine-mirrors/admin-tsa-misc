@@ -374,7 +374,7 @@ def mount_then_umount(con, device, path, options='', warn=None):
     try:
         yield mount(con, device, path, options, warn)
     finally:
-        return umount(con, path)
+        umount(con, path)
 
 
 ifconfig = namedtuple('ifconfig', 'ipv4 ipv4_subnet ipv4_gateway ipv6 ipv6_subnet ipv6_gateway')  # noqa: E501

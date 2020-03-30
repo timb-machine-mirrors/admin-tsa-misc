@@ -99,7 +99,7 @@ def suspend_then_resume(instance_con, parent_host):
     finally:
         logging.info('resuming instance %s on host %s',
                      instance_con.host, parent_host)
-        return resume(instance_con, parent_host)
+        resume(instance_con, parent_host)
 
 
 @task
