@@ -297,7 +297,9 @@ iface eth0 inet6 static
 @task
 def rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'):
     if con.config.run.dry:
+        logging.info('skipping hosts file rewriting in dry run')
         return
+    logging.info('rewriting host file %s on %s', path, con)
     with con.sftp().file(path, mode='ab+') as fp:
         rewrite_hosts_file(fp, fqdn.encode('ascii'), ipv4_address.encode('ascii'))
 
@@ -305,10 +307,12 @@ def rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts')
 def rewrite_hosts_file(stream, fqdn, ipv4_address, ipv6_address=None):
     hostname, _ = fqdn.split(b'.', 1)
     line = b'%s %s %s' % (ipv4_address, fqdn, hostname)
+    logging.debug('ensuring %s in hosts file', line)
     ensure_line_stream(stream, line,
                        match=br'^[.\d]+\s+' + re.escape(fqdn) + br'\b.*$')
     if ipv6_address is not None:
         line = b'%s %s %s' % (ipv6_address, fqdn, hostname)
+        logging.debug('ensuring %s in hosts file', line)
         ensure_line_stream(stream, line,
                            match=br'^[:0-9a-fA-F]+\s+'
                            + re.escape(fqdn)
