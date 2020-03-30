@@ -187,7 +187,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     # STEP 15. final functional test
     # STEP 16. global IP address change
     logging.warning('commands:')
-    logging.warning('# ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"')  # noqa: E501
+    logging.warning('# ssh db.torproject.org ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"')  # noqa: E501
     logging.warning('# ssh pauli.torproject.org puppet agent -t')
     magic_grep = 'grep -n -r -e %s -e %s' % (ifconfig.ipv4, ifconfig.ipv6)
     commands = [
