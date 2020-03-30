@@ -161,12 +161,29 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
             # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048  # noqa: E501
             _, _, part, _ = res.stdout.split(' ', 3)
             host.mount(ganeti_node_con, '/dev/mapper/%s' % part, '/mnt')
-        host.rewrite_interfaces_ifconfig(ganeti_node_con, ifconfig,
-                                         path='/mnt/etc/network/interfaces')
-        host.rewrite_hosts(ganeti_node_con,
-                           ifconfig.ipv4_address,
-                           ifconfig.ipv6_address,
-                           path='/mnt/etc/hosts')
+        res = host.rewrite_interfaces_ifconfig(ganeti_node_con, ifconfig,
+                                               path='/mnt/etc/network/interfaces')
+
+        # XXX: extracts old IP addresses from the diff, we should
+        # maybe check LDAP instead? this is just too hackish
+        #
+        # sample output:
+        # -    address 138.201.212.228/28
+        # -    gateway 138.201.212.225
+        # +    address 116.202.120.189/27
+        # +    gateway 116.202.120.161
+        regex = re.compile(r'^-\s+address\s+(?P<ipv4_address>[\d.]+)|(?P<ipv6_address>[\d:a-f]+)/\d+$', re.MULTILINE)  # noqa: E501
+        # placeholder values in case we don't find anything
+        ifconfig_old = host.ifconfig('OLD_IPv4', '', '', 'OLD_IPv6', '', '')
+        for match in regex.finditer(res.stdout):
+            if match.group('ipv4_address'):
+                ifconfig_old.ipv4_address = match.group('ipv4_address')
+            if match.group('ipv6_address'):
+                ifconfig_old.ipv6_address = match.group('ipv6_address')
+        host._rewrite_hosts(ganeti_node_con,
+                            ifconfig.ipv4,
+                            ifconfig.ipv6,
+                            path='/mnt/etc/hosts')
     if need_kpartx_deactivate:
         logging.info('disabling kpartx mappings')
         ganeti_node_con.run('kpartx -dv %s' % disk_path)
@@ -189,7 +206,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     logging.warning('commands:')
     logging.warning('# ssh db.torproject.org ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"')  # noqa: E501
     logging.warning('# ssh pauli.torproject.org puppet agent -t')
-    magic_grep = 'grep -n -r -e %s -e %s' % (ifconfig.ipv4, ifconfig.ipv6)
+    magic_grep = 'grep -n -r -e %s -e %s' % (ifconfig_old.ipv4, ifconfig_old.ipv6)
     commands = [
         # on the host, in /etc and /srv
         'ssh %s %s /etc /srv' % (instance_con.host, magic_grep),

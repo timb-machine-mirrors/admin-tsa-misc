@@ -264,6 +264,7 @@ def rewrite_file(con, path, content):
     append_to_file(con, path, content)
     res = con.run('diff -u %s %s' % (backup_path, path))
     logging.debug('file diff: %s', res.stdout)
+    return res
 
 
 @task
@@ -301,7 +302,7 @@ iface eth0 inet6 static
     gateway {ipconf.ipv6_gateway}
 '''
     logging.debug('generated %s: %s', path, content)
-    rewrite_file(con, path, content)
+    return _rewrite_file(con, path, content)
 
 
 @task
