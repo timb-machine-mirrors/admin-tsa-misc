@@ -248,7 +248,17 @@ def rewrite_file(con, path, content):
     backup_path = path + '.bak'
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
     if not con.config.run.dry:
-        con.sftp().rename(path, backup_path)
+        sftp = con.sftp()
+        # remove backup file if it exists otherwise rename crashes
+        try:
+            sftp.remove(backup_path)
+        except IOError:
+            pass
+        try:
+            sftp.rename(path, backup_path)
+        except OSError:
+            logging.warning('failed to rename file %s, aborting rewrite', path)
+            raise
     logging.info('writing file %d bytes in %s on %s',
                  len(content), path, con.host)
     append_to_file(con, path, content)
