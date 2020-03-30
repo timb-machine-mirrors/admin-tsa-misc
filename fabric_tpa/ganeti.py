@@ -182,7 +182,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
                                                        ifconfig.ipv6,
                                                        instance_con.host)
     logging.warning('use this to add the new IP to local DNS: %s', cmd)
-    logging.warning('perform tests, then redo the sync procedure and this procedure, then...')
+    logging.warning('perform tests, then redo the sync procedure and this procedure, then...')  # noqa: E501
     logging.warning('make sure you change the external DNS as well')
     # STEP 15. final functional test
     # STEP 16. global IP address change
