@@ -214,12 +214,12 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         'ssh %s puppet agent -t' % instance_con.host,
         # on the host, in /etc and /srv
         'ssh %s %s /etc /srv' % (instance_con.host, magic_grep),
+        # in all the tor source
+        '%s ~/src/tor' % magic_grep,
         # puppet everywhere
         'cumin-all puppet agent -t' % instance_con.host,
         # on all hosts, in /etc
         "cumin-all '%s /etc'" % magic_grep,
-        # in all the tor source
-        '%s ~/src/tor' % magic_grep,
     ]
     for command in commands:
         logging.warning('# %s', command)
