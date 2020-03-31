@@ -264,7 +264,7 @@ def diff_file(con, left_path, right_path):
 
 
 def _diff_file(con, left_path, right_path):
-    return con.run('diff -u %s %s' % (left_path, right_path))
+    return con.run('diff -u %s %s' % (left_path, right_path), warn=True)
 
 
 @task
