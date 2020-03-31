@@ -306,7 +306,7 @@ iface eth0 inet6 static
     gateway {ipconf.ipv6_gateway}
 '''
     logging.debug('generated %s: %s', path, content)
-    return _rewrite_file(con, path, content)
+    return rewrite_file(con, path, content)
 
 
 @task
