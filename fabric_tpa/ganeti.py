@@ -218,7 +218,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         # in all the tor source
         '%s ~/src/tor' % magic_grep,
         # puppet everywhere
-        'cumin-all puppet agent -t' % instance_con.host,
+        'cumin-all puppet agent -t',
         # on all hosts, in /etc
         "cumin-all '%s /etc'" % magic_grep,
     ]
