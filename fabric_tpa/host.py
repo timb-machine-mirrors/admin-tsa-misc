@@ -337,7 +337,10 @@ def _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'
         return
     logging.info('rewriting host file %s on %s', path, con)
     with con.sftp().file(path, mode='ab+') as fp:
-        rewrite_hosts_file(fp, fqdn.encode('ascii'), ipv4_address.encode('ascii'))
+        rewrite_hosts_file(fp,
+                           fqdn.encode('ascii'),
+                           ipv4_address.encode('ascii'),
+                           ipv6_address.encode('ascii'))
     res = _diff_file(con, backup_path, path)
     logging.info('diff: %s', res.stdout)
 
