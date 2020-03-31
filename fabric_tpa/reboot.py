@@ -191,6 +191,7 @@ def shutdown_and_wait(con,
         logging.error('host %s cannot be reached by fabric: ', con.host, e)
         return False
 
+    logging.info('host %s rebooted', con.host)
     return True
 
 
