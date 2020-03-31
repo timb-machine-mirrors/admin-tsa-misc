@@ -1,5 +1,7 @@
 import atexit
 import datetime
+import hashlib
+
 import logging
 import os.path
 import psutil
@@ -22,6 +24,32 @@ except ImportError:
 
 from paramiko.client import RejectPolicy
 from invoke import Argument
+
+
+# some gymnastics to reimplement the nice extra features hexlify has
+# in python 3.8, but unfortunately missing in earlier versions
+from binascii import hexlify as stdlib_hexlify
+if sys.version_info >= (3, 8):
+    hexlify = stdlib_hexlify
+else:
+    def hexlify(data, sep, bytes_per_sep=1):
+        """
+        replacement for python 3.8's hexlify, which now nicely takes a separator
+
+        data and sep are bytes, and it returns bytes
+
+        this is typically used to decode a checksum into a human-readable form
+
+        >>> hexlify_py38(b'0000', b':', 2)
+        >>> b'30:30:30:30'
+        """
+        # turn bytes into hex
+        s = stdlib_hexlify(data)
+        # take the bytes and split them with the separator:
+        # 1. take a byte and the next N: s[i:i+bytes_per_sep]
+        # 2. for each byte, skipping N: range(0, len(s), bytes_per_sep)
+        # 3. rejoin by on the separator: sep.join
+        return sep.join(s[i:i+bytes_per_sep] for i in range(0, len(s), bytes_per_sep))
 
 
 class VerboseProgram(Fab):
@@ -127,3 +155,7 @@ class Timer(object):
         return 'elasped: %s (%s %s)' % (str(self.diff()),
                                         self.times(),
                                         self.memory())
+
+
+def hash_digest_hex(data, hash=hashlib.md5, sep=':'):
+    return hexlify(hash(data).digest(), sep, 2)
