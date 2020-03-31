@@ -153,7 +153,7 @@ def shutdown_and_wait(con,
             return False
 
     try:
-        shutdown(con, ShutdownType.reboot, reason, delay_shutdown)
+        shutdown(con, kind, reason, delay_shutdown)
     except invoke.UnexpectedExit as e:
         logging.error('unexpected error issuing reboot on %s: %s', con.host, e)
         return False
@@ -193,6 +193,34 @@ def shutdown_and_wait(con,
 
     logging.info('host %s rebooted', con.host)
     return True
+
+
+@task
+def reboot_and_wait(con,
+                    reason=DEFAULT_REASON,
+                    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+                    delay_down=DEFAULT_DELAY_DOWN,
+                    delay_up=DEFAULT_DELAY_UP):
+    return shutdown_and_wait(con,
+                             kind=ShutdownType.reboot,
+                             reason=reason,
+                             delay_shutdown=delay_shutdown,
+                             delay_down=delay_down,
+                             delay_up=delay_up)
+
+
+@task
+def halt_and_wait(con,
+                  reason=DEFAULT_REASON,
+                  delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+                  delay_down=DEFAULT_DELAY_DOWN,
+                  delay_up=DEFAULT_DELAY_UP):
+    return shutdown_and_wait(con,
+                             kind=ShutdownType.halt,
+                             reason=reason,
+                             delay_shutdown=delay_shutdown,
+                             delay_down=delay_down,
+                             delay_up=delay_up)
 
 
 @task
