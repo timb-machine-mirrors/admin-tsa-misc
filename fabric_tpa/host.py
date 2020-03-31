@@ -82,13 +82,13 @@ def fetch_ssh_host_pubkey(con, type='ed25519'):
 
 
 @task
-def append_to_file(con, path, content):
+def write_to_file(con, path, content, mode='wb'):
     '''append bytes to a file
 
     This does not check for duplicates.'''
     if con.config.run.dry:
         return
-    with con.sftp().file(path, mode='ab') as fp:
+    with con.sftp().file(path, mode=mode) as fp:
         fp.write(content)
 
 
@@ -265,7 +265,7 @@ def rewrite_file(con, path, content):
     backup_path = backup_file(con, path)
     logging.info('writing file %d bytes in %s on %s',
                  len(content), path, con.host)
-    append_to_file(con, path, content)
+    write_to_file(con, path, content)
     res = diff_file(con, backup_path, path)
     logging.info('diff: %s', res.stdout)
     return res
