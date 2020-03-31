@@ -21,9 +21,9 @@
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
+import hashlib
 import sys
 
-import hashlib
 
 from paramiko import MissingHostKeyPolicy, SSHException
 from invoke import Argument, Collection
