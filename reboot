@@ -42,7 +42,7 @@ from fabric_tpa.reboot import (DEFAULT_DELAY_DOWN,
                                DEFAULT_DELAY_UP,
                                DEFAULT_DELAY_HOSTS,
                                DEFAULT_DELAY_SHUTDOWN,
-                               reboot_and_wait)
+                               shutdown_and_wait)
 
 
 # TODO: don't use argparse: use Fabric's "Fab" program wrapper. We
@@ -93,11 +93,11 @@ def main(args):
         delay_shutdown = args.delay_shutdown
 
         logging.info('rebooting host %s', hostname)
-        if not reboot_and_wait(con,
-                               reason=args.reason,
-                               delay_down=args.delay_down,
-                               delay_up=args.delay_up,
-                               delay_shutdown=delay_shutdown):
+        if not shutdown_and_wait(con,
+                                 reason=args.reason,
+                                 delay_down=args.delay_down,
+                                 delay_up=args.delay_up,
+                                 delay_shutdown=delay_shutdown):
             logging.error('rebooting host %s failed, aborting', hostname)
             break
 

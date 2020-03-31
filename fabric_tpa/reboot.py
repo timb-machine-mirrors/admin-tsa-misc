@@ -126,14 +126,15 @@ class FabricException(OSError, paramiko.ssh_exception.SSHException):
     pass
 
 
-# TODO: make shutdown type customizable?
 @task
-def reboot_and_wait(con,
-                    reason=DEFAULT_REASON,
-                    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
-                    delay_down=DEFAULT_DELAY_DOWN,
-                    delay_up=DEFAULT_DELAY_UP):
-    '''shutdown the machine and wait for the box to return'''
+def shutdown_and_wait(con,
+                      kind=ShutdownType.reboot,
+                      reason=DEFAULT_REASON,
+                      delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+                      delay_down=DEFAULT_DELAY_DOWN,
+                      delay_up=DEFAULT_DELAY_UP):
+    '''shutdown the machine and possibly wait for the box to return'''
+    assert kind in (ShutdownType.reboot, ShutdownType.halt)
     # TODO: check if reboot required
     # TODO: check reboot policy, especially for reboot delays
     try:
@@ -170,6 +171,9 @@ def reboot_and_wait(con,
         logging.warning('host %s was still up after %d seconds, aborting',
                         con.host, delay_down)
         return False
+    if kind == ShutdownType.halt:
+        logging.info('host %s shutdown', con.host)
+        return True
 
     logging.info('waiting %d seconds for host to go up', delay_up)
     if not wait_for_boot(con, delay_up):
