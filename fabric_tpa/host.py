@@ -239,12 +239,7 @@ ssh-rsa SOME KEY
 
 
 @task
-def rewrite_file(con, path, content):
-    '''write a new file, keeping a backup
-
-    This overwrites the given PATH with CONTENT, keeping a backup in a
-    .bak file and showing a diff.
-    '''
+def backup_file(con, path):
     backup_path = path + '.bak'
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
     if not con.config.run.dry:
@@ -252,11 +247,27 @@ def rewrite_file(con, path, content):
             con.sftp().rename(path, backup_path)
         except OSError:
             logging.warning('failed backup file %s, assuming backup is current', path)
+    return backup_path
+
+
+@task
+def diff_file(con, left_path, right_path):
+    return con.run('diff -u %s %s' % (left_path, right_path))
+
+
+@task
+def rewrite_file(con, path, content):
+    '''write a new file, keeping a backup
+
+    This overwrites the given PATH with CONTENT, keeping a backup in a
+    .bak file and showing a diff.
+    '''
+    backup_path = backup_file(con, path)
     logging.info('writing file %d bytes in %s on %s',
                  len(content), path, con.host)
     append_to_file(con, path, content)
-    res = con.run('diff -u %s %s' % (backup_path, path))
-    logging.debug('file diff: %s', res.stdout)
+    res = diff_file(con, backup_path, path)
+    logging.info('diff: %s', res.stdout)
     return res
 
 
