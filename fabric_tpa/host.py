@@ -83,6 +83,10 @@ def fetch_ssh_host_pubkey(con, type='ed25519'):
 
 @task
 def write_to_file(con, path, content, mode='wb'):
+    _write_to_file(con, path, content, mode=mode)
+
+
+def _write_to_file(con, path, content, mode='wb'):
     '''append bytes to a file
 
     This does not check for duplicates.'''
@@ -240,6 +244,10 @@ ssh-rsa SOME KEY
 
 @task
 def backup_file(con, path):
+    _backup_file(con, path)
+
+
+def _backup_file(con, path):
     backup_path = path + '.bak'
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
     if not con.config.run.dry:
@@ -252,21 +260,29 @@ def backup_file(con, path):
 
 @task
 def diff_file(con, left_path, right_path):
+    return _diff_file(con, left_path, right_path)
+
+
+def _diff_file(con, left_path, right_path):
     return con.run('diff -u %s %s' % (left_path, right_path))
 
 
 @task
 def rewrite_file(con, path, content):
+    _rewrite_file(con, path, content)
+
+
+def _rewrite_file(con, path, content):
     '''write a new file, keeping a backup
 
     This overwrites the given PATH with CONTENT, keeping a backup in a
     .bak file and showing a diff.
     '''
-    backup_path = backup_file(con, path)
+    backup_path = _backup_file(con, path)
     logging.info('writing file %d bytes in %s on %s',
                  len(content), path, con.host)
-    write_to_file(con, path, content)
-    res = diff_file(con, backup_path, path)
+    _write_to_file(con, path, content)
+    res = _diff_file(con, backup_path, path)
     logging.info('diff: %s', res.stdout)
     return res
 
@@ -306,19 +322,23 @@ iface eth0 inet6 static
     gateway {ipconf.ipv6_gateway}
 '''
     logging.debug('generated %s: %s', path, content)
-    return rewrite_file(con, path, content)
+    return _rewrite_file(con, path, content)
 
 
 @task
 def rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'):
-    backup_path = backup_file(con, path)
+    _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address, path)
+
+
+def _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'):
+    backup_path = _backup_file(con, path)
     if con.config.run.dry:
         logging.info('skipping hosts file rewriting in dry run')
         return
     logging.info('rewriting host file %s on %s', path, con)
     with con.sftp().file(path, mode='ab+') as fp:
         rewrite_hosts_file(fp, fqdn.encode('ascii'), ipv4_address.encode('ascii'))
-    res = diff_file(con, backup_path, path)
+    res = _diff_file(con, backup_path, path)
     logging.info('diff: %s', res.stdout)
 
 
