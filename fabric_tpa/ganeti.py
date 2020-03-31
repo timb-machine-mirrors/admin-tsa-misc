@@ -174,13 +174,14 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         # +    gateway 116.202.120.161
         regex = re.compile(r'^-\s+address\s+(?P<ipv4_address>[\d.]+)|(?P<ipv6_address>[\d:a-f]+)/\d+$', re.MULTILINE)  # noqa: E501
         # placeholder values in case we don't find anything
-        ifconfig_old = host.ifconfig('OLD_IPv4', '', '', 'OLD_IPv6', '', '')
+        ipv4_address_old = ipv6_address_old = None
         for match in regex.finditer(res.stdout):
             if match.group('ipv4_address'):
-                ifconfig_old.ipv4_address = match.group('ipv4_address')
+                ipv4_address_old = match.group('ipv4_address')
             if match.group('ipv6_address'):
-                ifconfig_old.ipv6_address = match.group('ipv6_address')
+                ipv6_address_old = match.group('ipv6_address')
         host._rewrite_hosts(ganeti_node_con,
+                            instance_con.host,
                             ifconfig.ipv4,
                             ifconfig.ipv6,
                             path='/mnt/etc/hosts')
@@ -204,7 +205,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     # STEP 15. final functional test
     # STEP 16. global IP address change
     logging.warning('commands:')
-    magic_grep = 'grep -n -r -e %s -e %s' % (ifconfig_old.ipv4, ifconfig_old.ipv6)
+    magic_grep = 'grep -n -r -e %s -e %s' % (ipv4_address_old, ipv6_address_old)
     commands = [
         # LDAP vi
         'ssh -tt db.torproject.org ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"',  # noqa: E501
