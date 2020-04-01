@@ -252,7 +252,7 @@ def _backup_file(con, path):
     logging.info('renaming %s to %s on %s', path, backup_path, con.host)
     if not con.config.run.dry:
         try:
-            con.sftp().rename(path, backup_path)
+            con.sftp().copy(path, backup_path)
         except OSError:
             logging.warning('failed backup file %s, assuming backup is current', path)
     return backup_path
