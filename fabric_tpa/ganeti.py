@@ -487,7 +487,7 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
     # STEP 13. switch to DRBD, still on the Ganeti MASTER NODE:
     #
     #         gnt-instance modify -t drbd $INSTANCE
-    #         gnt-instance failover $INSTANCE
+    #         gnt-instance failover -f $INSTANCE
     #         gnt-instance startup $INSTANCE
     #
     # STEP 14, 15, 16 delegated to renumber-instance
