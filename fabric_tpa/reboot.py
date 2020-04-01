@@ -117,6 +117,7 @@ def shutdown(con,
              reason=DEFAULT_REASON,
              delay=DEFAULT_DELAY_SHUTDOWN):
     '''trigger a shutdown or reboot on the host'''
+    # XXX: error handling?
     return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
 
 
@@ -186,6 +187,7 @@ def shutdown_and_wait(con,
     # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='
 
     try:
+        # XXX: error handling?
         con.run('uptime')
     except FabricException as e:
         logging.error('host %s cannot be reached by fabric: ', con.host, e)

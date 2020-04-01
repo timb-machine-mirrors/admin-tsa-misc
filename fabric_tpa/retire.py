@@ -70,6 +70,7 @@ def remove_backups(instance_con, backup_host):
 def revoke_puppet(instance_con, puppetmaster='pauli.torproject.org'):
     '''revoke certificates of given instance on puppet master'''
     con = host.find_context(puppetmaster, config=instance_con.config)
+    # XXX: error handling?
     con.run('puppet node clean %s' % instance_con.host)
     con.run('puppet node deactivate %s' % instance_con.host)
     con.run('service apache2 restart')   # reload the CRL

@@ -101,6 +101,7 @@ def stop(instance_con, master_host='fsn-node-01.torproject.org'):
     master_con = host.find_context(master_host, config=instance_con.config)
     logging.info('stopping instance %s on %s',
                  instance_con.host, master_con.host)
+    # XXX: error handling?
     return master_con.run('gnt-instance stop %s' % instance_con.host)
 
 
@@ -113,6 +114,7 @@ def start(instance_con, master_host='fsn-node-01.torproject.org'):
     master_con = host.find_context(master_host, config=instance_con.config)
     logging.info('starting instance %s on %s',
                  instance_con.host, master_con.host)
+    # XXX: error handling?
     return master_con.run('gnt-instance start %s' % instance_con.host)
 
 
@@ -156,6 +158,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         if res.failed:
             logging.warning('cannot mount partition directly: %s', res.stderr)
             logging.info('trying kpartx activation')
+            # XXX: error handling?
             res = ganeti_node_con.run('kpartx -av %s' % disk_path)
             need_kpartx_deactivate = True
             # add map vg_ganeti-b80808ec--174c--4715--b9cf--f83c07d346cf.disk0p1 (253:62): 0 41940992 linear 253:58 2048  # noqa: E501
@@ -187,6 +190,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
                             path='/mnt/etc/hosts')
     if need_kpartx_deactivate:
         logging.info('disabling kpartx mappings')
+        # XXX: error handling?
         ganeti_node_con.run('kpartx -dv %s' % disk_path)
 
     if dostart:
@@ -235,6 +239,7 @@ def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org',
     the output. It's mostly an internal function.
     '''
     master_con = host.find_context(master_host, config=instance_con.config)
+    # XXX: error handling
     info = master_con.run('gnt-instance info %s' % instance_con.host,
                           hide=hide, dry=dry).stdout
     logging.debug('loaded instance %s info from %s: %s',
@@ -248,6 +253,7 @@ def fetch_network_info(ganeti_con, network='gnt-fsn', hide=True, dry=False):
     This just runs gnt-network info on the given network and returns
     the output. It's mostly an internal function.
     '''
+    # XXX: error handling
     info = ganeti_con.run('gnt-network info %s' % network,
                           hide=hide, dry=dry).stdout
     logging.debug('loaded network %s information from %s: %s',
@@ -329,6 +335,7 @@ def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
             continue
         command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (libvirt_con.host, path, target_dir)  # noqa: E501
         logging.debug('command: %s', command)
+        # XXX: error handling
         ganeti_con.run(command, pty=True)
 
 
@@ -427,6 +434,7 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
         command = 'lvcreate -L {virtual-size}B -n {basename} vg_ganeti'.format(**disk)  # noqa: E501
         try:
             ganeti_node_con.run(command)
+            # XXX: error handling?
         except invoke.exceptions.UnexpectedExit as e:
             if 'already exists' in str(e.result.stderr):
                 logging.warning('reusing existing logical volume')
@@ -441,11 +449,13 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
                          disk['swap_uuid'], disk['device_path'])
             command = 'mkswap --uuid {swap_uuid} {device_path}'.format(**disk)  # noqa: E501
             ganeti_node_con.run(command)
+            # XXX: error handling
         else:
             logging.info('converting qcow image %s into raw device %s',
                          disk['filename_local'], disk['device_path'])
             command = 'qemu-img convert {filename_local}  -O raw {device_path}'.format(**disk)  # noqa: E501
             ganeti_node_con.run(command)
+            # XXX: error handling
 
     # STEP 6: launch instance
     disk_spec = ''
@@ -474,6 +484,7 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
         ganeti_master_con = host.find_context(getmaster(ganeti_node_con),
                                               config=instance_con.config)
         ganeti_master_con.run(command)
+        # XXX: error handling
     else:
         logging.info('skipping ganeti adoption: %s', command)
 

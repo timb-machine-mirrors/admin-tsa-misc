@@ -114,6 +114,7 @@ def is_running(instance_con, parent_host, hide=True, dry=False):
 def virsh(con, command, hide=None, dry=None, config=None):
     '''run an arbitrary virsh command'''
     con = host.find_context(con, config=config)
+    # XXX: error handling?
     return con.run('virsh %s' % command, hide=hide, dry=dry)
 
 
@@ -203,6 +204,7 @@ def disk_json(disk_path, parent_con, hide=True, dry=False):
     '''find disk information from qemu, as a json string'''
     command = 'qemu-img info --output=json %s' % disk_path
     try:
+        # XXX: error handling?
         result = parent_con.run(command, hide=hide, dry=dry)
     except OSError as e:
         logging.error('failed to run %s: %s', command, e)
@@ -212,6 +214,7 @@ def disk_json(disk_path, parent_con, hide=True, dry=False):
 
 def swap_uuid(disk_path, con, hide=True, dry=False):
     '''find the UUID of the given SWAP file or disk'''
+    # XXX: error handling?
     result = con.run('blkid -t TYPE=swap -s UUID -o value %s' % disk_path,
                      hide=hide, dry=dry)
     return result.stdout.strip()

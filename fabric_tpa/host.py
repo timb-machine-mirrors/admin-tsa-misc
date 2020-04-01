@@ -400,12 +400,14 @@ def test_rewrite_hosts_file():
 def mount(con, device, path, options='', warn=None):
     '''mount a device'''
     command = 'mount %s %s %s' % (device, path, options)
+    # XXX: error handling?
     return con.run(command, warn=warn)
 
 
 @task
 def umount(con, path):
     '''umount a device'''
+    # XXX: error handling?
     return con.run('umount %s' % path)
 
 
@@ -434,6 +436,7 @@ def ipv6_slaac(con, ipv6_subnet, mac, hide=True, dry=False):
                ipv6_subnet, mac]
     logging.debug('manual SLAAC allocation with: %s', ' '.join(command))
     try:
+        # XXX: error handling?
         return con.run(' '.join(command), hide=hide, dry=dry).stdout.strip()
     except invoke.exceptions.UnexpectedExit as e:
         logging.error('cannot find IPv6 address, install ipv6calc: %s', e)
@@ -492,6 +495,7 @@ def install_hetzner_robot(con,
     # STEP 2
     hostname, _ = fqdn.split('.', 1)
     logging.info('setting hostname to %s', hostname)
+    # XXX: error handling?
     con.run('hostname %s' % hostname)
 
     sftp = con.sftp()
@@ -516,21 +520,25 @@ def install_hetzner_robot(con,
     con.put(fai_disk_config, remote=fai_disk_config_remote)
 
     logging.info('installing fai-setup-storage(8)')
+    # XXX: error handling?
     con.run('apt update && apt install -y fai-setup-storage')
 
     # the rationale here is that some of the dependencies we need
     # might have security vulnerabilities, and i have found the rescue
     # images sometimes don't have the latest
     logging.info('running upgrades')
+    # XXX: error handling?
     con.run('apt upgrade -yy')
 
     logging.info('partitionning disks')
+    # XXX: error handling?
     con.run("setup-storage -f '%s' -X" % fai_disk_config_remote)
 
     # TODO: test if we can skip that test by passing `$ROOT_PARTITION`
     # as a `--target` to `grml-debootstrap`. Probably not.
     logging.info('mounting partitions from FAI')
     # TODO: parse the .sh file ourselves?
+    # XXX: error handling?
     con.run('. /tmp/fai/disk_var.sh && mkdir /target && mount "$ROOT_PARTITION" /target && mkdir /target/boot && mount "$BOOT_DEVICE" /target/boot')  # noqa: E501
 
     # STEP 4: run grml-debootstrap with packages and post-scripts
@@ -558,9 +566,11 @@ def install_hetzner_robot(con,
         con.put(filename, remote=remote)
 
     logging.info('installing grml-debootstrap')
+    # XXX: error handling?
     con.run('apt-get install -y grml-debootstrap')
 
     logging.info('setting up grml-debootstrap')
+    # XXX: error handling?
     con.run('''mkdir -p /target/run && \
         mount -t tmpfs tgt-run /target/run && \
         mkdir /target/run/udev && \
@@ -585,36 +595,44 @@ def install_hetzner_robot(con,
             post_scripts_dir_remote,
         )
     try:
+        # XXX: error handling?
         con.run(installer)
     except Exception as e:
         logging.error('installer failed: %s', e)
+    # XXX: error handling?
     con.run('umount /target/run/udev /target/run || true')
 
     # TODO: extract the resulting SSH keys and inject in a local
     # known_hosts for further bootstrapping. e.g.:
     logging.info('dumping SSH keys')
+    # XXX: error handling?
     con.run('cat /target/etc/ssh/ssh_host_*.pub')
     con.run('for key in /target/etc/dropbear-initramfs/dropbear_*_host_key; do'
             'dropbearkey -y -f $key; done')
 
     # STEP 5
     logging.info('locking down /target/etc/luks')
+    # XXX: error handling?
     con.run('chmod 0 /target/etc/luks/')
 
     # STEP 6
+    # XXX: error handling?
     con.run('cat /target/etc/crypttab')
 
     # STEP 7
+    # XXX: error handling?
     con.run('cat /target/etc/network/interfaces')
     # TODO: setup interfaces correctly
 
     # STEP 8: rebuild initramfs and grub (TODO?)
     # STEP 9: unmount things
+    # XXX: error handling?
     con.run('umount /target/dev /target/proc /target/sys || true')
     con.run('umount /target/boot /target || true')
     con.run('rmdir /target')
 
     # STEP 10: close things
+    # XXX: error handling?
     con.run('vgchange -a n')
     # TODO: crypt_dev_md2?
     con.run('cryptsetup luksClose /dev/mapper/crypt_dev_md1')
@@ -622,4 +640,5 @@ def install_hetzner_robot(con,
 
     # STEP 11: document LUKS and root password in pwmanager (TODO)
     # STEP 12: reboot (TODO)
+    # XXX: error handling?
     con.run('reboot machine when happy: ./reboot -H root@%s -v --reason "new-machine procedure" --delay-shutdown 0' % con.host)  # noqa: E501
