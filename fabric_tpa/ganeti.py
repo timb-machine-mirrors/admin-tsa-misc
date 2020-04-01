@@ -175,7 +175,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         # -    gateway 138.201.212.225
         # +    address 116.202.120.189/27
         # +    gateway 116.202.120.161
-        regex = re.compile(r'^-\s+address\s+(?P<ipv4_address>[\d.]+)|(?P<ipv6_address>[\d:a-f]+)/\d+$', re.MULTILINE)  # noqa: E501
+        regex = re.compile(r'^-\s+address\s+(?:(?P<ipv4_address>\d+\.\d+\.\d+\.\d+)|(?P<ipv6_address>[\da-f]+:[\da-f:]+))/\d+\s*$', re.MULTILINE)  # noqa: E501
         # placeholder values in case we don't find anything
         ipv4_address_old = ipv6_address_old = None
         for match in regex.finditer(res.stdout):
