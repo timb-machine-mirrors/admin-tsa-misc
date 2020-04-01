@@ -249,11 +249,10 @@ def backup_file(con, path):
 
 def _backup_file(con, path):
     backup_path = path + '.bak'
-    logging.info('renaming %s to %s on %s', path, backup_path, con.host)
+    logging.info('copying %s to %s on %s', path, backup_path, con.host)
     if not con.config.run.dry:
-        try:
-            con.sftp().copy(path, backup_path)
-        except OSError:
+        res = con.run('cp %s %s' % (path, backup_path), warn=True)
+        if res.failed:
             logging.warning('failed backup file %s, assuming backup is current', path)
     return backup_path
 
