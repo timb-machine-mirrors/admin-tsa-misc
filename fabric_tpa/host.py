@@ -281,9 +281,7 @@ def _rewrite_file(con, path, content):
     logging.info('writing file %d bytes in %s on %s',
                  len(content), path, con.host)
     _write_to_file(con, path, content)
-    res = _diff_file(con, backup_path, path)
-    logging.info('diff: %s', res.stdout)
-    return res
+    return _diff_file(con, backup_path, path)
 
 
 @task
@@ -340,8 +338,7 @@ def _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'
                            fqdn.encode('ascii'),
                            ipv4_address.encode('ascii'),
                            ipv6_address.encode('ascii'))
-    res = _diff_file(con, backup_path, path)
-    logging.info('diff: %s', res.stdout)
+    _diff_file(con, backup_path, path)
 
 
 def rewrite_hosts_file(stream, fqdn, ipv4_address, ipv6_address=None):
