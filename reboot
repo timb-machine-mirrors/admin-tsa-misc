@@ -60,7 +60,7 @@ def parse_args(args=sys.argv[1:]):
                         help='force reboot even if not needed')
     # TODO: autodetect from master list or PuppetDB
     parser.add_argument('--hosts', '-H', nargs='+',
-                        help="host(s) to reboot")
+                        help="host(s) to reboot, can be comma-separated")
     parser.add_argument('--dryrun', '-n', action='store_true',
                         help='do not reboot servers (but do migrate)')
     parser.add_argument('--delay-down', default=DEFAULT_DELAY_DOWN, type=int,
@@ -84,7 +84,8 @@ def main(args):
     })
 
     first = True
-    for hostname in args.hosts:
+    # split each hostname on comma, like `fab -H` does
+    for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
         # TODO: check if reboot required with needrestart instead of
         # this? see also:
