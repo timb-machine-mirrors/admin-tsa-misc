@@ -188,31 +188,35 @@ def shutdown_and_wait(con,
     # TODO: this might fail if the host is waiting in initrd for the LUKS password:
     # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
 
-    # Just fail if we get a luks prompt
+    # this is a Fabric "watcher" that will fail if we get a LUKS prompt
     # TODO: actually allow the user to provide a LUKS passphrase?
     responder = SentinelResponder(
         sentinel=r'Please unlock disk .*:',
     )
-    for i in range(delay_up):
+    # see if we can issue a simple command
+    for i in range(3):
         try:
             res = con.run('uptime', watchers=[responder], pty=True, warn=True)
+        # got the "unlock" prompt instead of a shell
         # XXX: why don't we get our exception from the watcher?
         # instead we need to catch invoke's Failure here
         except (ResponseNotAccepted, Failure):
             logging.warning('server waiting for crypto password, sleeping for mandos')
-            wait_for_shutdown(con, wait_confirm=1)
-            wait_for_boot(con)
+        # failed to connect to the host
         except FabricException as e:
             logging.error('host %s cannot be reached by fabric, sleeping: ',
                           con.host, e)
-            time.sleep(1)
         else:
+            # command was issued, but failed
             if res.failed:
                 logging.error('uptime command failed on host %s: %s', con.host, res)
                 return False
+            # command suceeded
             else:
                 logging.info('host %s rebooted', con.host)
                 return True
+        wait_for_shutdown(con, wait_confirm=1)
+        wait_for_boot(con)
 
     logging.warning('could not check uptime on %s, assuming reboot failed', con.host)
     return False
