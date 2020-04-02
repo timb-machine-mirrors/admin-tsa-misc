@@ -116,6 +116,7 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         # instead we need to catch invoke's Failure here
         except (ResponseNotAccepted, Failure):
             logging.warning('server waiting for crypto password, sleeping for mandos')
+            wait_for_shutdown(con, wait_confirm=1)
         # failed to connect to the host
         except FabricException as e:
             logging.error('host %s cannot be reached by fabric, sleeping: ',
@@ -129,7 +130,7 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
             else:
                 logging.info('host %s rebooted', con.host)
                 return True
-        wait_for_shutdown(con, wait_confirm=1)
+        # if we got here, we're in the "not reachable" state
         wait_for_ping(con)
 
     logging.warning('could not check uptime on %s, assuming reboot failed', con.host)
