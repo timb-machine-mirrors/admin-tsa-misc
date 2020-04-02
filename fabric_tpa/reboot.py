@@ -184,8 +184,8 @@ def shutdown_and_wait(con,
         return False
 
     logging.info('host %s should be back online, checking uptime', con.host)
-    # TODO: this will fail if the host is waiting in initrd for the LUKS password:
-    # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='
+    # TODO: this might fail if the host is waiting in initrd for the LUKS password:
+    # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
 
     # Just fail if we get a luks prompt
     # TODO: actually allow the user to provide a LUKS passphrase?
