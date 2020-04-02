@@ -75,7 +75,7 @@ def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
 
 
 @task
-def wait_for_boot(con, timeout=DEFAULT_DELAY_UP):
+def wait_for_ping(con, timeout=DEFAULT_DELAY_UP):
     '''wait for host to ping
 
     This tries to ping the host until it responds or until the timeout
@@ -89,6 +89,51 @@ def wait_for_boot(con, timeout=DEFAULT_DELAY_UP):
         if tcp_ping_host(con):
             return True
     return tcp_ping_host(con)
+
+
+@task
+def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
+    if not wait_for_ping(con, delay_up):
+        logging.warning('host %s did not return after %d seconds, aborting',
+                        con.host, delay_up)
+        return False
+
+    logging.info('host %s should be back online, checking uptime', con.host)
+    # TODO: this might fail if the host is waiting in initrd for the LUKS password:
+    # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
+
+    # this is a Fabric "watcher" that will fail if we get a LUKS prompt
+    # TODO: actually allow the user to provide a LUKS passphrase?
+    responder = SentinelResponder(
+        sentinel=r'Please unlock disk .*:',
+    )
+    # see if we can issue a simple command
+    for i in range(3):
+        try:
+            res = con.run('uptime', watchers=[responder], pty=True, warn=True)
+        # got the "unlock" prompt instead of a shell
+        # XXX: why don't we get our exception from the watcher?
+        # instead we need to catch invoke's Failure here
+        except (ResponseNotAccepted, Failure):
+            logging.warning('server waiting for crypto password, sleeping for mandos')
+        # failed to connect to the host
+        except FabricException as e:
+            logging.error('host %s cannot be reached by fabric, sleeping: ',
+                          con.host, e)
+        else:
+            # command was issued, but failed
+            if res.failed:
+                logging.error('uptime command failed on host %s: %s', con.host, res)
+                return False
+            # command suceeded
+            else:
+                logging.info('host %s rebooted', con.host)
+                return True
+        wait_for_shutdown(con, wait_confirm=1)
+        wait_for_ping(con)
+
+    logging.warning('could not check uptime on %s, assuming reboot failed', con.host)
+    return False
 
 
 class ShutdownType(str, Enum):
@@ -179,47 +224,7 @@ def shutdown_and_wait(con,
         return True
 
     logging.info('waiting %d seconds for host to go up', delay_up)
-    if not wait_for_boot(con, delay_up):
-        logging.warning('host %s did not return after %d seconds, aborting',
-                        con.host, delay_up)
-        return False
-
-    logging.info('host %s should be back online, checking uptime', con.host)
-    # TODO: this might fail if the host is waiting in initrd for the LUKS password:
-    # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
-
-    # this is a Fabric "watcher" that will fail if we get a LUKS prompt
-    # TODO: actually allow the user to provide a LUKS passphrase?
-    responder = SentinelResponder(
-        sentinel=r'Please unlock disk .*:',
-    )
-    # see if we can issue a simple command
-    for i in range(3):
-        try:
-            res = con.run('uptime', watchers=[responder], pty=True, warn=True)
-        # got the "unlock" prompt instead of a shell
-        # XXX: why don't we get our exception from the watcher?
-        # instead we need to catch invoke's Failure here
-        except (ResponseNotAccepted, Failure):
-            logging.warning('server waiting for crypto password, sleeping for mandos')
-        # failed to connect to the host
-        except FabricException as e:
-            logging.error('host %s cannot be reached by fabric, sleeping: ',
-                          con.host, e)
-        else:
-            # command was issued, but failed
-            if res.failed:
-                logging.error('uptime command failed on host %s: %s', con.host, res)
-                return False
-            # command suceeded
-            else:
-                logging.info('host %s rebooted', con.host)
-                return True
-        wait_for_shutdown(con, wait_confirm=1)
-        wait_for_boot(con)
-
-    logging.warning('could not check uptime on %s, assuming reboot failed', con.host)
-    return False
+    return wait_for_live(con, delay_up=delay_up)
 
 
 class SentinelResponder(Responder):
