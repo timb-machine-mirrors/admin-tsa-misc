@@ -148,7 +148,7 @@ def shutdown_and_wait(con,
 
         # shorter delay, as the node will be empty
         delay_shutdown = 0
-        logging.info('ganeti node detected, migrating instances from  %s',
+        logging.info('ganeti node detected, migrating instances from %s',
                      con.host)
         if not ganeti.empty_node(con, master_con):
             logging.error('failed to empty node %s, aborting', con.host)
