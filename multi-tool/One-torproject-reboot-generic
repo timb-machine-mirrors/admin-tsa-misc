@@ -17,7 +17,7 @@ fi
 
 echo $host after $minwait mins
 ssh -l root $host -t "
-	if /usr/lib/nagios/plugins/dsa-check-running-kernel && ! (/usr/lib/nagios/plugins/dsa-check-libs | egrep --color 'systemd|dbus-daemon'); then
+	if /usr/lib/nagios/plugins/dsa-check-running-kernel && ! (/usr/lib/nagios/plugins/dsa-check-libs | egrep --color 'systemd|dbus-daemon|qemu'); then
 		echo 'Everything ok.'
 		sleep 5
 		exit

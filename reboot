@@ -91,7 +91,7 @@ def main(args):
         # https://github.com/xneelo/hetzner-needrestart/issues/23
         logging.info('checking if host requires a reboot')
         res = con.run(
-            "/usr/lib/nagios/plugins/dsa-check-running-kernel && ! (/usr/lib/nagios/plugins/dsa-check-libs | egrep --color 'systemd|dbus-daemon')",  # noqa: E501
+            "/usr/lib/nagios/plugins/dsa-check-running-kernel && ! (/usr/lib/nagios/plugins/dsa-check-libs | egrep --color 'systemd|dbus-daemon|qemu-system-x86')",  # noqa: E501
             warn=True,
         )
         if res.ok:
