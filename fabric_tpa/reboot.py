@@ -136,7 +136,6 @@ def shutdown_and_wait(con,
                       delay_up=DEFAULT_DELAY_UP):
     '''shutdown the machine and possibly wait for the box to return'''
     assert kind in (ShutdownType.reboot, ShutdownType.halt)
-    # TODO: check if reboot required
     # TODO: check reboot policy, especially for reboot delays
     try:
         master = ganeti.getmaster(con)

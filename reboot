@@ -56,6 +56,8 @@ def parse_args(args=sys.argv[1:]):
                         action='store_const', const='info', default='warning')
     parser.add_argument('--debug', '-d', dest='log_level',
                         action='store_const', const='debug', default='warning')
+    parser.add_argument('--force', '-f', action='store_true',
+                        help='force reboot even if not needed')
     # TODO: autodetect from master list or PuppetDB
     parser.add_argument('--hosts', '-H', nargs='+',
                         help="host(s) to reboot")
@@ -83,13 +85,27 @@ def main(args):
 
     first = True
     for hostname in args.hosts:
+        con = host.find_context(hostname, config=config)
+        # TODO: check if reboot required with needrestart instead of
+        # this? see also:
+        # https://github.com/xneelo/hetzner-needrestart/issues/23
+        logging.info('checking if host requires a reboot')
+        res = con.run(
+            "/usr/lib/nagios/plugins/dsa-check-running-kernel && ! (/usr/lib/nagios/plugins/dsa-check-libs | egrep --color 'systemd|dbus-daemon')",  # noqa: E501
+            warn=True,
+        )
+        if res.ok:
+            if args.force:
+                logging.warning('rebooting anyways because of --force')
+            else:
+                logging.info('host %s does not require a reboot, skipping', hostname)
+                continue
         if first:
             first = False
         else:
             logging.info('sleeping %d seconds before rebooting %s',
                          args.delay_hosts, hostname)
             time.sleep(args.delay_hosts)
-        con = host.find_context(hostname, config=config)
         delay_shutdown = args.delay_shutdown
 
         logging.info('rebooting host %s', hostname)
