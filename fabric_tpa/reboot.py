@@ -35,6 +35,8 @@ except ImportError:
     raise
 # no check required, fabric depends on invoke
 import invoke
+from invoke import Responder
+from invoke.exceptions import ResponseNotAccepted, Failure
 import paramiko.ssh_exception
 
 
@@ -123,7 +125,7 @@ def shutdown(con,
 
 # https://github.com/fabric/fabric/issues/2061
 # TODO: replace OSError by this everywhere?
-class FabricException(OSError, paramiko.ssh_exception.SSHException):
+class FabricException(EOFError, OSError, paramiko.ssh_exception.SSHException):
     pass
 
 
@@ -185,15 +187,54 @@ def shutdown_and_wait(con,
     # TODO: this will fail if the host is waiting in initrd for the LUKS password:
     # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='
 
-    try:
-        # XXX: error handling?
-        con.run('uptime')
-    except FabricException as e:
-        logging.error('host %s cannot be reached by fabric: ', con.host, e)
-        return False
+    # Just fail if we get a luks prompt
+    # TODO: actually allow the user to provide a LUKS passphrase?
+    responder = SentinelResponder(
+        sentinel=r'Please unlock disk .*:',
+    )
+    for i in range(3):
+        try:
+            res = con.run('uptime', watchers=[responder], pty=True, warn=True)
+        # XXX: why don't we get our exception from the watcher?
+        # instead we need to catch invoke's Failure here
+        except (ResponseNotAccepted, Failure):
+            logging.warning('server waiting for crypto password, sleeping for mandos')
+            wait_for_shutdown(con, wait_confirm=1)
+            wait_for_boot(con)
+        except FabricException as e:
+            logging.error('host %s cannot be reached by fabric: ', con.host, e)
+            return False
+        else:
+            if res.failed:
+                logging.error('uptime command failed on host %s: %s', con.host, res)
+                return False
+            else:
+                break
 
     logging.info('host %s rebooted', con.host)
     return True
+
+
+class SentinelResponder(Responder):
+    """Watcher which will fail only if the sentinel string is found, but
+    will otherwise not respond.
+    """
+
+    def __init__(self, sentinel):
+        self.sentinel = sentinel
+        self.failure_index = 0
+
+    def submit(self, stream):
+        if self.pattern_matches(stream, self.sentinel, "failure_index"):
+            err = 'Unexpected sentinal output: {!r}!'.format(
+                self.sentinel
+            )
+            raise ResponseNotAccepted(err)
+        # do not write anything in response. the intuitive response
+        # (`yield`) here will not do what we expect because it will
+        # `yield None` and invoke will try to write `None` to the
+        # stream, which is bad
+        return []
 
 
 @task
