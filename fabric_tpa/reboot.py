@@ -202,17 +202,18 @@ def shutdown_and_wait(con,
             wait_for_shutdown(con, wait_confirm=1)
             wait_for_boot(con)
         except FabricException as e:
-            logging.error('host %s cannot be reached by fabric: ', con.host, e)
-            return False
+            logging.error('host %s cannot be reached by fabric, sleeping: ', con.host, e)
+            time.sleep(1)
         else:
             if res.failed:
                 logging.error('uptime command failed on host %s: %s', con.host, res)
                 return False
             else:
-                break
+                logging.info('host %s rebooted', con.host)
+                return True
 
-    logging.info('host %s rebooted', con.host)
-    return True
+    logging.warning('could not check uptime on %s, assuming reboot failed', con.host)
+    return False
 
 
 class SentinelResponder(Responder):
