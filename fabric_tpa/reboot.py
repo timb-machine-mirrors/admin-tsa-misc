@@ -159,7 +159,7 @@ def shutdown_and_wait(con,
     except invoke.UnexpectedExit as e:
         logging.error('unexpected error issuing reboot on %s: %s', con.host, e)
         return False
-    except FabricException as e:
+    except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
 
