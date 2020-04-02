@@ -164,9 +164,10 @@ def shutdown_and_wait(con,
                         con.host, e)
 
     # TODO: relinquish control so we schedule other jobs
-    logging.info('waiting %d minutes for reboot to happen', delay_shutdown)
-    # note: we convert minutes to seconds here
-    time.sleep(delay_shutdown * 60)
+    if delay_shutdown > 0:
+        logging.info('waiting %d minutes for reboot to happen', delay_shutdown)
+        # NOTE: we convert minutes to seconds here
+        time.sleep(delay_shutdown * 60)
 
     logging.info('waiting up to %d seconds for host to go down', delay_down)
     if not wait_for_shutdown(con, delay_down):
