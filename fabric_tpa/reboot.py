@@ -193,7 +193,7 @@ def shutdown_and_wait(con,
     responder = SentinelResponder(
         sentinel=r'Please unlock disk .*:',
     )
-    for i in range(3):
+    for i in range(delay_up):
         try:
             res = con.run('uptime', watchers=[responder], pty=True, warn=True)
         # XXX: why don't we get our exception from the watcher?
