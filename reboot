@@ -130,4 +130,14 @@ if __name__ == '__main__':
     # without this, we get debugging info from paramiko with --verbose
     for mod in 'fabric', 'paramiko', 'invoke':
         logging.getLogger(mod).setLevel('WARNING')
-    main(args)
+    try:
+        main(args)
+    except Exception as e:
+        logging.error('unexpected exception during reboot: %s', e)
+        if args.log_level.upper() == 'DEBUG':
+            import traceback
+            import pdb
+            import sys
+            traceback.print_exc()
+            pdb.post_mortem()
+        sys.exit(1)
