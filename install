@@ -89,7 +89,6 @@ if __name__ == '__main__':
     try:
         main()
     except Exception as e:
-        # XXX: move up into program.run()?
         import traceback
         import pdb
         import sys

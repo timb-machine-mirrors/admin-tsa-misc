@@ -17,3 +17,13 @@ be handled with extreme care. Use `--dry` to see what will happen
 first.
 
 See also the full documentation at <https://help.torproject.org/tsa/howto/fabric/>
+
+# Development notes
+
+XXX: we should have a better place for this, maybe upstream?
+
+## Error handling
+
+A `@task` MUST raise an error if it occurs, it should *NOT* rely on
+true/false status codes, otherwise it will not be trickled up to the
+shell, because of [issue 715](https://github.com/pyinvoke/invoke/issues/715).

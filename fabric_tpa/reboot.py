@@ -50,7 +50,6 @@ DEFAULT_DELAY_SHUTDOWN = 10  # in minutes
 DEFAULT_REASON = 'no reason given'
 
 
-@task
 def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
     '''wait for host to shutdown
 
@@ -74,7 +73,6 @@ def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
     return confirmations >= wait_confirm
 
 
-@task
 def wait_for_ping(con, timeout=DEFAULT_DELAY_UP):
     '''wait for host to ping
 
@@ -91,11 +89,11 @@ def wait_for_ping(con, timeout=DEFAULT_DELAY_UP):
     return tcp_ping_host(con)
 
 
-@task
 def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
     if not wait_for_ping(con, delay_up):
-        raise Exit('host %s did not return after %d seconds, aborting'
-                   % (con.host, delay_up))
+        logging.warning('host %s did not return after %d seconds, aborting',
+                        con.host, delay_up)
+        return False
 
     logging.info('host %s should be back online, checking uptime', con.host)
     # TODO: this might fail if the host is waiting in initrd for the LUKS password:
@@ -123,15 +121,14 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         else:
             # command was issued, but failed
             if res.failed:
-                raise Failure(res, 'uptime command failed on host %s' % con.host)
+                logging.error('uptime command failed on host %s: %s', con.host, res)
+                return False
             # command suceeded
             else:
-                logging.info('host %s rebooted', con.host)
                 return True
         # if we got here, we're in the "not reachable" state
         wait_for_ping(con)
-
-    raise Exit('could not check uptime on %s, assuming reboot failed' % con.host)
+    return False
 
 
 class ShutdownType(str, Enum):
@@ -222,7 +219,11 @@ def shutdown_and_wait(con,
         return True
 
     logging.info('waiting %d seconds for host to go up', delay_up)
-    return wait_for_live(con, delay_up=delay_up)
+    if wait_for_live(con, delay_up=delay_up):
+        logging.info('host %s rebooted', con.host)
+        return True
+    else:
+        raise Exit('could not check uptime on %s, assuming reboot failed' % con.host)
 
 
 class SentinelResponder(Responder):
@@ -275,7 +276,6 @@ def halt_and_wait(con,
                              delay_up=delay_up)
 
 
-@task
 def tcp_ping_host(con, port=22, timeout=1):
     '''ping the host by opening a TCP socket
 
