@@ -36,7 +36,7 @@ except ImportError:
 # no check required, fabric depends on invoke
 import invoke
 from invoke import Responder
-from invoke.exceptions import ResponseNotAccepted, Failure
+from invoke.exceptions import ResponseNotAccepted, Failure, Exit
 import paramiko.ssh_exception
 
 
@@ -94,9 +94,8 @@ def wait_for_ping(con, timeout=DEFAULT_DELAY_UP):
 @task
 def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
     if not wait_for_ping(con, delay_up):
-        logging.warning('host %s did not return after %d seconds, aborting',
-                        con.host, delay_up)
-        return False
+        raise Exit('host %s did not return after %d seconds, aborting'
+                   % (con.host, delay_up))
 
     logging.info('host %s should be back online, checking uptime', con.host)
     # TODO: this might fail if the host is waiting in initrd for the LUKS password:
@@ -124,8 +123,7 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         else:
             # command was issued, but failed
             if res.failed:
-                logging.error('uptime command failed on host %s: %s', con.host, res)
-                return False
+                raise Failure(res, 'uptime command failed on host %s' % con.host)
             # command suceeded
             else:
                 logging.info('host %s rebooted', con.host)
@@ -133,8 +131,7 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         # if we got here, we're in the "not reachable" state
         wait_for_ping(con)
 
-    logging.warning('could not check uptime on %s, assuming reboot failed', con.host)
-    return False
+    raise Exit('could not check uptime on %s, assuming reboot failed' % con.host)
 
 
 class ShutdownType(str, Enum):
@@ -187,6 +184,8 @@ def shutdown_and_wait(con,
     # TODO: check reboot policy, especially for reboot delays
     try:
         master = ganeti.getmaster(con)
+    except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
+        raise Exit('failed to contact host %s, aborting reboot: %s' % (con.host, e))
     except invoke.exceptions.Failure:
         logging.info('host %s is not a ganeti node', con.host)
     else:
@@ -197,14 +196,12 @@ def shutdown_and_wait(con,
         logging.info('ganeti node detected, migrating instances from %s',
                      con.host)
         if not ganeti.empty_node(con, master_con):
-            logging.error('failed to empty node %s, aborting', con.host)
-            return False
+            raise Exit('failed to empty node %s, aborting' % con.host)
 
     try:
         shutdown(con, kind, reason, delay_shutdown)
     except invoke.UnexpectedExit as e:
-        logging.error('unexpected error issuing reboot on %s: %s', con.host, e)
-        return False
+        raise Exit('unexpected error issuing reboot on %s: %s' % (con.host, e))
     except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
@@ -218,9 +215,8 @@ def shutdown_and_wait(con,
 
     logging.info('waiting up to %d seconds for host to go down', delay_down)
     if not wait_for_shutdown(con, delay_down):
-        logging.warning('host %s was still up after %d seconds, aborting',
-                        con.host, delay_down)
-        return False
+        raise Exit('host %s was still up after %d seconds, aborting' %
+                   (con.host, delay_down))
     if kind == ShutdownType.halt:
         logging.info('host %s shutdown', con.host)
         return True
