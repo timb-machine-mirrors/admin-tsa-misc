@@ -254,6 +254,9 @@ def reboot_and_wait(con,
                     delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
                     delay_down=DEFAULT_DELAY_DOWN,
                     delay_up=DEFAULT_DELAY_UP):
+    """reboot a machine and wait
+
+    Convenience alias for shutdown_and_wait with a "reboot" kind."""
     return shutdown_and_wait(con,
                              kind=ShutdownType.reboot,
                              reason=reason,
@@ -268,6 +271,9 @@ def halt_and_wait(con,
                   delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
                   delay_down=DEFAULT_DELAY_DOWN,
                   delay_up=DEFAULT_DELAY_UP):
+    """halt a machine and wait
+
+    Convenience alias for shutdown_and_wait with a "halt" kind."""
     return shutdown_and_wait(con,
                              kind=ShutdownType.halt,
                              reason=reason,
