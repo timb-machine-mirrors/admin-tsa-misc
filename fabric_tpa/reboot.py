@@ -23,6 +23,7 @@ from __future__ import print_function, unicode_literals
 
 from enum import Enum
 from contextlib import closing
+from datetime import datetime, timedelta
 import logging
 import socket
 import sys
@@ -206,11 +207,17 @@ def shutdown_and_wait(con,
     # TODO: relinquish control so we schedule other jobs
     # XXX: maybe this would be better served by a state machine?
     if delay_shutdown > 0:
-        logging.info('waiting %d minutes for reboot to happen', delay_shutdown)
+        now = datetime.now()
+        then = now + timedelta(minutes=delay_shutdown)
+        logging.info('waiting %d minutes for reboot to happen, at %s (now is %s)',
+                     delay_shutdown, then, now)
         # NOTE: we convert minutes to seconds here
         time.sleep(delay_shutdown * 60)
 
-    logging.info('waiting up to %d seconds for host to go down', delay_down)
+    now = datetime.now()
+    then = now + timedelta(seconds=delay_down)
+    logging.info('waiting up to %d seconds for host to go down, at %s (now is %s)',
+                 delay_down, then, now)
     if not wait_for_shutdown(con, delay_down):
         raise Exit('host %s was still up after %d seconds, aborting' %
                    (con.host, delay_down))
@@ -218,7 +225,10 @@ def shutdown_and_wait(con,
         logging.info('host %s shutdown', con.host)
         return True
 
-    logging.info('waiting %d seconds for host to go up', delay_up)
+    now = datetime.now()
+    then = now + timedelta(seconds=delay_up)
+    logging.info('waiting %d seconds for host to go up, at %s (now is %s)',
+                 delay_up, then, now)
     if wait_for_live(con, delay_up=delay_up):
         logging.info('host %s rebooted', con.host)
         return True
