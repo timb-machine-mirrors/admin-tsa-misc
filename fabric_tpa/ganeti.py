@@ -319,7 +319,14 @@ def find_instance_ifconfig(instance_con,
         facts[match.group(1)] = match.group(2)
     logging.debug('found networking facts: %s', facts)
     ipv4_subnet = facts['Subnet'].split('/')[-1]
-    ipv6_net, ipv6_subnet = facts['IPv6 Subnet'].split('/')
+    ipv6 = facts.get('IPv6 Subnet')
+    if ipv6 is None:
+        logging.warning('no IPv6 subnet found on instance %s, skipping IPv6',
+                        instance_con.host)
+        ipv6_net, ipv6_subnet, ipv6_gateway = None, None
+    else:
+        ipv6_net, ipv6_subnet = ipv6.split('/')
+        ipv6_gateway = facts['IPv6 Gateway']
     # HACK: we use a local invoke context instead of the remote
     ipv6 = host.ipv6_slaac(invoke.Context(),
                            ipv6_net,
@@ -329,7 +336,7 @@ def find_instance_ifconfig(instance_con,
                          facts['Gateway'],
                          ipv6,
                          ipv6_subnet,
-                         facts['IPv6 Gateway'])
+                         ipv6_gateway)
     logging.debug('ifconfig: %s', conf)
     return conf
 

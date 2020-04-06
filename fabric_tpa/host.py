@@ -313,6 +313,11 @@ auto eth0
 iface eth0 inet static
     address {ipconf.ipv4}/{ipconf.ipv4_subnet}
     gateway {ipconf.ipv4_gateway}
+'''
+
+    if ipconf.ipv6:
+        content += f'''
+# IPv6 configuration
 iface eth0 inet6 static
     accept_ra 0
     address {ipconf.ipv6}/{ipconf.ipv6_subnet}
@@ -337,7 +342,7 @@ def _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'
         rewrite_hosts_file(fp,
                            fqdn.encode('ascii'),
                            ipv4_address.encode('ascii'),
-                           ipv6_address.encode('ascii'))
+                           ipv6_address.encode('ascii') if ipv6_address else None)
     _diff_file(con, backup_path, path)
 
 
