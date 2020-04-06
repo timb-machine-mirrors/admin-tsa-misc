@@ -356,9 +356,11 @@ def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
     'copy': 'copy the disks between the nodes (default: True)',
     'adopt': 'adopt the instance in ganeti (default: False)',
     'suspend': 'suspend the node while copying disks (default: False)',
+    'network_name': 'name of the network to allocate into (default: gnt-fsn13-02)',
 })
 def libvirt_import(instance_con, libvirt_host, ganeti_node,
-                   copy=True, adopt=False, suspend=False):
+                   copy=True, adopt=False, suspend=False,
+                   network_name='gnt-fsn13-02'):
     '''import instance into ganeti
 
     This will import the given hosts (INSTANCE_CON) from the KVM_HOST
@@ -480,7 +482,7 @@ def libvirt_import(instance_con, libvirt_host, ganeti_node,
 
     inventory['memory_human'] = naturalsize(inventory['memory'], gnu=True)
     command = f'''gnt-instance add -t plain \
-    --net 0:ip=pool,network=gnt-fsn \
+    --net 0:ip=pool,network={network_name} \
     --no-name-check \
     --no-ip-check \
     -o debootstrap+default \
