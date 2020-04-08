@@ -304,6 +304,8 @@ def rewrite_interfaces_ifconfig(con, ipconf, path='/etc/network/interfaces'):
     content = f'''# This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
+source /etc/network/interfaces.d/*
+
 # The loopback network interface
 auto lo
 iface lo inet loopback
