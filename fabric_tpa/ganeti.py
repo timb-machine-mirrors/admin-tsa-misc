@@ -121,6 +121,38 @@ def start(instance_con, master_host='fsn-node-01.torproject.org'):
 
 
 @task
+def is_running(instance_con, master_host='fsn-node-01.torproject.org'):
+    master_con = host.find_context(master_host, config=instance_con.config)
+    logging.info('checking on %s if instance %s is running',
+                 master_con.host, instance_con.host)
+    res = master_con.run('gnt-instance list --no-headers -o admin_state %s'
+                         % instance_con.host, warn=True, hide=True)
+    if res.failed:
+        logging.warning('instance %s not found in Ganeti master %s',
+                        instance_con.host, master_con.host)
+        return False
+    return res.stdout.strip() == 'up'
+
+
+@task
+def retire(instance_con, master_host='fsn-node-01.torproject.org'):
+    '''remove the given instance in 7 days, stopping  immediately if running'''
+    master_con = host.find_context(master_host, config=instance_con.config)
+    if is_running(instance_con, master_con):
+        # this might fail if the instance doesn't exist, that's fine,
+        # we'll abort with the command's stderr
+        stop(instance_con, master_con)
+    else:
+        logging.info('instance %s not running, no stop required',
+                     instance_con.host)
+    logging.info('scheduling %s instance removal on host %s',
+                 instance_con.host, master_con.host)
+    return host.schedule_job(master_con,
+                             'gnt-instance remove %s' % instance_con.host,
+                             host.RETIREMENT_DELAY)
+
+
+@task
 def renumber_instance(instance_con, ganeti_node, dostart=True):
     '''change the IP address of an instance
 

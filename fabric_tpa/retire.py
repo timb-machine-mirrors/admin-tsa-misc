@@ -46,15 +46,15 @@ def retire_instance(instance_con, parent_host):
     Checks if it's a ganeti node and otherwise assunmes it's
     libvirt...
 
-    TODO: to be expanded to cover for physical machines and ganeti
+    TODO: to be expanded to cover for physical machines
     '''
     host_con = host.find_context(parent_host, config=instance_con.config)
     try:
-        ganeti.getmaster(host_con)
+        master_con = ganeti.getmaster(host_con)
     except invoke.exceptions.Failure:
         libvirt.retire(instance_con, host_con)
     else:
-        raise NotImplementedError('ganeti host retirement not supported')
+        ganeti.retire(instance_con, master_con)
 
 
 @task

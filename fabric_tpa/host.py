@@ -38,6 +38,11 @@ except ImportError:
 import invoke.exceptions
 
 
+# time after which data is removed when a host is retired, passed to
+# `at(1)` in `schedule_job()`.
+RETIREMENT_DELAY = '7 days'
+
+
 @task
 def path_exists(host_con, path):
     '''check if path exist with SFTP'''
@@ -61,6 +66,11 @@ def schedule_delete(host_con, path, delay):
 
     # TODO: shell escapes?
     command = 'rm -rf "%s"' % path
+    return schedule_job(host_con, command, delay)
+
+
+@task
+def schedule_job(host_con, command, delay):
     logging.info('scheduling %s to run on %s in %s',
                  command, host_con.host, delay)
     return host_con.run("echo '%s' | at now + %s" % (command, delay),

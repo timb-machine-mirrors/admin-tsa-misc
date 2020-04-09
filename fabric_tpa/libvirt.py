@@ -152,7 +152,7 @@ def retire(instance_con, parent_host):
     # TODO: lvm removal
     disk = '/srv/vmstore/%s/' % instance_con.host
     if host.path_exists(parent_host_con, disk):
-        host.schedule_delete(parent_host_con, disk, '7 days')
+        host.schedule_delete(parent_host_con, disk, host.RETIREMENT_DELAY)
 
 
 def parse_memory(xml_root):
