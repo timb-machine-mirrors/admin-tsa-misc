@@ -251,9 +251,12 @@ def fetch_instance_info(instance_con, master_host='fsn-node-01.torproject.org',
 
 
 def fetch_network_list(ganeti_con, hide=True, dry=False):
-    info = ganeti_con.run('gnt-network list -o name --no-headers', hide=hide, dry=dry, warn=True)
+    info = ganeti_con.run('gnt-network list -o name --no-headers',
+                          hide=hide, dry=dry, warn=True)
     if info.failed:
-        logging.warning('cannot load network list from %s: %s', ganeti_con.host, info.stderr)
+        logging.warning('cannot load network list from %s: %s',
+
+                        ganeti_con.host, info.stderr)
         return []
     logging.debug('loaded network list from %s: %s', ganeti_con.host, info.stdout)
     # skip header
