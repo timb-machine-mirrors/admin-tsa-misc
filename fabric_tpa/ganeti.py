@@ -96,12 +96,13 @@ def empty_node(node_con, master_host=None):
 def stop(instance_con, master_host='fsn-node-01.torproject.org'):
     '''stop an instance
 
-    This just stops an instance, on what is assumed to be the ganeti master.
+    This just stops an instance, on what is assumed to be the ganeti
+    master. Note that `gnt-instance stop` succeeds even if the
+    instance is already stopped.
     '''
     master_con = host.find_context(master_host, config=instance_con.config)
     logging.info('stopping instance %s on %s',
                  instance_con.host, master_con.host)
-    # XXX: error handling?
     return master_con.run('gnt-instance stop %s' % instance_con.host)
 
 
@@ -110,11 +111,12 @@ def start(instance_con, master_host='fsn-node-01.torproject.org'):
     '''stop an instance
 
     This just stops an instance, on what is assumed to be the ganeti master.
+
+    Error handling should be done by the caller.
     '''
     master_con = host.find_context(master_host, config=instance_con.config)
     logging.info('starting instance %s on %s',
                  instance_con.host, master_con.host)
-    # XXX: error handling?
     return master_con.run('gnt-instance start %s' % instance_con.host)
 
 
@@ -194,6 +196,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         ganeti_node_con.run('kpartx -dv %s' % disk_path)
 
     if dostart:
+        # this might fail and abort the script here, that's fine.
         start(instance_con, ganeti_master_con)
     # TODO: all this could be done for real:
     # STEP 10. functional tests: change your `/etc/hosts` to point to the new
