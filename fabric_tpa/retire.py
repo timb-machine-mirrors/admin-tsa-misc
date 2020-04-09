@@ -82,7 +82,7 @@ def revoke_puppet(instance_con, puppetmaster='pauli.torproject.org'):
 def retire_all(instance_con,
                parent_host=None,
                backup_host='bungei.torproject.org',
-               puppet_host='pauli.torproject.org'):
+               puppet_host='root@pauli.torproject.org'):
     '''retire an instance from its parent, backups and puppet'''
     # STEP 1, 3, 4, 5
     if parent_host:
