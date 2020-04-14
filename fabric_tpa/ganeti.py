@@ -249,7 +249,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         # LDAP vi
         'ssh -tt db.torproject.org ldapvi -ZZ --encoding=ASCII --ldap-conf -h db.torproject.org -D "uid=$USER,ou=users,dc=torproject,dc=org"',  # noqa: E501
         # puppet on the puppet master, to open up firewall
-        'ssh root@pauli.torproject.org puppet agent -t',
+        'ssh root@puppet.torproject.org puppet agent -t',
         # puppet on the host
         'ssh %s puppet agent -t' % instance_con.host,
         # on the host, in /etc and /srv

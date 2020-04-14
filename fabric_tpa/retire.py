@@ -67,7 +67,7 @@ def remove_backups(instance_con, backup_host):
 
 
 @task
-def revoke_puppet(instance_con, puppetmaster='root@pauli.torproject.org'):
+def revoke_puppet(instance_con, puppetmaster='root@puppet.torproject.org'):
     '''revoke certificates of given instance on puppet master'''
     con = host.find_context(puppetmaster, config=instance_con.config)
     # XXX: error handling?
@@ -82,7 +82,7 @@ def revoke_puppet(instance_con, puppetmaster='root@pauli.torproject.org'):
 def retire_all(instance_con,
                parent_host=None,
                backup_host='bungei.torproject.org',
-               puppet_host='root@pauli.torproject.org'):
+               puppet_host='root@puppet.torproject.org'):
     '''retire an instance from its parent, backups and puppet'''
     # STEP 1, 3, 4, 5
     if parent_host:
