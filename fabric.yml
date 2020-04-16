@@ -9,4 +9,4 @@
 # although we do explicitely specify a host in certain context where
 # we know it's likely the user configured a non-root user for push
 # (e.g. puppet.torproject.org).
-user = 'root'
+user: "root"
