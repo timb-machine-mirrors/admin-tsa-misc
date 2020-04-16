@@ -1,7 +1,17 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-"""user management fabric library"""
+"""user management fabric library
+
+The goal of this library is to cover user creation and removal.
+
+It should go through the following services when creating or removing
+a user.
+
+https://trac.torproject.org/projects/tor/wiki/org/operations/services
+
+For now it only does LDAP.
+"""
 # Copyright (C) 2020 Antoine Beaupré <anarcat@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
