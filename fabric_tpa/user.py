@@ -106,12 +106,13 @@ def parse_ldap_result_user(dn, result):
     uid = result["uid"][0].decode("utf-8")
     uidNumber = result["uidNumber"][0].decode("utf-8")
     gidNumber = result["gidNumber"][0].decode("utf-8")
-    flags = []
-    if uidNumber != gidNumber:
-        flags.append("gid-mismatch")
     groups = [g.decode("utf-8") for g in result["supplementaryGid"]]
     groups_str = ",".join(groups)
     flags = list(groups_to_flags(groups))
+    # TODO: we should also check the gid resolves to the same group
+    # name as the username
+    if uidNumber != gidNumber:
+        flags.append("gid-mismatch")
     flags_str = ",".join(flags)
     # must f-string match the header in audit_ldap()
     return f"{uid}\t{flags_str}\t{groups_str}", flags
@@ -128,6 +129,7 @@ def groups_to_flags(groups):
 flags_meaning = {
     "ldap-admin": "has root and LDAP admin (adm group)",
     "login-everywhere": "has SSH access everywhere (torproject group)",
+    "gid-mismatch": "uid and gid do not match, might have extra access",
 }
 
 
