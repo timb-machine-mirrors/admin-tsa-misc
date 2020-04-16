@@ -10,6 +10,7 @@ import fabric_tpa.host
 import fabric_tpa.libvirt
 import fabric_tpa.reboot
 import fabric_tpa.retire
+import fabric_tpa.user
 
 ns = Collection(
     fabric_tpa.ganeti,
@@ -17,4 +18,5 @@ ns = Collection(
     fabric_tpa.libvirt,
     fabric_tpa.reboot,
     fabric_tpa.retire,
+    fabric_tpa.user,
 )
