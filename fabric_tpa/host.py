@@ -44,6 +44,14 @@ RETIREMENT_DELAY = '7 days'
 
 
 @task
+def id(con):
+    '''run the `id` command through fabric
+
+    Mostly for connection debugging purposes'''
+    return con.run('id')
+
+
+@task
 def path_exists(host_con, path):
     '''check if path exist with SFTP'''
     logging.info('checking for path "%s" on %s', path, host_con.host)
