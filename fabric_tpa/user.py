@@ -46,7 +46,8 @@ class LdapContext(object):
     def __init__(self, uri):
         self.uri = uri
         self.ldap = ldap.initialize(uri)
-        # XXX: hardcoded path
+        # TODO: certificate might expire, check for expiry and renew
+        # if necessary
         self.ldap.set_option(
             ldap.OPT_X_TLS_CACERTFILE,
             os.path.dirname(__file__) + "/db.torproject.org.pem",
