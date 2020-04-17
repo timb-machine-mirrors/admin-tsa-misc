@@ -485,23 +485,24 @@ def whereis(instance):
     """find on which metal the given virtual machine is hosted"""
     ldap_con = LdapContext()
     ldap_con.bind()
-    print("host %s is " % instance.host, flush=True, end='')
     filter = '(hostname=%s)' % instance.host
     for dn, attrs in ldap_con.search_hosts(filterstr=filter):
         logging.debug("dn: %s, attrs: %r" % (dn, attrs))
+        print("host %s is " % attrs.get('hostname')[0].decode('utf-8'),
+              flush=True, end='')
         parent = attrs.get('physicalHost')
         if parent is not None:
             print('on ' + parent[0].decode('utf-8'))
-            break
+            continue
         # no physical host, show location
         parent = attrs.get('l')
         if parent is None:
             # no location, say so
             print('in an [unknown location]')
-            break
+            continue
         else:
             print("a physical machine located in " + parent[0].decode('utf-8'))
-            break
+            continue
 
 
 @task
