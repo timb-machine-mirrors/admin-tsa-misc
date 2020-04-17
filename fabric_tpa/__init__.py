@@ -171,7 +171,27 @@ def hash_digest_hex(data, hash=hashlib.md5, sep=':'):
 
 
 class LdapContext(object):
+    """The LdapContext is a more pythonic wrapper around the python-ldap module
+
+    It is very opinionated: it will setup TLS with a hardcoded
+    certificate, for example, and hardcodes a binding domain. It will
+    also prompt for a passphrase and does a search on SUBTREE.
+
+    The point is to remove much of the LDAP intricacies from the
+    caller so they don't have to know as much of the complexity of the
+    protocol to do simple things. Obviously, the abstraction is leaky
+    as we don't hide stuff like the filtering language or DNs.
+    """
     def __init__(self, uri):
+        """initialize the LdapContext
+
+        This initializes an `ldap` object from the given URI, which
+        SHOULD have a ldaps:// prefix.
+
+        It will also setup TLS using a hardcoded certificate and
+        enforce it.
+
+        """
         self.uri = uri
         self.ldap = ldap.initialize(uri)
         # TODO: certificate might expire, check for expiry and renew
@@ -184,6 +204,15 @@ class LdapContext(object):
         self.ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_HARD)
 
     def bind(self, dn=None, password=None):
+        """bind to the initialized LDAP connection using the provided DN and
+        password
+
+        If the dn is None (default), it is guessed based on the
+        current local user.
+
+        If the `password` is None (default), it is prompted using the
+        `getpass` library.
+        """
         if dn is None:
             dn = "uid=%s,ou=users,dc=torproject,dc=org" % getpass.getuser()
         if password is None:
@@ -194,11 +223,15 @@ class LdapContext(object):
         self.dn = dn
 
     def search(self, base, filterstr):
+        """Search the given base for the filterstr"""
         return self.ldap.search_s(
             base=base, filterstr=filter, scope=ldap.SCOPE_SUBTREE,
         )
 
     def __str__(self):
+        """string representation of this object
+
+        This censors the password, which is not kept, for security reasons."""
         return "LdapContext(%r, %r, %r): %s" % (
             self.uri,
             self.dn,
