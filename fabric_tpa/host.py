@@ -37,6 +37,8 @@ except ImportError:
     raise
 import invoke.exceptions
 
+from . import LdapContext
+
 
 # time after which data is removed when a host is retired, passed to
 # `at(1)` in `schedule_job()`.
@@ -480,8 +482,27 @@ def find_context(hostname, config=None):
 
 @task
 def whereis(instance):
-    """try to find on which metal the given virtual machine is hosted"""
-    raise NotImplementedError()
+    """find on which metal the given virtual machine is hosted"""
+    ldap_con = LdapContext()
+    ldap_con.bind()
+    print("host %s is " % instance.host, flush=True, end='')
+    base_dn_hosts = "ou=hosts," + ldap_con.base_dn
+    filter = '(hostname=%s)' % instance.host
+    for dn, attrs in ldap_con.search(filterstr=filter, base=base_dn_hosts):
+        logging.debug("dn: %s, attrs: %r" % (dn, attrs))
+        parent = attrs.get('physicalHost')
+        if parent is not None:
+            print('on ' + parent[0].decode('utf-8'))
+            break
+        # no physical host, show location
+        parent = attrs.get('l')
+        if parent is None:
+            # no location, say so
+            print('in an [unknown location]')
+            break
+        else:
+            print("a physical machine located in " + parent[0].decode('utf-8'))
+            break
 
 
 @task
