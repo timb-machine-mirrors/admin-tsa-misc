@@ -483,8 +483,7 @@ def find_context(hostname, config=None):
 @task
 def whereis(instance):
     """find on which metal the given virtual machine is hosted"""
-    ldap_con = LdapContext()
-    ldap_con.bind()
+    ldap_con = LdapContext().bind()
     filter = '(hostname=%s)' % instance.host
     for dn, attrs in ldap_con.search_hosts(filterstr=filter):
         logging.debug("dn: %s, attrs: %r" % (dn, attrs))

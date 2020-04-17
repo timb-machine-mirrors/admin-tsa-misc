@@ -97,8 +97,7 @@ def audit_ldap(con, user="*"):
     """look for privileges of the given user on LDAP
 
     By default dumps all the users from LDAP. """
-    con = LdapContext()
-    con.bind()
+    con = LdapContext().bind()
     logging.info("dumping valid users")
     # except ldap.LDAPError as e:
     logging.debug("connected to %s", con)

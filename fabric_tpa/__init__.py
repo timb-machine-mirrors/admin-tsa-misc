@@ -239,6 +239,8 @@ class LdapContext(object):
                 prompt="%s LDAP password for %s: " % (self.uri, dn)
             )
         self.ldap.simple_bind_s(dn, password)
+        # allow chaining (e.g. `l = LdapContext().bind()`)
+        return self
 
     def search(self, filterstr='(objectClass=*)', base=None):
         """Search the given base for the filterstr"""
