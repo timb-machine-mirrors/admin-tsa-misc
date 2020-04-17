@@ -271,6 +271,32 @@ class LdapContext(object):
             base = self.base_dn_hosts
         return self.search(filterstr=filterstr, base=base)
 
+    def load_host(self, hostname):
+        """load the attributes of a single host
+
+        This is a wrapper around search_hosts that makes sure we only
+        match one host.
+
+        It is the caller's responsability to ensure that the hostname
+        provide is an non-ambiguous FQDN but this will show an error
+        on the console if more than one results are returened.
+
+        Returns a tuple made of the matched distinguished name (dn)
+        and the host's attributes.
+        """
+        filter = '(hostname=%s)' % hostname
+        found = False
+        host = ()
+        for dn, attrs in self.search_hosts(filterstr=filter):
+            logging.debug("dn: %s, attrs: %r" % (dn, attrs))
+            if found:
+                logging.warning('discarding extra matches for hostname %s', hostname)
+                break
+            else:
+                host = dn, attrs
+            found = True
+        return host
+
     def __str__(self):
         """string representation of this object
 
