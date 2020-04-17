@@ -236,7 +236,7 @@ class LdapContext(object):
     def search(self, base, filterstr):
         """Search the given base for the filterstr"""
         return self.ldap.search_s(
-            base=base, filterstr=filter, scope=ldap.SCOPE_SUBTREE,
+            base=base, filterstr=filterstr, scope=ldap.SCOPE_SUBTREE,
         )
 
     def __str__(self):
