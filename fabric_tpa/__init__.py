@@ -233,8 +233,10 @@ class LdapContext(object):
         self.ldap.simple_bind_s(dn, password)
         self.dn = dn
 
-    def search(self, base, filterstr):
+    def search(self, filterstr, base=None):
         """Search the given base for the filterstr"""
+        if base is None:
+            base = self.base_dn_users
         return self.ldap.search_s(
             base=base, filterstr=filterstr, scope=ldap.SCOPE_SUBTREE,
         )

@@ -107,9 +107,7 @@ def audit_ldap(
     filter = "(&%s%s)" % (LDAP_VALID_USERS_FILTER, "(uid=%s)" % user)
     # this header must match the f-string in parse_ldap_result_user()
     print("uid\tflags\tgroups")
-    for dn, result in con.search(
-        base="ou=users,dc=torproject,dc=org", filterstr=filter
-    ):
+    for dn, result in con.search(filter):
         logging.debug("dn: %s, dump: %s" % (dn, result))
         info, flags = parse_ldap_result_user(dn, result)
         print(info)
