@@ -186,10 +186,10 @@ class LdapContext(object):
     # the base domain name for this domain, used in authentication and
     # search
     base_dn = "dc=torproject,dc=org"
-    base_dn_users = "ou=users"
+    base_dn_users = "ou=users," + base_dn
     # how to construct a guessed username if not provided. the %s is
     # interpolated by bind() with getuser()
-    base_dn_user_field = "uid="
+    base_dn_user_template = "uid=%s," + base_dn_users
     # the certificate to use to verify with the LDAP server
     tls_cacertfile = os.path.dirname(__file__) + "/db.torproject.org.pem"
 
@@ -225,7 +225,7 @@ class LdapContext(object):
         `getpass` library.
         """
         if dn is None:
-            dn = self.base_dn_user_field + getpass.getuser() + self.base_dn_users + self.base_dn
+            dn = self.base_dn_user_template % getpass.getuser()
         if password is None:
             password = getpass.getpass(
                 prompt="%s LDAP password for %s: " % (self.uri, dn)
