@@ -94,7 +94,7 @@ flags_meaning = {
 
 @task
 def audit_ldap(
-    con, user="*", ldap_uri="ldaps://db.torproject.org", dn=None, password=None
+    con, user="*", ldap_uri=LdapContext.default_uri, dn=None, password=None
 ):
     """look for privileges of the given user on LDAP
 

@@ -183,6 +183,8 @@ class LdapContext(object):
     as we don't hide stuff like the filtering language or DNs.
     """
 
+    # the default URI if not specified
+    default_uri = "ldaps://db.torproject.org"
     # the base domain name for this domain, used in authentication and
     # search
     base_dn = "dc=torproject,dc=org"
@@ -193,7 +195,7 @@ class LdapContext(object):
     # the certificate to use to verify with the LDAP server
     tls_cacertfile = os.path.dirname(__file__) + "/db.torproject.org.pem"
 
-    def __init__(self, uri):
+    def __init__(self, uri=None):
         """initialize the LdapContext
 
         This initializes an `ldap` object from the given URI, which
@@ -203,6 +205,8 @@ class LdapContext(object):
         enforce it.
 
         """
+        if uri is None:
+            uri = self.default_uri
         self.uri = uri
         self.ldap = ldap.initialize(uri)
         # TODO: certificate might expire, check for expiry and renew
