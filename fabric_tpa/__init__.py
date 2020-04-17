@@ -33,6 +33,7 @@ except ImportError:
 
 from paramiko.client import RejectPolicy
 from invoke import Argument
+from invoke.exceptions import Exit
 
 
 # some gymnastics to reimplement the nice extra features hexlify has
@@ -181,6 +182,11 @@ class LdapContext(object):
     caller so they don't have to know as much of the complexity of the
     protocol to do simple things. Obviously, the abstraction is leaky
     as we don't hide stuff like the filtering language or DNs.
+
+    This also does not catch most exceptions that might be generated
+    by LDAP. Callers should watch out for ldap.LDAPError, or errors
+    documented at:
+    https://www.python-ldap.org/en/python-ldap-3.2.0/reference/ldap.html#exceptions
     """
 
     # the default URI if not specified
@@ -230,6 +236,11 @@ class LdapContext(object):
         `getpass` library.
 
         This also sets the `dn` member value for debugging purposes.
+
+        As an exception, this function *does* catch a few common
+        exceptions that will be triggered by a default
+        configuration. In particular, this will fail if the user
+        cannot access the LDAP server.
         """
         if dn is None:
             dn = self.base_dn_user_template % getpass.getuser()
@@ -238,7 +249,14 @@ class LdapContext(object):
             password = getpass.getpass(
                 prompt="%s LDAP password for %s: " % (self.uri, dn)
             )
-        self.ldap.simple_bind_s(dn, password)
+        try:
+            self.ldap.simple_bind_s(dn, password)
+        except ldap.SERVER_DOWN as e:
+            # port not open or TLS failure
+            raise Exit('failed to contact LDAP server, firewall problems? %s' % e)
+        except ldap.UNWILLING_TO_PERFORM as e:
+            # user has tried to connect over cleartext
+            raise Exit('failed to contact LDAP server, cleartext fail?' % e)
         # allow chaining (e.g. `l = LdapContext().bind()`)
         return self
 
