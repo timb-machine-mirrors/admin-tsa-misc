@@ -479,6 +479,12 @@ def find_context(hostname, config=None):
 
 
 @task
+def whereis(instance):
+    """try to find on which metal the given virtual machine is hosted"""
+    raise NotImplementedError()
+
+
+@task
 def install_hetzner_robot(con,
                           fqdn,
                           fai_disk_config,
