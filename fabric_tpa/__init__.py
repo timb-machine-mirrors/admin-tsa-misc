@@ -189,6 +189,7 @@ class LdapContext(object):
     # search
     base_dn = "dc=torproject,dc=org"
     base_dn_users = "ou=users," + base_dn
+    base_dn_hosts = "ou=hosts," + base_dn
     # how to construct a guessed username if not provided. the %s is
     # interpolated by bind() with getuser()
     base_dn_user_template = "uid=%s," + base_dn_users
@@ -255,7 +256,18 @@ class LdapContext(object):
         """
         if base is None:
             base = self.base_dn_users
-        return self.search(filterstr=filterstr)
+        return self.search(filterstr=filterstr, base=base)
+
+    def search_hosts(self, filterstr='(objectClass=*)', base=None):
+        """Search for hosts matching the filter string (filterstr)
+
+        This is a wrapper around search but with the default `base`
+        set to the the preconfigured base_dn_hosts,
+        e.g. ou=hosts,dc=example,dc=com.
+        """
+        if base is None:
+            base = self.base_dn_hosts
+        return self.search(filterstr=filterstr, base=base)
 
     def __str__(self):
         """string representation of this object

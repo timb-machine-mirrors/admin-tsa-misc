@@ -486,9 +486,8 @@ def whereis(instance):
     ldap_con = LdapContext()
     ldap_con.bind()
     print("host %s is " % instance.host, flush=True, end='')
-    base_dn_hosts = "ou=hosts," + ldap_con.base_dn
     filter = '(hostname=%s)' % instance.host
-    for dn, attrs in ldap_con.search(filterstr=filter, base=base_dn_hosts):
+    for dn, attrs in ldap_con.search_hosts(filterstr=filter):
         logging.debug("dn: %s, attrs: %r" % (dn, attrs))
         parent = attrs.get('physicalHost')
         if parent is not None:
