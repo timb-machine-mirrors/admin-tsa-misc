@@ -182,6 +182,17 @@ class LdapContext(object):
     protocol to do simple things. Obviously, the abstraction is leaky
     as we don't hide stuff like the filtering language or DNs.
     """
+
+    # the base domain name for this domain, used in authentication and
+    # search
+    base_dn = "dc=torproject,dc=org"
+    base_dn_users = "ou=users"
+    # how to construct a guessed username if not provided. the %s is
+    # interpolated by bind() with getuser()
+    base_dn_user_field = "uid="
+    # the certificate to use to verify with the LDAP server
+    tls_cacertfile = os.path.dirname(__file__) + "/db.torproject.org.pem"
+
     def __init__(self, uri):
         """initialize the LdapContext
 
@@ -198,7 +209,7 @@ class LdapContext(object):
         # if necessary
         self.ldap.set_option(
             ldap.OPT_X_TLS_CACERTFILE,
-            os.path.dirname(__file__) + "/db.torproject.org.pem",
+            self.tls_cacertfile,
         )
         # default, but just making sure
         self.ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_HARD)
@@ -214,7 +225,7 @@ class LdapContext(object):
         `getpass` library.
         """
         if dn is None:
-            dn = "uid=%s,ou=users,dc=torproject,dc=org" % getpass.getuser()
+            dn = self.base_dn_user_field + getpass.getuser() + self.base_dn_users + self.base_dn
         if password is None:
             password = getpass.getpass(
                 prompt="%s LDAP password for %s: " % (self.uri, dn)
