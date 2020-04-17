@@ -237,7 +237,7 @@ class LdapContext(object):
         self.ldap.simple_bind_s(dn, password)
         self.dn = dn
 
-    def search(self, filterstr, base=None):
+    def search(self, filterstr='(objectClass=*)', base=None):
         """Search the given base for the filterstr"""
         if base is None:
             base = self.base_dn
@@ -245,7 +245,7 @@ class LdapContext(object):
             base=base, filterstr=filterstr, scope=ldap.SCOPE_SUBTREE,
         )
 
-    def search_users(self, filterstr, base=None):
+    def search_users(self, filterstr='(objectClass=*)', base=None):
         """Search for users matching the filter string (filterstr)
 
         This is a wrapper around search but with the default `base`
