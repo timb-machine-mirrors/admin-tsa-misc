@@ -236,10 +236,21 @@ class LdapContext(object):
     def search(self, filterstr, base=None):
         """Search the given base for the filterstr"""
         if base is None:
-            base = self.base_dn_users
+            base = self.base_dn
         return self.ldap.search_s(
             base=base, filterstr=filterstr, scope=ldap.SCOPE_SUBTREE,
         )
+
+    def search_users(self, filterstr, base=None):
+        """Search for users matching the filter string (filterstr)
+
+        This is a wrapper around search but with the default `base`
+        set to the the preconfigured base_dn_users,
+        e.g. ou=users,dc=example,dc=com.
+        """
+        if base is None:
+            base = self.base_dn_users
+        return self.search(filterstr=filterstr)
 
     def __str__(self):
         """string representation of this object
