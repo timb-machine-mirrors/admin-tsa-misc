@@ -93,14 +93,12 @@ flags_meaning = {
 
 
 @task
-def audit_ldap(
-    con, user="*", ldap_uri=LdapContext.default_uri, dn=None, password=None
-):
+def audit_ldap(con, user="*"):
     """look for privileges of the given user on LDAP
 
     By default dumps all the users from LDAP. """
-    con = LdapContext(ldap_uri)
-    con.bind(dn, password)
+    con = LdapContext()
+    con.bind()
     logging.info("dumping valid users")
     # except ldap.LDAPError as e:
     logging.debug("connected to %s", con)
