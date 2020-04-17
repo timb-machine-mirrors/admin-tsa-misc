@@ -1,5 +1,6 @@
 import atexit
 import datetime
+import getpass
 import hashlib
 
 import logging
@@ -14,6 +15,14 @@ except ImportError:
 
     def naturalsize(size, *args, **kwargs):
         return size + 'B'
+
+try:
+    import ldap
+except ImportError:
+    sys.stderr.write(
+        "cannot find Python LDAP, install with `apt install python3-ldap`\n"
+    )
+    raise
 
 try:
     from fabric import Config, Connection
@@ -159,3 +168,40 @@ class Timer(object):
 
 def hash_digest_hex(data, hash=hashlib.md5, sep=':'):
     return hexlify(hash(data).digest(), sep, 2)
+
+
+class LdapContext(object):
+    def __init__(self, uri):
+        self.uri = uri
+        self.ldap = ldap.initialize(uri)
+        # TODO: certificate might expire, check for expiry and renew
+        # if necessary
+        self.ldap.set_option(
+            ldap.OPT_X_TLS_CACERTFILE,
+            os.path.dirname(__file__) + "/db.torproject.org.pem",
+        )
+        # default, but just making sure
+        self.ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_HARD)
+
+    def bind(self, dn=None, password=None):
+        if dn is None:
+            dn = "uid=%s,ou=users,dc=torproject,dc=org" % getpass.getuser()
+        if password is None:
+            password = getpass.getpass(
+                prompt="%s LDAP password for %s: " % (self.uri, dn)
+            )
+        self.ldap.simple_bind_s(dn, password)
+        self.dn = dn
+
+    def search(self, base, filterstr):
+        return self.ldap.search_s(
+            base=base, filterstr=filter, scope=ldap.SCOPE_SUBTREE,
+        )
+
+    def __str__(self):
+        return "LdapContext(%r, %r, %r): %s" % (
+            self.uri,
+            self.dn,
+            "[CENSORED]",
+            self.ldap,
+        )

@@ -30,9 +30,7 @@ For now it only does LDAP.
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
-import getpass
 import logging
-import os.path
 import sys
 
 try:
@@ -43,46 +41,7 @@ except ImportError:
     )
     raise
 
-try:
-    import ldap
-except ImportError:
-    sys.stderr.write(
-        "cannot find Python LDAP, install with `apt install python3-ldap`\n"
-    )
-    raise
-
-
-class LdapContext(object):
-    def __init__(self, uri):
-        self.uri = uri
-        self.ldap = ldap.initialize(uri)
-        # TODO: certificate might expire, check for expiry and renew
-        # if necessary
-        self.ldap.set_option(
-            ldap.OPT_X_TLS_CACERTFILE,
-            os.path.dirname(__file__) + "/db.torproject.org.pem",
-        )
-        # default, but just making sure
-        self.ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_HARD)
-
-    def bind(self, dn=None, password=None):
-        if dn is None:
-            dn = "uid=%s,ou=users,dc=torproject,dc=org" % getpass.getuser()
-        if password is None:
-            password = getpass.getpass(
-                prompt="%s LDAP password for %s: " % (self.uri, dn)
-            )
-        self.ldap.simple_bind_s(dn, password)
-        self.dn = dn
-
-    def __str__(self):
-        return "LdapContext(%r, %r, %r): %s" % (
-            self.uri,
-            self.dn,
-            "[CENSORED]",
-            self.ldap,
-        )
-
+from . import LdapContext
 
 LDAP_VALID_USERS_FILTER = """
 (&
@@ -148,8 +107,8 @@ def audit_ldap(
     filter = "(&%s%s)" % (LDAP_VALID_USERS_FILTER, "(uid=%s)" % user)
     # this header must match the f-string in parse_ldap_result_user()
     print("uid\tflags\tgroups")
-    for dn, result in con.ldap.search_s(
-        base="ou=users,dc=torproject,dc=org", scope=ldap.SCOPE_SUBTREE, filterstr=filter
+    for dn, result in con.search(
+        base="ou=users,dc=torproject,dc=org", filterstr=filter
     ):
         logging.debug("dn: %s, dump: %s" % (dn, result))
         info, flags = parse_ldap_result_user(dn, result)
