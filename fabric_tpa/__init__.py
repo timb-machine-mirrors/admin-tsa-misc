@@ -228,15 +228,17 @@ class LdapContext(object):
 
         If the `password` is None (default), it is prompted using the
         `getpass` library.
+
+        This also sets the `dn` member value for debugging purposes.
         """
         if dn is None:
             dn = self.base_dn_user_template % getpass.getuser()
+        self.dn = dn
         if password is None:
             password = getpass.getpass(
                 prompt="%s LDAP password for %s: " % (self.uri, dn)
             )
         self.ldap.simple_bind_s(dn, password)
-        self.dn = dn
 
     def search(self, filterstr='(objectClass=*)', base=None):
         """Search the given base for the filterstr"""
