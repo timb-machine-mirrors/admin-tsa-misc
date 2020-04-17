@@ -241,6 +241,7 @@ class LdapContext(object):
         """Search the given base for the filterstr"""
         if base is None:
             base = self.base_dn
+        logging.debug('searching for %r inside %r', filterstr, base)
         return self.ldap.search_s(
             base=base, filterstr=filterstr, scope=ldap.SCOPE_SUBTREE,
         )
