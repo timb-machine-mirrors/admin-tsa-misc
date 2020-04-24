@@ -161,6 +161,7 @@ def shutdown(con,
              delay=DEFAULT_DELAY_SHUTDOWN):
     '''trigger a shutdown or reboot on the host'''
     # XXX: error handling?
+    # TODO: notify nagios, maybe with https://github.com/tclh123/icinga2-api
     return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
 
 
