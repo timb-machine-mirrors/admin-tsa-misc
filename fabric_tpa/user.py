@@ -125,4 +125,4 @@ def audit_group(con, group):
     hosts = [result["hostname"][0].decode("utf-8")
              for dn, result in con.search_hosts(filter)]
     print("accessible hosts:", *sorted(hosts))
-    print("listed users might have access to more hosts through other mechanisms, namely exportOptions")
+    print("W: users may access other hosts through other mechanism like exportOptions")
