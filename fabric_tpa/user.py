@@ -112,3 +112,17 @@ def audit_ldap(con, user="*"):
             logging.warning(
                 "%s: %s", flag, flags_meaning.get(flag, "NO MEANING DEFINED")
             )
+
+
+@task
+def audit_group(con, group):
+    """look for the privileges of the given group in LDAP and list its members"""
+    con = LdapContext().bind()
+    filter = "(&%s%s)" % (LDAP_VALID_USERS_FILTER, "(supplementaryGid=%s)" % group)
+    users = [result["uid"][0].decode("utf-8") for _, result in con.search_users(filter)]
+    print("member users:", *sorted(users))
+    filter = '(allowedGroups=%s)' % group
+    hosts = [result["hostname"][0].decode("utf-8")
+             for dn, result in con.search_hosts(filter)]
+    print("accessible hosts:", *sorted(hosts))
+    print("listed users might have access to more hosts through other mechanisms, namely exportOptions")
