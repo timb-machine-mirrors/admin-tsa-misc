@@ -129,7 +129,14 @@ def audit_group(con, group):
     """look for the privileges of the given group in LDAP and list its members"""
     con = LdapContext().bind()
     filter = "(&%s%s)" % (LDAP_VALID_USERS_FILTER, "(supplementaryGid=%s)" % group)
-    users = [result["uid"][0].decode("utf-8") for _, result in con.search_users(filter)]
+    users = []
+    for _, result in con.search_users(filter):
+        user = result["uid"][0].decode("utf-8")
+        # XXX: this does not work, because slapd's ACL block that from
+        # view remotely.
+        if result.get("sshRSAAuthKey"):
+            user += "*"
+        users.append(user)
     print("member users:", *sorted(users))
     filter = '(allowedGroups=%s)' % group
     hosts = [result["hostname"][0].decode("utf-8")
