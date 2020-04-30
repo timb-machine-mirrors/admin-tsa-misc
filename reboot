@@ -133,7 +133,7 @@ if __name__ == '__main__':
     try:
         main(args)
     except Exception as e:
-        logging.error('unexpected exception during reboot: %s', e)
+        logging.error('unexpected exception during reboot: [%r] %s', e, e)
         if args.log_level.upper() == 'DEBUG':
             import traceback
             import pdb
