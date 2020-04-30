@@ -97,7 +97,7 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         return False
 
     logging.info('host %s should be back online, checking uptime', con.host)
-    # TODO: this might fail if the host is waiting in initrd for the LUKS password:
+    # TODO: this fails on new hosts waiting for the LUKS password:
     # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
 
     # this is a Fabric "watcher" that will fail if we get a LUKS prompt
@@ -165,11 +165,13 @@ def shutdown(con,
     '''trigger a shutdown or reboot on the host'''
     # XXX: error handling?
     # TODO: notify nagios, maybe with https://github.com/tclh123/icinga2-api
+    # TODO: notify irc
     return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
 
 
+# XXX: this doesn't actually work, figure out why. we use the long
+# list everywhere instead now. see also:
 # https://github.com/fabric/fabric/issues/2061
-# TODO: replace OSError by this everywhere?
 class FabricException(EOFError, OSError, paramiko.ssh_exception.SSHException):
     pass
 
@@ -207,7 +209,7 @@ def shutdown_and_wait(con,
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
 
-    # XXX: maybe this would be better served by a state machine?
+    # XXX: use a state machine to follow where we are?
     if delay_shutdown > 0:
         now = datetime.now()
         then = now + timedelta(minutes=delay_shutdown)
