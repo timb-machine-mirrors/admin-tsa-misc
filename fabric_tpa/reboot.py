@@ -113,7 +113,10 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         # XXX: why don't we get our exception from the watcher?
         # instead we need to catch invoke's Failure here
         except (ResponseNotAccepted, Failure):
-            logging.warning('server waiting for crypto password, sleeping for mandos')
+            logging.warning(
+                'server waiting for crypto password, sleeping %d seconds for mandos',
+                DEFAULT_DELAY_DOWN
+            )
             wait_for_shutdown(con, wait_confirm=1)
         # failed to connect to the host
         except FabricException as e:
