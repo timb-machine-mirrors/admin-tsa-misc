@@ -183,7 +183,6 @@ def shutdown_and_wait(con,
                       delay_up=DEFAULT_DELAY_UP):
     '''shutdown the machine and possibly wait for the box to return'''
     assert kind in (ShutdownType.reboot, ShutdownType.halt)
-    # TODO: check reboot policy, especially for reboot delays
     try:
         master = ganeti.getmaster(con)
     except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
@@ -208,7 +207,6 @@ def shutdown_and_wait(con,
         logging.warning('failed to connect to %s, assuming down: %s',
                         con.host, e)
 
-    # TODO: relinquish control so we schedule other jobs
     # XXX: maybe this would be better served by a state machine?
     if delay_shutdown > 0:
         now = datetime.now()

@@ -58,7 +58,12 @@ def parse_args(args=sys.argv[1:]):
                         action='store_const', const='debug', default='warning')
     parser.add_argument('--force', '-f', action='store_true',
                         help='force reboot even if not needed')
-    # TODO: autodetect from master list or PuppetDB
+    # TODO: autodetect from LDAP. current documented behavior is
+    # according to rebootPolicy:
+    #
+    # rotation: delay_shutdown=30 minutes
+    # justdoit: delay_shutdown=1 minute
+    # manual: delay_shutdown=10 minute and some hand holding required?
     parser.add_argument('--hosts', '-H', nargs='+',
                         help="host(s) to reboot, can be comma-separated")
     parser.add_argument('--dryrun', '-n', action='store_true',
