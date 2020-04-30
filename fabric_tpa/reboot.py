@@ -311,7 +311,6 @@ def tcp_ping_host(con, port=22, timeout=1):
     second).
     '''
 
-    # TODO: use fabric instead?
     try:
         with closing(socket.create_connection((con.host, port),
                                               timeout=timeout)):
