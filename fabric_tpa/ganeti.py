@@ -85,6 +85,10 @@ def empty_node(node_con, master_host=None):
     logging.info('sending command %s to node %s', command, master_con.host)
     result = master_con.run(command, warn=True)
 
+    # TODO: migrate on the next node might fail with:
+    # WARNING: Can't find disk on node fsn-node-03.torproject.org
+    # solution is to activate-disk on that instance
+
     # TODO: failover master?
     return ((result.ok
              and "All instances migrated successfully." in result.stdout)
