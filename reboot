@@ -62,10 +62,11 @@ def parse_args(args=sys.argv[1:]):
     # according to rebootPolicy:
     #
     # rotation: delay_shutdown=30 minutes
-    # justdoit: delay_shutdown=1 minute
-    # manual: delay_shutdown=10 minute and some hand holding required?
+    # justdoit: delay_shutdown=10 minute
+    # manual: ignore! let the operator call reboots the normal way
+    # (e.g. with hosts listed by hand here)
     #
-    # manual may be the default if there's no policy?
+    # "manual" seems to be the default policy
     parser.add_argument('--hosts', '-H', nargs='+',
                         help="host(s) to reboot, can be comma-separated")
     parser.add_argument('--dryrun', '-n', action='store_true',
