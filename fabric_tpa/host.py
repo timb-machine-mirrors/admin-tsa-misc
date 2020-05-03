@@ -689,3 +689,6 @@ def install_hetzner_robot(con,
     # STEP 12: reboot (TODO)
     # XXX: error handling?
     con.run('reboot machine when happy: ./reboot -H root@%s -v --reason "new-machine procedure" --delay-shutdown 0' % con.host)  # noqa: E501
+
+    # STEP X: reverse DNS, irl has an Ansible manifest for this which
+    # we could reuse: https://iain.learmonth.me/blog/2020/2020w187/
