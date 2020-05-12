@@ -655,8 +655,14 @@ def install_hetzner_robot(con,
     logging.info('dumping SSH keys')
     # XXX: error handling?
     con.run('cat /target/etc/ssh/ssh_host_*.pub')
-    con.run('for key in /target/etc/dropbear-initramfs/dropbear_*_host_key; do'
-            'dropbearkey -y -f $key; done')
+    # XXX: this is incredibly ugly - maybe list the files with sftp
+    # and then call the chroot?
+    con.run("for key in "
+            " $(echo /target/etc/dropbear-initramfs/dropbear_*_host_key "
+            """| sed "#/target##"); """
+            " do "
+            "    chroot /target dropbearkey -y -f $key;    "
+            "done")
 
     # STEP 5
     logging.info('locking down /target/etc/luks')
