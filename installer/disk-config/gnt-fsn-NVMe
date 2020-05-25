@@ -15,11 +15,15 @@
 # the default is RAM:50% according to tmpfs(5), but the most common
 # config is currently 512m.
 #
-# TODO: we should leave this default into the tmpfs driver and not
-# override it here, but setup-storage insists on having that setting
-# here, see https://bugs.debian.org/951659
+# it might be better to leave this be the default from tmpfs, without
+# specifying anything. but this would lead to huge tmpfs on large
+# machines and it is not supported by FAI, so leave that be for now,
+# see: https://bugs.debian.org/951659
 #
-# TODO: make bigger? https://trac.torproject.org/projects/tor/ticket/33387
+# 512MiB may be a little small for some hosts, but the point of this
+# is not to set configuration forever, but to bootstrap *something*
+# that works. see also this ticket for further discussion:
+# https://trac.torproject.org/projects/tor/ticket/33387
 disk_config tmpfs
 tmpfs   /tmp    512MiB       defaults
 
