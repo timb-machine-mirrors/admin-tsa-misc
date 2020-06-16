@@ -87,6 +87,10 @@ echo "change this script if there were any changes on the Puppet master since th
 
 echo "running puppet to generate certificate request checksum..."
 puppet agent --test || true
+# apparently, this should also work but doesn't in Puppet 5.5.10,
+# taken from https://puppet.com/blog/scaling-open-source-puppet/
+# maybe a PUPPET6 thing?
+# puppet ssl bootstrap --waitforcert 60
 
 echo "client certificate SHA-256 checksum:"
 echo
