@@ -5,6 +5,18 @@ set -u
 
 domain=torproject.org
 
+# TODO: we should convert this into an autosigning tool, with a shared
+# secret. The installer could prompt the sysadmin for the magic secret
+# and everything would happen automatically from there on. More
+# details at:
+#
+# https://dev.to/camptocamp-ops/automatic-renewal-of-puppet-certificates-28pm
+#
+# This is also useful for automatic client rotations as well.
+#
+# The trick with that approach is to have one secret per client,
+# eventually. So still some thinking about to happen...
+
 # give our installer a chance at failing a proper setup
 #
 # XXX: should we just check if "host puppet" resolves instead of taking this guess?
