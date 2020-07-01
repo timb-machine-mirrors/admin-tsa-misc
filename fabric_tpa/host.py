@@ -536,8 +536,8 @@ def install_hetzner_robot(con,
     # STEP 11: document root password
     # STEP 12: reboot
 
-    # STEP 1: TODO: wrap this function with a magic Con object that
-    # will check the fingerprint properly
+    # STEP 1: logging is handled in the `install` script, in the
+    # MatchingHostKeyPolicy class
 
     hostname, _ = fqdn.split('.', 1)
     logging.info('STEP 2: setting hostname to %s', hostname)
@@ -588,7 +588,7 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     con.run('. /tmp/fai/disk_var.sh && mkdir /target && mount "$ROOT_PARTITION" /target && mkdir /target/boot && mount "$BOOT_DEVICE" /target/boot')  # noqa: E501
 
-    # STEP 4: run grml-debootstrap with packages and post-scripts
+    logging('STEP 4: setting up grml-debootstrap')
     logging.info('uploading package list %s', package_list)
     package_list_remote = remote_conf_path + os.path.basename(package_list)
     con.put(package_list, remote=package_list_remote)
@@ -678,7 +678,7 @@ def install_hetzner_robot(con,
     # TODO: setup interfaces correctly
 
     # not necessary?
-    #logging.info("STEP 8: rebuild initramfs and grub (TODO?)")
+    logging.info("STEP 8: rebuild initramfs and grub (already done above)")
     logging.info("STEP 9: unmount everything")
     # XXX: error handling?
     con.run('umount /target/dev /target/proc /target/sys || true')
