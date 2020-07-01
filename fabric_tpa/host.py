@@ -588,7 +588,7 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     con.run('. /tmp/fai/disk_var.sh && mkdir /target && mount "$ROOT_PARTITION" /target && mkdir /target/boot && mount "$BOOT_DEVICE" /target/boot')  # noqa: E501
 
-    logging('STEP 4: setting up grml-debootstrap')
+    logging.info('STEP 4: setting up grml-debootstrap')
     logging.info('uploading package list %s', package_list)
     package_list_remote = remote_conf_path + os.path.basename(package_list)
     con.put(package_list, remote=package_list_remote)
