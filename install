@@ -22,6 +22,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 import hashlib
+import logging
 import sys
 
 
@@ -48,7 +49,9 @@ class MatchingHostKeyPolicy(MissingHostKeyPolicy):
         hash = hash_digest_hex(key.asbytes(),
                                hash=hashlib.md5,
                                sep=b':').decode('ascii')
-        if hash not in self.fingerprints_md5_colons:
+        if hash in self.fingerprints_md5_colons:
+            logging.info('STEP 1: SSH into server with fingerprint %s', hash)
+        else:
             raise SSHException(
                 "Server {!r} key {} not in trusted fingerprints: {!r}".format(
                     hostname,

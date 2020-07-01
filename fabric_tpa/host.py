@@ -539,9 +539,8 @@ def install_hetzner_robot(con,
     # STEP 1: TODO: wrap this function with a magic Con object that
     # will check the fingerprint properly
 
-    # STEP 2
     hostname, _ = fqdn.split('.', 1)
-    logging.info('setting hostname to %s', hostname)
+    logging.info('STEP 2: setting hostname to %s', hostname)
     # XXX: error handling?
     con.run('hostname %s' % hostname)
 
@@ -560,7 +559,7 @@ def install_hetzner_robot(con,
         if 'Failure' in str(e):
             pass
 
-    # STEP 3
+    logging.info("STEP 3: partition disks")
     fai_disk_config_remote = remote_conf_path + os.path.basename(fai_disk_config)
     logging.info('deploying disk config %s to %s',
                  fai_disk_config, fai_disk_config_remote)
@@ -577,9 +576,10 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     con.run('apt upgrade -yy')
 
-    logging.info('partitionning disks')
+    command = "setup-storage -f '%s' -X" % fai_disk_config_remote
+    logging.info('launching %s', command)
     # XXX: error handling?
-    con.run("setup-storage -f '%s' -X" % fai_disk_config_remote)
+    con.run(command)
 
     # TODO: test if we can skip that test by passing `$ROOT_PARTITION`
     # as a `--target` to `grml-debootstrap`. Probably not.
@@ -624,7 +624,7 @@ def install_hetzner_robot(con,
         mount -o bind /run/udev /target/run/udev''')
     # TODO: do we really need grml-deboostrap here? why not just use
     # plain debootstrap?
-    logging.info('running grml-debootstrap')
+    logging.info('STEP 4: installing system with grml-debootstrap')
     installer = '''. /tmp/fai/disk_var.sh && \
         AUTOINSTALL=y grml-debootstrap \
             --debopt "--no-merged-usr" \
@@ -664,36 +664,36 @@ def install_hetzner_robot(con,
             "    chroot /target dropbearkey -y -f $key;    "
             "done")
 
-    # STEP 5
-    logging.info('locking down /target/etc/luks')
+    logging.info('STEP 5: locking down /target/etc/luks')
     # XXX: error handling?
     con.run('chmod 0 /target/etc/luks/')
 
-    # STEP 6
+    logging.info("STEP 6: verify /target/etc/crypttab")
     # XXX: error handling?
     con.run('cat /target/etc/crypttab')
 
-    # STEP 7
+    logging.info("STEP 7: verify /target/etc/network/interfaces")
     # XXX: error handling?
     con.run('cat /target/etc/network/interfaces')
     # TODO: setup interfaces correctly
 
-    # STEP 8: rebuild initramfs and grub (TODO?)
-    # STEP 9: unmount things
+    # not necessary?
+    #logging.info("STEP 8: rebuild initramfs and grub (TODO?)")
+    logging.info("STEP 9: unmount everything")
     # XXX: error handling?
     con.run('umount /target/dev /target/proc /target/sys || true')
     con.run('umount /target/boot /target || true')
     con.run('rmdir /target')
 
-    # STEP 10: close things
+    logging.info("STEP 10: close volume groups, LUKS and stop RAID")
     # XXX: error handling?
     con.run('vgchange -a n')
     # TODO: crypt_dev_md2?
     con.run('cryptsetup luksClose /dev/mapper/crypt_dev_md1')
     con.run('mdadm --stop /dev/md*')
 
-    # STEP 11: document LUKS and root password in pwmanager (TODO)
-    # STEP 12: reboot (TODO)
+    logging.info("STEP 11: document LUKS and root password in pwmanager (TODO)")
+    logging.info("STEP 12: reboot (TODO)")
     # XXX: error handling?
     con.run('reboot machine when happy: ./reboot -H root@%s -v --reason "new-machine procedure" --delay-shutdown 0' % con.host)  # noqa: E501
 
