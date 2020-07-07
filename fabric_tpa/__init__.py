@@ -63,17 +63,38 @@ else:
 
 
 class VerboseProgram(Fab):
-    # cargo-culted from fab's main.py
+    """Fabric program with a --verbose/-v flag.
+
+    This overrides the builtin fabric.Fab class to add a --verbose
+    commandline argument to the parser.
+
+    This is called a Program because that is how invoke calls that
+    class. I do not know why Fabric diverged on that point and it
+    seemed clearer to call this a "program" instead.
+
+    This has been proposed upstream as:
+
+    https://github.com/pyinvoke/invoke/pull/706
+
+    """
     def __init__(self, *args,
                  executor_class=Executor,
                  config_class=Config,
                  **kwargs):
+        """Add proper defaults to `__init__`
+
+        The two overriden parameters here are only set in fabric.main,
+        not in the fabric.Fab constructor. So override parameters here
+        do not properly get set otherwise.
+
+        Cargo-culted from fab's main.py"""
         super().__init__(*args,
                          executor_class=executor_class,
                          config_class=config_class,
                          **kwargs)
 
     def core_args(self):
+        """Add the extra verbose Argument to the commandline parser"""
         core_args = super().core_args()
         extra_args = [
             Argument(
@@ -86,6 +107,13 @@ class VerboseProgram(Fab):
         return core_args + extra_args
 
     def parse_core(self, argv):
+        """setup logging and a timer
+
+        This reacts to the '--debug' and '--verbose' flags to setup
+        proper levels in the `logging` module. It also sets up a
+        Timer() to report on how long jobs take in general.
+        """
+
         # override basic format
         logging.basicConfig(format='%(message)s')
         super().parse_core(argv)
@@ -93,16 +121,23 @@ class VerboseProgram(Fab):
             logging.getLogger('').setLevel(logging.DEBUG)
         elif self.args.verbose.value:
             logging.getLogger('').setLevel(logging.INFO)
+
         # override default logging policies in submodules
         #
         # without this, we get debugging info from paramiko with --verbose
         for mod in 'fabric', 'paramiko', 'invoke':
             logging.getLogger(mod).setLevel('WARNING')
+
+        # set a timer
         self._tpa_timer = Timer()
         logging.info('starting tasks at %s', self._tpa_timer.stamp)
         atexit.register(self._tpa_log_completion)
 
     def _tpa_log_completion(self):
+        """atexit handler that runs at the end of the program
+
+        There should be a better way to do this in Program, but there
+        are no post-execution hooks anywhere that I could find."""
         logging.info('completed tasks, %s', self._tpa_timer)
 
 
