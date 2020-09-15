@@ -222,6 +222,10 @@ class LdapContext(object):
     by LDAP. Callers should watch out for ldap.LDAPError, or errors
     documented at:
     https://www.python-ldap.org/en/python-ldap-3.2.0/reference/ldap.html#exceptions
+
+    .. todo: implement object modification. take example on
+    ``ud-arbimport``, ``ud-host``, or ``ud-useradd`` in
+    userdir-ldap.
     """
 
     # the default URI if not specified
