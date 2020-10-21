@@ -26,8 +26,16 @@ chroot "$MNTPOINT" update-initramfs -u
 echo "I: rebuilding grub config..."
 chroot "$MNTPOINT" update-grub
 
-echo "I: installing grub on secondary disk $DISK2" 
-chroot "$MNTPOINT" grub-install "$DISK2"
+if [ -e "$DISK2" ]; then
+    echo "I: installing grub on secondary disk $DISK2" 
+    chroot "$MNTPOINT" grub-install "$DISK2"
+else
+    if ls /dev/md* ; then
+        echo "W: $DISK2 not found, grub NOT INSTALLED on secondary disk of md array"
+    else
+        echo "I: $DISK2 not found, assuming hardware RAID"
+    fi
+fi
 
 echo "I: current crypttab:"
 cat "$MNTPOINT/etc/crypttab"
