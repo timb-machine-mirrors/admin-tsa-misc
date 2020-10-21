@@ -510,7 +510,8 @@ def install_hetzner_robot(con,
                           fai_disk_config,
                           package_list,
                           post_scripts_dir,
-                          boot_disk='/dev/nvme0n1'):
+                          boot_disk='/dev/nvme0n1',
+                          mirror="https://deb.debian.org/debian/"):
     '''install a new hetzner server
 
     As an exception, the `--hosts` (`-H`) argument *must* be the IP
@@ -637,13 +638,14 @@ def install_hetzner_robot(con,
             --target /target \
             --hostname `hostname` \
             --release buster \
-            --mirror https://mirror.hetzner.de/debian/packages/ \
+            --mirror "%s" \
             --packages %s \
             --post-scripts %s \
             --nopassword \
             --remove-configs \
             --defaultinterfaces''' % (
             boot_disk,
+            mirror,
             package_list_remote,
             post_scripts_dir_remote,
         )
