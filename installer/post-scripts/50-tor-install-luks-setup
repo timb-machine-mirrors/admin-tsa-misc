@@ -150,13 +150,16 @@ if [ -d /tmp/fai ]; then
     cp /tmp/fai/crypt_dev_* "$MNTPOINT/etc/luks/"
     chmod 0 $MNTPOINT/etc/luks/*
 
-    # TODO: hardcoded device list
-    for device in md1 md2; do
-        if [ -e "/dev/$device" ] && [ -e "/tmp/fai/crypt_dev_$device" ]; then
-            echo "I: setting LUKS password $LUKS_PASSPHRASE on device /dev/$device from keyfile /tmp/fai/crypt_dev_$device"
-            echo $LUKS_PASSPHRASE | cryptsetup luksAddKey /dev/$device --key-file=/tmp/fai/crypt_dev_$device || true
+    for keyfile in /tmp/fai/crypt_dev_*; do
+        keyname=$(basename $keyfile)
+        # turns "crypt_dev_sda3" into "/dev/sda3"
+        device=$(echo $keyname | sed 's/^crypt//;s#_#/#g')
+
+        if [ -e "$device" ] && [ -e "$keyfile" ]; then
+            echo "I: setting LUKS password $LUKS_PASSPHRASE on device $device from keyfile $keyfile"
+            echo "$LUKS_PASSPHRASE" | cryptsetup luksAddKey "$device" --key-file="$keyfile" || true
         else
-            echo "W: /dev/$device or /tmp/fai/crypt_dev_$device mising, not setting password"
+            echo "W: $device or $keyfile mising, not setting password"
         fi
     done
 
