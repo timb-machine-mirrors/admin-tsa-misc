@@ -589,7 +589,9 @@ def install_hetzner_robot(con,
     logging.info('mounting partitions from FAI')
     # TODO: parse the .sh file ourselves?
     # XXX: error handling?
-    con.run('. /tmp/fai/disk_var.sh && mkdir /target && mount "$ROOT_PARTITION" /target && mkdir /target/boot && mount "$BOOT_DEVICE" /target/boot')  # noqa: E501
+    res = con.run('. /tmp/fai/disk_var.sh && mkdir /target && mount "$ROOT_PARTITION" /target && mkdir /target/boot && mount "$BOOT_DEVICE" /target/boot', warn=True)  # noqa: E501
+    if res.failed:
+        logging.warning("failed to mount partitions, assuming FAI did it")
 
     logging.info('STEP 4: setting up grml-debootstrap')
     logging.info('uploading package list %s', package_list)
