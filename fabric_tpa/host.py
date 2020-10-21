@@ -695,8 +695,8 @@ def install_hetzner_robot(con,
     logging.info("STEP 10: close volume groups, LUKS and stop RAID")
     # XXX: error handling?
     con.run('vgchange -a n')
-    # TODO: crypt_dev_md2?
-    con.run('cryptsetup luksClose /dev/mapper/crypt_dev_md1')
+    # HACK: we're doing a wild guess here...
+    con.run('cryptsetup luksClose /dev/mapper/crypt_dev_*')
     con.run('mdadm --stop /dev/md*')
 
     logging.info("STEP 11: document LUKS and root password in pwmanager (TODO)")
