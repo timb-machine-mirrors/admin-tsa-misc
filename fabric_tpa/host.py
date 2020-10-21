@@ -666,7 +666,7 @@ def install_hetzner_robot(con,
     # and then call the chroot?
     con.run("for key in "
             " $(echo /target/etc/dropbear-initramfs/dropbear_*_host_key "
-            """| sed "#/target##g"); """
+            """| sed "s#/target##g"); """
             " do "
             "    chroot /target dropbearkey -y -f $key;    "
             "done")
