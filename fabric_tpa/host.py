@@ -540,7 +540,7 @@ def install_hetzner_robot(con,
     # STEP 1: logging is handled in the `install` script, in the
     # MatchingHostKeyPolicy class
     logging.info("STEP 1: fingerprint checked, making sure we have access")
-    con.run("true")
+    con.run("hostname ; uptime")
 
     hostname, _ = fqdn.split('.', 1)
     logging.info('STEP 2: setting hostname to %s', hostname)
