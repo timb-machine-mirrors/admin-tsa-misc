@@ -25,10 +25,11 @@ disk_config tmpfs
 tmpfs   /tmp    512MiB       defaults
 
 disk_config sda disklabel:gpt-bios bootable:2 align-at:1M
-# bios grub second stage
+# bios grub second stage (sda1)
 primary -       8MiB    -       -
+# boot sector (sda2)
 primary /boot       512MiB  ext4    rw,noatime,errors=remount-ro
-# rest is RAID+LUKS+LVM
+# rest is LUKS+LVM (sda3)
 primary -       0-      -       -
 
 # FAI defaults to -c aes-xts-plain64 -s 256
