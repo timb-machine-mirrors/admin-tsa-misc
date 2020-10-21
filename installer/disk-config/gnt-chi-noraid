@@ -36,7 +36,7 @@ disk_config cryptsetup
 luks    -       /dev/sda3        -       -
 
 disk_config lvm fstabkey:uuid
-vg      vg_ganeti md1
+vg      vg_ganeti sda3
 vg_ganeti-root    /       30G     ext4    rw
 # set swap to be as big as RAM
 #
