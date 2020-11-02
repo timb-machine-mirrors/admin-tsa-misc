@@ -99,14 +99,16 @@ def main(args):
         # this? see also:
         # https://github.com/xneelo/hetzner-needrestart/issues/23
         logging.info('checking if host %s requires a reboot', con.host)
-        res = con.run(
+        kernel_and_libs = con.run(
             "/usr/lib/nagios/plugins/dsa-check-running-kernel "
             " && ! (/usr/lib/nagios/plugins/dsa-check-libs "
-            "       | egrep --color 'systemd|dbus-daemon|qemu-system-x86') "
-            " && /usr/lib/nagios/plugins/dsa-check-ucode-intel ",
+            "       | egrep --color 'systemd|dbus-daemon|qemu-system-x86') ",
             warn=True,
         )
-        if res.ok:
+        microcode = con.run("/usr/lib/nagios/plugins/dsa-check-ucode-intel ", warn=True)
+        if kernel_and_libs.ok and (
+                microcode.stdout.startswith('OK') or
+                microcode.stdout.startswith('UNKNOWN')):
             if args.force:
                 logging.warning('rebooting anyways because of --force')
             else:
