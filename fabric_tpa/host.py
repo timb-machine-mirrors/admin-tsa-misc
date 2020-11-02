@@ -571,7 +571,7 @@ def install_hetzner_robot(con,
 
     logging.info('installing fai-setup-storage(8)')
     # XXX: error handling?
-    con.run('apt update && apt install -y fai-setup-storage')
+    con.run('apt update && apt install -y fai-setup-storage cryptsetup')
 
     # the rationale here is that some of the dependencies we need
     # might have security vulnerabilities, and i have found the rescue
