@@ -159,7 +159,7 @@ class SaferConnection(Connection):
             logging.debug('host key policy: %s', self.default_host_key_policy)
             self.client.set_missing_host_key_policy(self.default_host_key_policy())
         known_hosts = self.ssh_config.get('UserKnownHostsFile'.lower(),
-                                          '~/.ssh/known_hosts')
+                                          '~/.ssh/known_hosts  ~/.ssh/known_hosts2')
         logging.debug('loading host keys from %s', known_hosts)
         # multiple keys, seperated by whitespace, can be provided
         for filename in [os.path.expanduser(f) for f in known_hosts.split()]:
