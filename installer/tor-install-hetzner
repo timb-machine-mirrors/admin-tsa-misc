@@ -193,6 +193,7 @@ auto lo
 iface lo inet loopback
 
 allow-hotplug eth0
+# order matters here: ipv6 before ipv4 to avoid race conditions on accept_ra 0
 iface eth0 inet6 static
   accept_ra 0
   address $ip6addr/64

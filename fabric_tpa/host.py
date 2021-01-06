@@ -332,9 +332,6 @@ iface lo inet loopback
 
 # The primary network interface
 auto eth0
-iface eth0 inet static
-    address {ipconf.ipv4}/{ipconf.ipv4_subnet}
-    gateway {ipconf.ipv4_gateway}
 '''
 
     if ipconf.ipv6:
@@ -345,6 +342,15 @@ iface eth0 inet6 static
     address {ipconf.ipv6}/{ipconf.ipv6_subnet}
     gateway {ipconf.ipv6_gateway}
 '''
+
+    content += f'''
+# IPv4 configuration
+# after IPv6 to avoir race conditions in accept_ra
+iface eth0 inet static
+    address {ipconf.ipv4}/{ipconf.ipv4_subnet}
+    gateway {ipconf.ipv4_gateway}
+'''
+
     logging.debug('generated %s: %s', path, content)
     return _rewrite_file(con, path, content)
 
