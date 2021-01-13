@@ -26,6 +26,7 @@ import os.path
 import sys
 
 import mitogen
+import mitogen.utils
 from mitogen.select import Select
 
 
@@ -66,7 +67,9 @@ def parse_args(args=sys.argv[1:]):
     )
     parser.add_argument("--dryrun", "-n", action="store_true", help="do nothing")
     parser.add_argument("--user", "-u", required=True, help="username")
-    parser.add_argument("--host", "-H", nargs="+", required=True, help="hosts to check")
+    parser.add_argument(
+        "--hosts", "-H", nargs="+", required=True, help="hosts to check"
+    )
     return parser.parse_args(args=args)
 
 
@@ -75,7 +78,6 @@ def hunt_crontab(user):
     crontab_path = "/var/spool/cron/crontabs/%s" % user
     lines = []
     if os.path.exists(crontab_path):
-        logging.debug("found crontab %s, inspecting", crontab_path)
         exists = True
         with open(crontab_path) as fp:
             for line in fp.readlines():
@@ -88,23 +90,13 @@ def hunt_crontab(user):
                 else:
                     logging.debug("valid line: %s", line)
                     lines.append(line)
-                    break
-            else:
-                # only empty or comment lines found
-                exists = False
-                logging.info("crontab %s exists, but has no command defined")
-    else:
-        logging.debug("crontab not found: %s", crontab_path)
     return exists, crontab_path, lines
 
 
-@mitogen.main()
-def main(router):
-    logging.basicConfig(format="%(message)s", level="WARNING")
-    args = parse_args()
+def main(router, hosts, user):
 
     # list of hosts to operate on
-    contexts = {host: router.ssh(hostname=host) for host in args.host}
+    contexts = {host: router.ssh(hostname=host) for host in hosts}
 
     # have a map of context IDs => hostnames to recover from the
     # latter in async call results. cargo-culted from
@@ -112,17 +104,34 @@ def main(router):
     hostname_by_context_id = {
         context.context_id: hostname for hostname, context in contexts.items()
     }
-    logging.info('dispatching crontab search on hosts %s', contexts.keys())
-    for msg in Select(c.call_async(hunt_crontab, args.user) for c in contexts.values()):
+    for msg in Select(c.call_async(hunt_crontab, user) for c in contexts.values()):
+        host = hostname_by_context_id[msg.src_id]
+
         try:
             # Prints output once it is received.
             exists, path, lines = msg.unpickle()
             if exists:
-                logging.info(
-                    "found crontab %s on %s, content: %r",
-                    path,
-                    hostname_by_context_id[msg.src_id],
-                    lines,
-                )
+                if lines:
+                    logging.info(
+                        "found crontab %s on %s, content: %r", path, host, lines
+                    )
+                else:
+                    logging.info(
+                        "crontab %s exists, but has no command defined on %s",
+                        path,
+                        host,
+                    )
+            else:
+                logging.debug("crontab %s not found on %s", path, host)
         except mitogen.core.CallError as e:
             print("Call failed:", str(e))
+
+
+if __name__ == "__main__":
+    mitogen.utils.log_to_file()
+    args = parse_args()
+    logging.info("dispatching crontab search on hosts %s", " ".join(args.hosts))
+    broker = mitogen.master.Broker()
+    router = mitogen.master.Router(broker)
+    with router:
+        main(router, args.hosts, args.user)
