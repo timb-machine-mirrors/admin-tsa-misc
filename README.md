@@ -3,4 +3,4 @@ anywhere else.
 
 This is where our custom installer and batch jobs live.
 
-This README desserves a better life.
+This README deserves a better life.
