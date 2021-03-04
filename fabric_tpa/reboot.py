@@ -96,7 +96,7 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
                         con.host, delay_up)
         return False
 
-    logging.info('host %s should be back online, checking uptime', con.host)
+    logging.info('host %s seems back online, checking uptime', con.host)
     # TODO: this fails on new hosts waiting for the LUKS password:
     # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
 
@@ -220,7 +220,7 @@ def shutdown_and_wait(con,
 
     now = datetime.now()
     then = now + timedelta(seconds=delay_down)
-    logging.info('waiting up to %d seconds for host to go down, at %s (now is %s)',
+    logging.info('host shutting down, waiting up to %d seconds for confirmation, at %s (now is %s)',
                  delay_down, then, now)
     if not wait_for_shutdown(con, delay_down):
         raise Exit('host %s was still up after %d seconds, aborting' %
@@ -231,7 +231,7 @@ def shutdown_and_wait(con,
 
     now = datetime.now()
     then = now + timedelta(seconds=delay_up)
-    logging.info('waiting %d seconds for host to go up, at %s (now is %s)',
+    logging.info('host down, waiting %d seconds for host to go up, at %s (now is %s)',
                  delay_up, then, now)
     if wait_for_live(con, delay_up=delay_up):
         logging.info('host %s rebooted', con.host)
