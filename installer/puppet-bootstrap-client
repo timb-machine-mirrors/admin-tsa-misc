@@ -5,6 +5,25 @@ set -u
 
 domain=torproject.org
 
+base=$(dirname "$0")
+
+if [ -x "$base/tor-install-generate-ldap" ]; then
+    echo "add this to LDAP with ldapvi"
+    echo
+    echo " cut here ---8<---8<---  "
+    echo
+    "$base/tor-install-generate-ldap"
+    echo
+    echo " cut here ---8<---8<---  "
+    echo
+    echo "then regenerate the LDAP configs: sudo -u sshdist ud-generate"
+    echo
+    echo "then run tpa-puppet-sign-client on the puppetmaster"
+    echo
+    echo "press enter when ready"
+    read -r _
+fi
+
 # TODO: we should convert this into an autosigning tool, with a shared
 # secret. The installer could prompt the sysadmin for the magic secret
 # and everything would happen automatically from there on. More
