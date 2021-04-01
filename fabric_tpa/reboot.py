@@ -182,24 +182,28 @@ def shutdown_and_wait(con,
                       reason=DEFAULT_REASON,
                       delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
                       delay_down=DEFAULT_DELAY_DOWN,
-                      delay_up=DEFAULT_DELAY_UP):
+                      delay_up=DEFAULT_DELAY_UP,
+                      ganeti_checks=True):
     '''shutdown the machine and possibly wait for the box to return'''
     assert kind in (ShutdownType.reboot, ShutdownType.halt)
-    try:
-        master = ganeti.getmaster(con)
-    except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
-        raise Exit('failed to contact host %s, aborting reboot: %s' % (con.host, e))
-    except invoke.exceptions.Failure:
-        logging.info('host %s is not a ganeti node', con.host)
-    else:
-        master_con = host.find_context(master, config=con.config)
+    if ganeti_checks:
+        try:
+            master = ganeti.getmaster(con)
+        except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
+            raise Exit('failed to contact host %s, aborting reboot: %s' % (con.host, e))
+        except invoke.exceptions.Failure:
+            logging.info('host %s is not a ganeti node', con.host)
+        else:
+            master_con = host.find_context(master, config=con.config)
 
-        # shorter delay, as the node will be empty
-        delay_shutdown = 0
-        logging.info('ganeti node detected, migrating instances from %s',
-                     con.host)
-        if not ganeti.empty_node(con, master_con):
-            raise Exit('failed to empty node %s, aborting' % con.host)
+            # shorter delay, as the node will be empty
+            delay_shutdown = 0
+            logging.info('ganeti node detected, migrating instances from %s',
+                         con.host)
+            if not ganeti.empty_node(con, master_con):
+                raise Exit('failed to empty node %s, aborting' % con.host)
+    else:
+        logging.warning("not checking if %s is a Ganeti node, as requested", con.host)
 
     try:
         shutdown(con, kind, reason, delay_shutdown)
