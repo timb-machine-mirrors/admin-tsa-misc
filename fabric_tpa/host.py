@@ -636,6 +636,36 @@ def install_hetzner_robot(con,
         mount -o bind /run/udev /target/run/udev''')
     # TODO: do we really need grml-deboostrap here? why not just use
     # plain debootstrap?
+    #
+    # grml-debootstrap does this on top of debootstrap for us:
+    #
+    # 1. running hooks inside the chroot
+    # 2. the grub install (with EFI support)
+    # 3. create a /etc/network/interfaces file
+    #
+    # the grub install is particularly tricky, grml-debootstrap has
+    # all sorts of tweaks to support writing to an image, mounting the
+    # right filesystems, EFI, etc
+    #
+    # it seems this could be as simple as:
+    #
+    # apt install grub-efi-amd64 # or grub-pc for legacy
+    # grub-install --boot-directory=/boot --bootloader-id=Debian --target=x86_64-efi --efi-directory=/boot/efi --recheck
+    # efibootmgr -c -g -d /dev/sda -p 3 -L Debian -l '\EFI\Debian\grubx64.efi'
+    # update-grub
+    #
+    # A/I decided whether to use EFI or not based on the existence of
+    # /sys/firmware/efi. they also use --metadata=0.90 for RAID on
+    # that partition, if they do use RAID. grml-debootstrap doesn't do
+    # the efibootmgr step and do not run grub-install themselves, it
+    # seems they rely on the package doing the right thing there. it's
+    # important to bind-mount /run/udev in either case (#918590)
+    #
+    # there is also cool stuff it supports, but which we do not use:
+    #
+    # 1. --ssh-copyid and --ssh-copy-auth (using our own wrapper instead)
+    # 3. support creating an ISO, building RAID arrays, filesystems
+    # 4. interactive mode
     logging.info('STEP 4: installing system with grml-debootstrap')
     installer = '''. /tmp/fai/disk_var.sh && \
         AUTOINSTALL=y grml-debootstrap \
