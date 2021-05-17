@@ -23,7 +23,7 @@ from __future__ import print_function, unicode_literals
 
 from enum import Enum
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import socket
 import sys
@@ -215,14 +215,14 @@ def shutdown_and_wait(con,
 
     # XXX: use a state machine to follow where we are?
     if delay_shutdown > 0:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         then = now + timedelta(minutes=delay_shutdown)
         logging.info('waiting %d minutes for reboot to happen, at %s (now is %s)',
                      delay_shutdown, then, now)
         # NOTE: we convert minutes to seconds here
         time.sleep(delay_shutdown * 60)
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     then = now + timedelta(seconds=delay_down)
     logging.info('host shutting down, waiting up to %d seconds for confirmation, at %s (now is %s)',
                  delay_down, then, now)
@@ -233,7 +233,7 @@ def shutdown_and_wait(con,
         logging.info('host %s shutdown', con.host)
         return True
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     then = now + timedelta(seconds=delay_up)
     logging.info('host down, waiting %d seconds for host to go up, at %s (now is %s)',
                  delay_up, then, now)

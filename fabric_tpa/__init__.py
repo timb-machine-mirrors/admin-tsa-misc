@@ -178,7 +178,7 @@ class Timer(object):
 
     def __init__(self):
         """initialize the timstamp"""
-        self.stamp = datetime.datetime.now()
+        self.stamp = datetime.datetime.now(datetime.timezone.utc)
 
     def times(self):
         """return a string designing resource usage"""
@@ -193,7 +193,7 @@ class Timer(object):
 
     def diff(self):
         """a datediff between the creation of the object and now"""
-        return datetime.datetime.now() - self.stamp
+        return datetime.datetime.now(datetime.timezone.utc) - self.stamp
 
     def __str__(self):
         """return a string representing the time passed and resources used"""
