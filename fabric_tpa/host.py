@@ -664,6 +664,8 @@ def install_hetzner_robot(con,
     # there is also cool stuff it supports, but which we do not use:
     #
     # 1. --ssh-copyid and --ssh-copy-auth (using our own wrapper instead)
+    # 2. do some smart guesses on interface names (in preparechroot,
+    # grep for udevadm)
     # 3. support creating an ISO, building RAID arrays, filesystems
     # 4. interactive mode
     logging.info('STEP 4: installing system with grml-debootstrap')
