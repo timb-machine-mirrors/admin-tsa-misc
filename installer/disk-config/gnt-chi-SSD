@@ -1,0 +1,52 @@
+# disk configuration for R640 machine in the gnt-chi cluster
+#
+# this configures a /boot+RAID+LUKS+LVM stack on top of the first two
+# SSD drives, with a 30G root and 1G swap.
+#
+# this was used to install chi-node-14
+#
+# Documentation on this file format is available in the setup-storage(8) manpage.
+
+# configure a 512m tmpfs
+#
+# the default is RAM:50% according to tmpfs(5), but the most common
+# config is currently 512m.
+#
+# it might be better to leave this be the default from tmpfs, without
+# specifying anything. but this would lead to huge tmpfs on large
+# machines and it is not supported by FAI, so leave that be for now,
+# see: https://bugs.debian.org/951659
+#
+# 512MiB may be a little small for some hosts, but the point of this
+# is not to set configuration forever, but to bootstrap *something*
+# that works. see also this ticket for further discussion:
+# https://trac.torproject.org/projects/tor/ticket/33387
+disk_config tmpfs
+tmpfs   /tmp    512MiB       defaults
+
+disk_config sda disklabel:gpt-bios bootable:2 align-at:1M
+# sda1, bios grub second stage
+primary -       8MiB    -       -
+# sda2 /boot
+primary -       512MiB  -       -
+# sda3 is RAID+LUKS+LVM
+primary -       0-      -       -
+
+disk_config sdb sameas:sda
+
+disk_config raid fstabkey:uuid
+raid1   /boot   sda2,sdb2     ext4    rw,noatime,errors=remount-ro
+raid1   -       sda3,sdb3     -       -
+
+# FAI defaults to -c aes-xts-plain64 -s 256
+disk_config cryptsetup
+luks    -       /dev/md1        -       -
+
+disk_config lvm fstabkey:uuid
+vg      vg_ganeti md1
+vg_ganeti-root    /       30G     ext4    rw
+
+# This machine has a stupid amount of RAM (1.5TB), we don't even have
+# room for that amount of memory. Set a more conservative size, say
+# 30G.
+vg_ganeti-swap    swap    30GiB      swap    sw

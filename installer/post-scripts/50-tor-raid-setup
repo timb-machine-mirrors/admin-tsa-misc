@@ -8,7 +8,7 @@ set -u
 # disks, see: https://github.com/grml/grml-debootstrap/issues/152
 
 # TODO: hardcoded secondary disk, should be guessed?
-DISK2="/dev/nvme1n1"
+DISK2="/dev/sdb"
 
 echo "I: bind mounting everything"
 for fs in dev proc run sys  ; do
