@@ -10,11 +10,11 @@ base=$(dirname "$0")
 if [ -x "$base/tor-install-generate-ldap" ]; then
     echo "add this to LDAP with ldapvi"
     echo
-    echo " cut here ---8<---8<---  "
+    echo "cut here <---8<---  "
     echo
     "$base/tor-install-generate-ldap"
     echo
-    echo " cut here ---8<---8<---  "
+    echo "cut here ---8<---8<---  "
     echo
     echo "then regenerate the LDAP configs:"
     echo
