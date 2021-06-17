@@ -16,7 +16,11 @@ if [ -x "$base/tor-install-generate-ldap" ]; then
     echo
     echo " cut here ---8<---8<---  "
     echo
-    echo "then regenerate the LDAP configs: sudo -u sshdist ud-generate"
+    echo "then regenerate the LDAP configs:"
+    echo
+    echo "    sudo -u sshdist ud-generate"
+    echo "    sudo -H ud-replicate"
+    echo "    sudo pat"
     echo
     echo "then run tpa-puppet-sign-client on the puppetmaster"
     echo
