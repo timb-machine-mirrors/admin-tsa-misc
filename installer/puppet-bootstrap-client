@@ -22,7 +22,9 @@ if [ -x "$base/tor-install-generate-ldap" ]; then
     echo "    sudo -H ud-replicate"
     echo "    sudo pat"
     echo
-    echo "then run tpa-puppet-sign-client on the puppetmaster"
+    echo "then run this on the puppetmaster:"
+    echo
+    echo "    tpa-puppet-sign-client"
     echo
     echo "press enter when ready"
     read -r _
