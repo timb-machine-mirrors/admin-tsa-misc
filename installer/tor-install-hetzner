@@ -138,7 +138,7 @@ mkdir "boot"
 mount "$part1" "$target/boot"
 cleanup+=("umount '$target/boot'")
 
-debootstrap --no-merged-usr --arch=amd64 --variant=minbase "$SUITE" . "$MIRROR"
+debootstrap --arch=amd64 --variant=minbase "$SUITE" . "$MIRROR"
 
 mount -o bind /proc "$target/proc"
 cleanup+=("umount '$target/proc'")

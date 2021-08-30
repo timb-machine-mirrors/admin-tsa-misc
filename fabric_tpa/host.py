@@ -671,7 +671,6 @@ def install_hetzner_robot(con,
     logging.info('STEP 4: installing system with grml-debootstrap')
     installer = '''. /tmp/fai/disk_var.sh && \
         AUTOINSTALL=y grml-debootstrap \
-            --debopt "--no-merged-usr" \
             --grub "%s" \
             --target /target \
             --hostname `hostname` \
