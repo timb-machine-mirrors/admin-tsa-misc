@@ -22,7 +22,7 @@
 set -e
 set -u
 
-SUITE=buster
+SUITE=bullseye
 
 MIRROR=https://mirror.hetzner.de/debian/packages/
 

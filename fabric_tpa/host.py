@@ -674,7 +674,7 @@ def install_hetzner_robot(con,
             --grub "%s" \
             --target /target \
             --hostname `hostname` \
-            --release buster \
+            --release bullseye \
             --mirror "%s" \
             --packages %s \
             --post-scripts %s \
