@@ -229,7 +229,7 @@ class MessageParserRFC822(MessageParser):
         return self.msg.get("To", "<>")
 
     def __repr__(self):
-        return "<%s(%s): %s>" % (type(self).__name__, str(self), str(self.msg))
+        return "<%s(%s): %d bytes>" % (type(self).__name__, str(self), len(self.msg))
 
 
 class HeadersParser(MessageParser):
@@ -367,7 +367,7 @@ class MessageParserFeedbackReport(MessageParserRFC822):
             logging.debug("found Original-Mail-From: %s", m.group(1))
         else:
             raise RuntimeError(
-                "no Original-Mail-From header in feedback report: %s" % content
+                "no Original-Mail-From header in feedback report: %s" % dict(content)
             )
 
 
