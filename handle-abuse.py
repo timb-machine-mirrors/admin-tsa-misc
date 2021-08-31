@@ -358,7 +358,7 @@ class MessageParserFeedbackReport(MessageParserRFC822):
         # not sure what encoding that header is supposed to be into,
         # but typically it's just ascii anyways
         m = re.search(
-            r"^Original-Mail-From: (civicrm\+b\.[^@]*@crm\.torproject\.org)$",
+            r"^Original-Mail-From: (civicrm\+[ub]\.[^@]*@crm\.torproject\.org)$",
             content.decode("ascii"),
             re.MULTILINE,
         )
