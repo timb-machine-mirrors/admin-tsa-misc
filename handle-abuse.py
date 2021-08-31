@@ -395,6 +395,26 @@ def process_files(paths):
             stream.close()
 
 
+class RawMessageParser(MessageParserRFC822):
+    def parse(self, content):
+        m = re.search(
+            r"^List-Unsubscribe: <mailto:(civicrm\+[bu]\.[^@]*@[^>]*)>$",
+            content,
+            re.MULTILINE | re.DOTALL,
+        )
+        if m:
+            mailto = m.group(1)
+            if "=" in mailto:
+                # probably quoted-printable encoded
+                mailto = quopri.decodestring(mailto).decode("utf8")
+            self.msg["To"] = mailto
+            logging.debug("found List-Unsubscribe: %s", mailto)
+        else:
+            raise RuntimeError(
+                "no known List-Unsubscribe header in raw message"
+            )
+
+
 def process_file(stream):
     msg = BytesParser(policy=email.policy.default + email.policy.strict).parse(stream)
     logging.debug(
@@ -422,7 +442,15 @@ def parse_abuse_message(content):
     except (MessageParseError, MessageDefect) as e:
         # https://bugs.python.org/issue45066, triggered by Message-ID:
         # 60fd666f351f1_42382af4351a9970740a2@abuse.hetzner.company.mail
-        logging.error("error parsing attached abuse message: %s", e)
+        logging.error("error parsing attached abuse message: %r", e)
+        # falling back to brute force
+        parser = RawMessageParser()
+        logging.debug("trying parser %s", parser)
+        try:
+            parser.parse(content)
+            yield parser
+        except RuntimeError as e:
+            logging.warning(str(e))
         return
     logging.debug(
         "parsed Message-ID %s (%d bytes)",
