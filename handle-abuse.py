@@ -367,7 +367,7 @@ class MessageParserFeedbackReport(MessageParserRFC822):
             logging.debug("found Original-Mail-From: %s", m.group(1))
         else:
             raise RuntimeError(
-                "no Original-Mail-From header in feedback report: %s" % dict(content)
+                "no Original-Mail-From header in feedback report: %s" % content
             )
 
 
