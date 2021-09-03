@@ -376,10 +376,11 @@ REGEX_OPTOUT = r"https://donate[^/]*\.torproject\.org/civicrm/mailing/optout"
 
 def process_files(paths):
     for path in paths:
-        logging.info("processing file %s", path)
         if path == "-":
+            logging.info("processing standard input")
             stream = sys.stdin.buffer  # read stdin as binary
         else:
+            logging.info("processing file %s", path)
             stream = open(path, "rb")
         for user in process_file(stream):
             if args.dryrun:
@@ -492,7 +493,7 @@ def main(args):
         files = ("-",)
     else:
         files = tuple(files)
-    logging.info("processing messages in %s", files)
+    logging.debug("processing messages in %s", files)
     process_files(files)
 
 
