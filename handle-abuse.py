@@ -497,6 +497,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(message)s")  # INFO is default
+    logging.basicConfig(format="%(message)s", level="INFO")
     args = parse_args()
     main(args)
