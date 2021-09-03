@@ -436,7 +436,7 @@ def process_file(stream):
 
 def parse_abuse_message(content):
     try:
-        msg_abuse = Parser(policy=email.policy.SMTP + email.policy.strict).parsestr(
+        msg_abuse = Parser(policy=email.policy.default + email.policy.strict).parsestr(
             content
         )
     except (MessageParseError, MessageDefect) as e:
