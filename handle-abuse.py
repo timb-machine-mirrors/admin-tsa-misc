@@ -355,11 +355,22 @@ class MessageParserFeedbackReport(MessageParserRFC822):
     """
 
     def parse(self, content):
-        # not sure what encoding that header is supposed to be into,
-        # but typically it's just ascii anyways
+        # try to handle quoted-printable Content-Transfer-Encoding,
+        # may be related to: https://bugs.python.org/issue45066
+        if re.search(rb"=$", content, re.MULTILINE):
+            # this looks like quoted-printable, try to decode
+            logging.debug(
+                "found what looks like quoted printable message/feedback-report"
+            )
+            content = quopri.decodestring(content).decode("utf8")
+        else:
+            # not sure what encoding that header is supposed to be into,
+            # but typically it's just ascii anyways
+            logging.debug("assuming plain ASCII message/feedback-report")
+            content = content.decode("ascii")
         m = re.search(
             r"^Original-Mail-From: (civicrm\+[ub]\.[^@]*@crm\.torproject\.org)$",
-            content.decode("ascii"),
+            content,
             re.MULTILINE,
         )
         if m:
