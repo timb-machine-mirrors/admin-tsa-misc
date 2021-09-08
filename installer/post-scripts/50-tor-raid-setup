@@ -27,9 +27,16 @@ echo "I: rebuilding grub config..."
 chroot "$MNTPOINT" update-grub
 
 if [ -e "$DISK2" ]; then
-    echo "I: installing grub on secondary disk $DISK2" 
-    chroot "$MNTPOINT" grub-install "$DISK2"
+    echo "I: installing grub on secondary disk $DISK2"
+    if chroot "$MNTPOINT" grub-install "$DISK2"; then
+        grub_success=true
+    else
+        grub_success=false
+    fi
 else
+    grub_success=false
+fi
+if [ "$grub_success" = "false" ]; then
     if ls /dev/md* ; then
         echo "W: $DISK2 not found, grub NOT INSTALLED on secondary disk of md array"
     else
@@ -38,9 +45,9 @@ else
 fi
 
 echo "I: current crypttab:"
-cat "$MNTPOINT/etc/crypttab"
+cat "$MNTPOINT/etc/crypttab" || true
 
 echo "I: unmounting"
 for fs in dev proc run sys ; do
-    umount "$MNTPOINT/$fs"
+    umount "$MNTPOINT/$fs" || true
 done
