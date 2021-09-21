@@ -733,8 +733,8 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     con.run('vgchange -a n')
     # HACK: we're doing a wild guess here...
-    con.run('cryptsetup luksClose /dev/mapper/crypt_dev_*')
-    con.run('mdadm --stop /dev/md*')
+    con.run('cryptsetup luksClose /dev/mapper/crypt_dev_* || true')
+    con.run('mdadm --stop /dev/md* || true')
 
     logging.info("STEP 11: document LUKS and root password in pwmanager (TODO)")
     logging.info("STEP 12: reboot (TODO)")
