@@ -369,7 +369,7 @@ class MessageParserFeedbackReport(MessageParserRFC822):
             logging.debug("assuming plain ASCII message/feedback-report")
             content = content.decode("ascii")
         m = re.search(
-            r"^Original-Mail-From: (civicrm\+[ub]\.[^@]*@crm\.torproject\.org)$",
+            r"^Original-Mail-From:\s+(civicrm\+[ub]\.[^@]*@crm\.torproject\.org)$",
             content,
             re.MULTILINE,
         )
