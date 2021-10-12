@@ -386,6 +386,7 @@ REGEX_OPTOUT = r"https://donate[^/]*\.torproject\.org/civicrm/mailing/optout"
 
 
 def process_files(paths):
+    success = False
     for path in paths:
         if path == "-":
             logging.info("processing standard input")
@@ -396,15 +397,18 @@ def process_files(paths):
         for user in process_file(stream):
             if args.dryrun:
                 logging.info("would have unsubscribed %s", user)
+                success = True
                 break
             else:
                 if user.unsubscribe():
+                    success = True
                     logging.info("unsubscribed user, finished processing %s", path)
                     break
         else:
             logging.warning("could not find a way to unsubscribe user in %s", path)
         if path != "-":
             stream.close()
+    return success
 
 
 class RawMessageParser(MessageParserRFC822):
@@ -505,10 +509,13 @@ def main(args):
     else:
         files = tuple(files)
     logging.debug("processing messages in %s", files)
-    process_files(files)
+    if process_files(files):
+        return 0
+    else:
+        return 1
 
 
 if __name__ == "__main__":
     logging.basicConfig(format="%(message)s", level="INFO")
     args = parse_args()
-    main(args)
+    sys.exit(main(args))
