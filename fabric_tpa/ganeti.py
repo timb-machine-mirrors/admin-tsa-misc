@@ -97,6 +97,26 @@ def empty_node(node_con, master_host=None):
 
 
 @task
+def stop_instances(node_con, master_host='fsn-node-01.torproject.org'):
+    """stop all instances on the given Ganeti node"""
+    master_con = host.find_context(master_host, config=node_con.config)
+    logging.info("finding instances running on %s from %s ", node_con.host, master_con.host)
+    instances = list(_list_instances(master_con, {
+        'pnode': node_con.host,
+        'admin_state': 'up',
+    }))
+    logging.info("stopping all instances (%d) on %s from master %s", len(instances), node_con.host, master_con.host)
+    # ganeti parallelizes this for us, which is good luck because I
+    # couldn't figure out how to run a specific task inside a
+    # ThreadGroup
+    #
+    # TODO: we need to do an actual `shutdown +X` on those instances
+    # to give them a heads up
+    master_con.run("gnt-instance shutdown --force-multiple %s" % " ".join(instances))
+    return instances
+
+
+@task
 def stop(instance_con, master_host='fsn-node-01.torproject.org'):
     '''stop an instance
 
@@ -314,6 +334,38 @@ def fetch_network_info(ganeti_con, network='gnt-fsn', hide=True, dry=False):
     logging.debug('loaded network %s information from %s: %s',
                   network, ganeti_con.host, info)
     return info
+
+
+@task
+def list_instances(ganeti_con, primary=None, admin_state="up"):
+    # need a wrapper around the generator, otherwise Autoprint only
+    # prints ... the generator's repr
+    filters = {'admin_state': admin_state}
+    if primary:
+        filters['pnode'] = primary
+    for instance in _list_instances(ganeti_con, filters):
+        print(instance)
+
+
+def _list_instances(ganeti_con, filters={}):
+    command = """gnt-instance list --no-header -o name"""
+    if filters:
+        items = []
+        for key, val in filters.items():
+            items.append('%s == "%s"' % (key, val))
+        command += " --filter '%s'" % " and ".join(items)
+    logging.debug("command: %s", command)
+    info = ganeti_con.run(command, warn=True, hide=True)
+    if info.failed:
+        logging.warning(
+            "cannot load list of instances from Ganeti node %s matching filter %s",
+            ganeti_con.host,
+            filters
+        )
+        return []
+    for line in info.stdout.split("\n"):
+        if line.strip():
+            yield line.strip()
 
 
 # this regex should match the output of gnt-network info

@@ -60,6 +60,8 @@ def parse_args(args=sys.argv[1:]):
                         help='force reboot even if not needed')
     parser.add_argument('--skip-ganeti-checks', action='store_true',
                         help='forcibly reboot Ganeti hosts without checking')
+    parser.add_argument('--skip-ganeti-empty', action='store_true',
+                        help='reboot instances on the node as well, avoiding migrations')
     # TODO: autodetect from LDAP. current documented behavior is
     # according to rebootPolicy:
     #
@@ -130,7 +132,8 @@ def main(args):
                                  delay_down=args.delay_down,
                                  delay_up=args.delay_up,
                                  delay_shutdown=delay_shutdown,
-                                 ganeti_checks=not args.skip_ganeti_checks):
+                                 ganeti_checks=not args.skip_ganeti_checks,
+                                 ganeti_empty=not args.skip_ganeti_empty):
             logging.error('rebooting host %s failed, aborting', hostname)
             break
 

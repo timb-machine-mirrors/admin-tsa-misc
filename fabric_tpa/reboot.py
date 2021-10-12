@@ -189,9 +189,11 @@ def shutdown_and_wait(
     delay_down=DEFAULT_DELAY_DOWN,
     delay_up=DEFAULT_DELAY_UP,
     ganeti_checks=True,
+    ganeti_empty=True,
 ):
     """shutdown the machine and possibly wait for the box to return"""
     assert kind in (ShutdownType.reboot, ShutdownType.halt)
+    shutdown_instances = []
     if ganeti_checks:
         try:
             master = ganeti.getmaster(con)
@@ -204,9 +206,17 @@ def shutdown_and_wait(
 
             # shorter delay, as the node will be empty
             delay_shutdown = 0
-            logging.info("ganeti node detected, migrating instances from %s", con.host)
-            if not ganeti.empty_node(con, master_con):
-                raise Exit("failed to empty node %s, aborting" % con.host)
+            if ganeti_empty:
+                logging.info("ganeti node detected, migrating instances from %s", con.host)
+                if not ganeti.empty_node(con, master_con):
+                    raise Exit("failed to empty node %s, aborting" % con.host)
+            else:
+                logging.info("ganeti node detected, shutting down instances on %s", con.host)
+                instances = list(ganeti.stop_instances(con, master_con))
+                for instance in instances:
+                    shutdown_instances.append(instance)
+
+                #raise Exit("failed to shutdown all instances on node %s, aborting" % con.host)
     else:
         logging.warning("not checking if %s is a Ganeti node, as requested", con.host)
 
@@ -256,6 +266,12 @@ def shutdown_and_wait(
     )
     if wait_for_live(con, delay_up=delay_up):
         logging.info("host %s rebooted", con.host)
+        if shutdown_instances:
+            logging.info("starting %d instances", len(shutdown_instances))
+            if master_con:
+                master_con.run("gnt-instance start --force-multiple %s" % " ".join(shutdown_instances))
+            else:
+                raise Exit("no master_con instance?")
         return True
     else:
         raise Exit("could not check uptime on %s, assuming reboot failed" % con.host)
