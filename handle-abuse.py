@@ -354,6 +354,8 @@ class MessageParserFeedbackReport(MessageParserRFC822):
 
     """
 
+    ORIGINAL_MAIL_FROM_REGEX = r"^Original-Mail-From:\s+(civicrm\+[ub]\.[^@]*@crm\.torproject\.org)$"  # noqa: E501
+
     def parse(self, content):
         # try to handle quoted-printable Content-Transfer-Encoding,
         # may be related to: https://bugs.python.org/issue45066
@@ -369,7 +371,7 @@ class MessageParserFeedbackReport(MessageParserRFC822):
             logging.debug("assuming plain ASCII message/feedback-report")
             content = content.decode("ascii")
         m = re.search(
-            r"^Original-Mail-From:\s+(civicrm\+[ub]\.[^@]*@crm\.torproject\.org)$",
+            self.ORIGINAL_MAIL_FROM_REGEX,
             content,
             re.MULTILINE,
         )
@@ -412,9 +414,11 @@ def process_files(paths):
 
 
 class RawMessageParser(MessageParserRFC822):
+    LIST_UNSUBSCRIBE_REGEX = r"^List-Unsubscribe: <mailto:(civicrm\+[bu]\.[^@]*@[^>]*)>$"  # noqa: E501
+
     def parse(self, content):
         m = re.search(
-            r"^List-Unsubscribe: <mailto:(civicrm\+[bu]\.[^@]*@[^>]*)>$",
+            self.LIST_UNSUBSCRIBE_REGEX,
             content,
             re.MULTILINE | re.DOTALL,
         )
