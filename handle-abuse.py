@@ -223,7 +223,10 @@ class MessageParserRFC822(MessageParser):
 
     def unsubscribe(self):
         assert self.msg, "should have failed earlier"
-        return self.mailer.send(self.msg)
+        if self.msg["To"]:
+            return self.mailer.send(self.msg)
+        logging.warning("No 'To' header defined in mailer")
+        return False
 
     def __str__(self):
         return self.msg.get("To", "<>")
