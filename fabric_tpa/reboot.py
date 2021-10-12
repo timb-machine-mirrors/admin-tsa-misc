@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # coding: utf-8
 
-''''''
+""""""
 
 # Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
 #
@@ -32,7 +32,9 @@ import time
 try:
     from fabric import task
 except ImportError:
-    sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
+    sys.stderr.write(
+        "cannot find fabric, install with `apt install python3-fabric`"
+    )  # noqa: E501
     raise
 # no check required, fabric depends on invoke
 import invoke
@@ -48,18 +50,18 @@ DEFAULT_DELAY_DOWN = 30  # in seconds
 DEFAULT_DELAY_UP = 300  # in seconds
 DEFAULT_DELAY_HOSTS = 120  # in seconds
 DEFAULT_DELAY_SHUTDOWN = 10  # in minutes
-DEFAULT_REASON = 'no reason given'
+DEFAULT_REASON = "no reason given"
 
 
 def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
-    '''wait for host to shutdown
+    """wait for host to shutdown
 
     This pings the host and waits one second until timeout is expired
     or until it stops pinging.
 
     Returns True if the box stops pinging before timeout, or False if
     the box still pings after the timeout expired.
-    '''
+    """
     confirmations = 0
     for i in range(wait_timeout):
         if tcp_ping_host(con):
@@ -75,14 +77,14 @@ def wait_for_shutdown(con, wait_timeout=DEFAULT_DELAY_DOWN, wait_confirm=3):
 
 
 def wait_for_ping(con, timeout=DEFAULT_DELAY_UP):
-    '''wait for host to ping
+    """wait for host to ping
 
     This tries to ping the host until it responds or until the timeout
     expires.
 
     This returns true if the host pings or False if the timeout
     expires and the host still does not ping.
-    '''
+    """
     for i in range(timeout):
         # this will "sleep" one second if host is unreachable
         if tcp_ping_host(con):
@@ -92,40 +94,42 @@ def wait_for_ping(con, timeout=DEFAULT_DELAY_UP):
 
 def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
     if not wait_for_ping(con, delay_up):
-        logging.warning('host %s did not return after %d seconds, aborting',
-                        con.host, delay_up)
+        logging.warning(
+            "host %s did not return after %d seconds, aborting", con.host, delay_up
+        )
         return False
 
-    logging.info('host %s seems back online, checking uptime', con.host)
+    logging.info("host %s seems back online, checking uptime", con.host)
     # TODO: this fails on new hosts waiting for the LUKS password:
     # paramiko.ssh_exception.BadHostKeyException: Host key for server '88.99.194.57' does not match: got 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMmnz01y767yiws7ZjBnFtWtR7GWv4u5R1fBXKERaarVx38lUUbyA0nuufNwhX3/KX6fcuuoBZQqFDamB3XwKD8=', expected 'AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOu/GXkUtqJ9usIINpWyJnpnul/+vvOut+JKvLnwdbrJn/0hsD1S4YhmHoxIwMbfD8jzYghFfKvXSZvVPgH3lXY='  # noqa: E501
 
     # this is a Fabric "watcher" that will fail if we get a LUKS prompt
     # TODO: actually allow the user to provide a LUKS passphrase?
     responder = SentinelResponder(
-        sentinel=r'Please unlock disk .*:',
+        sentinel=r"Please unlock disk .*:",
     )
     # see if we can issue a simple command
     for i in range(3):
         try:
-            res = con.run('uptime', watchers=[responder], pty=True, warn=True)
+            res = con.run("uptime", watchers=[responder], pty=True, warn=True)
         # got the "unlock" prompt instead of a shell
         # XXX: why don't we get our exception from the watcher?
         # instead we need to catch invoke's Failure here
         except (ResponseNotAccepted, Failure):
             logging.warning(
-                'server waiting for crypto password, sleeping %d seconds for mandos',
-                DEFAULT_DELAY_DOWN
+                "server waiting for crypto password, sleeping %d seconds for mandos",
+                DEFAULT_DELAY_DOWN,
             )
             wait_for_shutdown(con, wait_confirm=1)
         # failed to connect to the host
         except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
-            logging.error('host %s cannot be reached by fabric, sleeping: %s',
-                          con.host, e)
+            logging.error(
+                "host %s cannot be reached by fabric, sleeping: %s", con.host, e
+            )
         else:
             # command was issued, but failed
             if res.failed:
-                logging.error('uptime command failed on host %s: %s', con.host, res)
+                logging.error("uptime command failed on host %s: %s", con.host, res)
                 return False
             # command suceeded
             else:
@@ -136,33 +140,33 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
 
 
 class ShutdownType(str, Enum):
-    '''the different flags that can be passed to the shutdown command
+    """the different flags that can be passed to the shutdown command
 
     This is not called "Flag" because that has a specific meaning for
     Enum classes, specifically stuff that can be combined with bitwise
     operators.
-    '''
-    reboot = '-r'
-    halt = '-h'
-    wall = '-k'
-    cancel = '-c'
+    """
+
+    reboot = "-r"
+    halt = "-h"
+    wall = "-k"
+    cancel = "-c"
 
     def __str__(self):
-        '''return the actual string representation
+        """return the actual string representation
 
         the default string representation of an Enum is Class.field,
         not the actual value's representation. so instead of returning
         (say) 'ShutdownType.reboot', we return '-r' here.
-        '''
+        """
         return self.value
 
 
 @task
-def shutdown(con,
-             kind=ShutdownType.reboot,
-             reason=DEFAULT_REASON,
-             delay=DEFAULT_DELAY_SHUTDOWN):
-    '''trigger a shutdown or reboot on the host'''
+def shutdown(
+    con, kind=ShutdownType.reboot, reason=DEFAULT_REASON, delay=DEFAULT_DELAY_SHUTDOWN
+):
+    """trigger a shutdown or reboot on the host"""
     # XXX: error handling?
     # TODO: notify nagios, maybe with https://github.com/tclh123/icinga2-api
     # TODO: notify irc
@@ -177,71 +181,84 @@ class FabricException(EOFError, OSError, paramiko.ssh_exception.SSHException):
 
 
 @task
-def shutdown_and_wait(con,
-                      kind=ShutdownType.reboot,
-                      reason=DEFAULT_REASON,
-                      delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
-                      delay_down=DEFAULT_DELAY_DOWN,
-                      delay_up=DEFAULT_DELAY_UP,
-                      ganeti_checks=True):
-    '''shutdown the machine and possibly wait for the box to return'''
+def shutdown_and_wait(
+    con,
+    kind=ShutdownType.reboot,
+    reason=DEFAULT_REASON,
+    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+    delay_down=DEFAULT_DELAY_DOWN,
+    delay_up=DEFAULT_DELAY_UP,
+    ganeti_checks=True,
+):
+    """shutdown the machine and possibly wait for the box to return"""
     assert kind in (ShutdownType.reboot, ShutdownType.halt)
     if ganeti_checks:
         try:
             master = ganeti.getmaster(con)
         except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
-            raise Exit('failed to contact host %s, aborting reboot: %s' % (con.host, e))
+            raise Exit("failed to contact host %s, aborting reboot: %s" % (con.host, e))
         except invoke.exceptions.Failure:
-            logging.info('host %s is not a ganeti node', con.host)
+            logging.info("host %s is not a ganeti node", con.host)
         else:
             master_con = host.find_context(master, config=con.config)
 
             # shorter delay, as the node will be empty
             delay_shutdown = 0
-            logging.info('ganeti node detected, migrating instances from %s',
-                         con.host)
+            logging.info("ganeti node detected, migrating instances from %s", con.host)
             if not ganeti.empty_node(con, master_con):
-                raise Exit('failed to empty node %s, aborting' % con.host)
+                raise Exit("failed to empty node %s, aborting" % con.host)
     else:
         logging.warning("not checking if %s is a Ganeti node, as requested", con.host)
 
     try:
         shutdown(con, kind, reason, delay_shutdown)
     except invoke.UnexpectedExit as e:
-        raise Exit('unexpected error issuing reboot on %s: %s' % (con.host, e))
+        raise Exit("unexpected error issuing reboot on %s: %s" % (con.host, e))
     except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
-        logging.warning('failed to connect to %s, assuming down: %s',
-                        con.host, e)
+        logging.warning("failed to connect to %s, assuming down: %s", con.host, e)
 
     # XXX: use a state machine to follow where we are?
     if delay_shutdown > 0:
         now = datetime.now(timezone.utc)
         then = now + timedelta(minutes=delay_shutdown)
-        logging.info('waiting %d minutes for reboot to happen, at %s (now is %s)',
-                     delay_shutdown, then, now)
+        logging.info(
+            "waiting %d minutes for reboot to happen, at %s (now is %s)",
+            delay_shutdown,
+            then,
+            now,
+        )
         # NOTE: we convert minutes to seconds here
         time.sleep(delay_shutdown * 60)
 
     now = datetime.now(timezone.utc)
     then = now + timedelta(seconds=delay_down)
-    logging.info('host shutting down, waiting up to %d seconds for confirmation, at %s (now is %s)',
-                 delay_down, then, now)
+    logging.info(
+        "host shutting down, waiting up to %d seconds for confirmation, at %s (now is %s)",  # noqa: E501
+        delay_down,
+        then,
+        now,
+    )
     if not wait_for_shutdown(con, delay_down):
-        raise Exit('host %s was still up after %d seconds, aborting' %
-                   (con.host, delay_down))
+        raise Exit(
+            "host %s was still up after %d seconds, aborting" % (con.host, delay_down)
+        )
     if kind == ShutdownType.halt:
-        logging.info('host %s shutdown', con.host)
+        logging.info("host %s shutdown", con.host)
         return True
 
     now = datetime.now(timezone.utc)
     then = now + timedelta(seconds=delay_up)
-    logging.info('host down, waiting %d seconds for host to go up, at %s (now is %s)',
-                 delay_up, then, now)
+    logging.info(
+        "host down, waiting %d seconds for host to go up, at %s (now is %s)",
+        delay_up,
+        then,
+        now,
+    )
     if wait_for_live(con, delay_up=delay_up):
-        logging.info('host %s rebooted', con.host)
+        logging.info("host %s rebooted", con.host)
         return True
     else:
-        raise Exit('could not check uptime on %s, assuming reboot failed' % con.host)
+        raise Exit("could not check uptime on %s, assuming reboot failed" % con.host)
 
 
 class SentinelResponder(Responder):
@@ -255,9 +272,7 @@ class SentinelResponder(Responder):
 
     def submit(self, stream):
         if self.pattern_matches(stream, self.sentinel, "failure_index"):
-            err = 'Unexpected sentinal output: {!r}!'.format(
-                self.sentinel
-            )
+            err = "Unexpected sentinal output: {!r}!".format(self.sentinel)
             raise ResponseNotAccepted(err)
         # do not write anything in response. the intuitive response
         # (`yield`) here will not do what we expect because it will
@@ -267,41 +282,49 @@ class SentinelResponder(Responder):
 
 
 @task
-def reboot_and_wait(con,
-                    reason=DEFAULT_REASON,
-                    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
-                    delay_down=DEFAULT_DELAY_DOWN,
-                    delay_up=DEFAULT_DELAY_UP):
+def reboot_and_wait(
+    con,
+    reason=DEFAULT_REASON,
+    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+    delay_down=DEFAULT_DELAY_DOWN,
+    delay_up=DEFAULT_DELAY_UP,
+):
     """reboot a machine and wait
 
     Convenience alias for shutdown_and_wait with a "reboot" kind."""
-    return shutdown_and_wait(con,
-                             kind=ShutdownType.reboot,
-                             reason=reason,
-                             delay_shutdown=delay_shutdown,
-                             delay_down=delay_down,
-                             delay_up=delay_up)
+    return shutdown_and_wait(
+        con,
+        kind=ShutdownType.reboot,
+        reason=reason,
+        delay_shutdown=delay_shutdown,
+        delay_down=delay_down,
+        delay_up=delay_up,
+    )
 
 
 @task
-def halt_and_wait(con,
-                  reason=DEFAULT_REASON,
-                  delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
-                  delay_down=DEFAULT_DELAY_DOWN,
-                  delay_up=DEFAULT_DELAY_UP):
+def halt_and_wait(
+    con,
+    reason=DEFAULT_REASON,
+    delay_shutdown=DEFAULT_DELAY_SHUTDOWN,
+    delay_down=DEFAULT_DELAY_DOWN,
+    delay_up=DEFAULT_DELAY_UP,
+):
     """halt a machine and wait
 
     Convenience alias for shutdown_and_wait with a "halt" kind."""
-    return shutdown_and_wait(con,
-                             kind=ShutdownType.halt,
-                             reason=reason,
-                             delay_shutdown=delay_shutdown,
-                             delay_down=delay_down,
-                             delay_up=delay_up)
+    return shutdown_and_wait(
+        con,
+        kind=ShutdownType.halt,
+        reason=reason,
+        delay_shutdown=delay_shutdown,
+        delay_down=delay_down,
+        delay_up=delay_up,
+    )
 
 
 def tcp_ping_host(con, port=22, timeout=1):
-    '''ping the host by opening a TCP socket
+    """ping the host by opening a TCP socket
 
     This is implemented using TCP because ICMP pings require raw
     sockets and so root access or ICMP capabilities. Besides, "ping"
@@ -313,23 +336,20 @@ def tcp_ping_host(con, port=22, timeout=1):
     since it's commonly available on all our hosts). The *timeout*
     argument determines how long we wait for a response (default: one
     second).
-    '''
+    """
 
     try:
-        with closing(socket.create_connection((con.host, port),
-                                              timeout=timeout)):
+        with closing(socket.create_connection((con.host, port), timeout=timeout)):
             # do nothing with the socket, just test if it opens
-            logging.debug('socket opened to %s:%d', con.host, port)
+            logging.debug("socket opened to %s:%d", con.host, port)
             return True
     except socket.timeout:
-        logging.debug('timeout waiting for socket open to %s:%d',
-                      con.host, port)
+        logging.debug("timeout waiting for socket open to %s:%d", con.host, port)
         return False
     except (socket.herror, socket.gaierror) as e:
-        logging.error('address-related error in ping: %s', e)
+        logging.error("address-related error in ping: %s", e)
         return False
     except OSError as e:
-        logging.debug('connect to %s:%d failed: %s, sleeping',
-                      con.host, port, e)
+        logging.debug("connect to %s:%d failed: %s, sleeping", con.host, port, e)
         time.sleep(1)
         return False
