@@ -387,9 +387,6 @@ class MessageParserFeedbackReport(MessageParserRFC822):
             )
 
 
-REGEX_OPTOUT = r"https://donate[^/]*\.torproject\.org/civicrm/mailing/optout"
-
-
 def process_files(paths):
     success = False
     for path in paths:
