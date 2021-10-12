@@ -100,7 +100,14 @@ def main(args):
     for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
         # TODO: check if reboot required with needrestart instead of
-        # this? see also:
+        # this?
+        #
+        # needrestart -p is a little dumb though: it marks everything
+        # as CRITICAL, so there's no distinction between requiring a
+        # reboot (microcode, kernel, systemd/dbus/qemu) and a restart
+        # (user-level services)
+        #
+        # see also:
         # https://github.com/xneelo/hetzner-needrestart/issues/23
         logging.info('checking if host %s requires a reboot', con.host)
         kernel_and_libs = con.run(
