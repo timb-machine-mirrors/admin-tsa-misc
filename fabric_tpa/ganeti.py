@@ -105,15 +105,18 @@ def stop_instances(node_con, master_host='fsn-node-01.torproject.org'):
         'pnode': node_con.host,
         'admin_state': 'up',
     }))
-    if len(instances):
-        logging.info("stopping all instances (%d) on %s from master %s", len(instances), node_con.host, master_con.host)
-        # ganeti parallelizes this for us, which is good luck because I
-        # couldn't figure out how to run a specific task inside a
-        # ThreadGroup
-        #
-        # TODO: we need to do an actual `shutdown +X` on those instances
-        # to give them a heads up
-        master_con.run("gnt-instance shutdown --force-multiple %s" % " ".join(instances))
+    if not len(instances):
+        return []
+
+    logging.info("stopping all instances (%d) on %s from master %s", len(instances), node_con.host, master_con.host)
+    # ganeti parallelizes this for us, which is good luck because I
+    # couldn't figure out how to run a specific task inside a
+    # ThreadGroup
+    #
+    # TODO: we need to do an actual `shutdown +X` on those instances
+    # to give them a heads up
+    master_con.run("gnt-instance shutdown --force-multiple %s" % " ".join(instances))
+
     return instances
 
 
