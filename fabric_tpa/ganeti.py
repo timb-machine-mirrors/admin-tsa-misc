@@ -20,10 +20,12 @@
 from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
+from datetime import datetime, timedelta, timezone
 import logging
 import os.path
 import re
 import sys
+import time
 
 try:
     from fabric import task
@@ -32,6 +34,8 @@ except ImportError:
     raise
 # no check required, fabric depends on invoke
 import invoke
+from invoke.exceptions import ResponseNotAccepted, Failure, Exit
+import paramiko.ssh_exception
 try:
     from humanize import naturalsize
 except ImportError:
@@ -44,6 +48,7 @@ from ruamel.yaml import YAML
 
 from . import libvirt
 from . import host
+from .reboot import ShutdownType, shutdown, wait_for_shutdown, DEFAULT_DELAY_SHUTDOWN, DEFAULT_DELAY_DOWN
 
 
 @task(autoprint=True)
@@ -108,13 +113,56 @@ def stop_instances(node_con, master_host='fsn-node-01.torproject.org'):
     if not len(instances):
         return []
 
-    logging.info("stopping all instances (%d) on %s from master %s", len(instances), node_con.host, master_con.host)
+    # FIXME: shouldn't we make this an argument? or per instance?
+    delay_shutdown = DEFAULT_DELAY_SHUTDOWN
+    delay_down = DEFAULT_DELAY_DOWN
+
+    # issue shutdown procedures for all instances on the node
+    #
+    # FIXME: this is cargo-culted from shutdown_and_wait, but we can't
+    # use that because we need to parallelize the shutdowns
+    #
+    # arguably, shutdown_and_wait could be improved to yield control
+    # back while it waits, with async or something, but it's simpler
+    # to copy-paste for now.
+    #
+    # Could this be done with a ThreadingGroup?
+    for instance in instances:
+        con = host.find_context(instance)
+        try:
+            shutdown(con, ShutdownType.reboot, "rebooting ganeti node", delay_shutdown)
+        except invoke.UnexpectedExit as e:
+            raise Exit("unexpected error issuing reboot on %s: %s" % (con.host, e))
+        except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
+            logging.warning("failed to connect to %s, assuming down: %s", con.host, e)
+
+    if delay_shutdown > 0:
+        now = datetime.now(timezone.utc)
+        then = now + timedelta(minutes=delay_shutdown)
+        logging.info(
+            "waiting %d minutes for reboot to happen, at %s (now is %s)",
+            delay_shutdown,
+            then,
+            now,
+        )
+        # NOTE: we convert minutes to seconds here
+        time.sleep(delay_shutdown * 60)
+
+    for instance in instance:
+        con = host.find_context(instance)
+        if not wait_for_shutdown(con, delay_down):
+            logging.warning(
+                "host %s was still up after %d seconds, ignoring",
+                con.host,
+                delay_down,
+            )
+    # end of FIXME
+
+    logging.info("forcibly stopping all instances (%d) on %s from master %s", len(instances), node_con.host, master_con.host)
+
     # ganeti parallelizes this for us, which is good luck because I
     # couldn't figure out how to run a specific task inside a
     # ThreadGroup
-    #
-    # TODO: we need to do an actual `shutdown +X` on those instances
-    # to give them a heads up
     master_con.run("gnt-instance shutdown --force-multiple %s" % " ".join(instances))
 
     return instances

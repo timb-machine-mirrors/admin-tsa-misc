@@ -192,6 +192,11 @@ def shutdown_and_wait(
     ganeti_empty=True,
 ):
     """shutdown the machine and possibly wait for the box to return"""
+    # TODO: support pooling multiple connexions here.
+    # Could this be done with a ThreadingGroup?
+    #
+    # we made a loop for `ShutdownType.halt` shutdowns in
+    # ganeti.stop_instances, maybe it could be reused here...
     assert kind in (ShutdownType.reboot, ShutdownType.halt)
     shutdown_instances = []
     if ganeti_checks:
