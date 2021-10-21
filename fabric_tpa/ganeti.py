@@ -223,10 +223,8 @@ def retire(instance_con, master_host='fsn-node-01.torproject.org'):
                      instance_con.host)
     logging.info('scheduling %s instance removal on host %s',
                  instance_con.host, master_con.host)
-    logging.warning("this implementation has been known to fail, see "
-                    "https://trac.torproject.org/projects/tor/ticket/34306#comment:6")
     return host.schedule_job(master_con,
-                             'gnt-instance remove %s' % instance_con.host,
+                             'gnt-instance remove --force %s' % instance_con.host,
                              host.RETIREMENT_DELAY)
 
 
