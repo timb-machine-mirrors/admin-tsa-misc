@@ -355,6 +355,25 @@ iface eth0 inet static
     return _rewrite_file(con, path, content)
 
 
+def parse_rewrite_interfaces_diff(output):
+    """extracts old IP addresses from the diff
+
+    XXX: we should maybe check LDAP instead? this is just too hackish
+    """
+    regex = re.compile(
+        r"^-\s+address\s+(?:(?P<ipv4_address>\d+\.\d+\.\d+\.\d+)|(?P<ipv6_address>[\da-f]+:[\da-f:]+))/\d+\s*$",
+        re.MULTILINE,
+    )
+    # placeholder values in case we don't find anything
+    ipv4_address_old, ipv6_address_old = None, None
+    for match in regex.finditer(output):
+        if match.group("ipv4_address"):
+            ipv4_address_old = match.group("ipv4_address")
+        if match.group("ipv6_address"):
+            ipv6_address_old = match.group("ipv6_address")
+    return ipv4_address_old, ipv6_address_old
+
+
 @task
 def rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'):
     _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address, path)

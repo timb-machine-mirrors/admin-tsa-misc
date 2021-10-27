@@ -304,25 +304,8 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
             ganeti_node_con, ifconfig, path="/mnt/etc/network/interfaces"
         )
 
-        # XXX: extracts old IP addresses from the diff, we should
-        # maybe check LDAP instead? this is just too hackish
-        #
-        # sample output:
-        # -    address 138.201.212.228/28
-        # -    gateway 138.201.212.225
-        # +    address 116.202.120.189/27
-        # +    gateway 116.202.120.161
-        regex = re.compile(
-            r"^-\s+address\s+(?:(?P<ipv4_address>\d+\.\d+\.\d+\.\d+)|(?P<ipv6_address>[\da-f]+:[\da-f:]+))/\d+\s*$",
-            re.MULTILINE,
-        )
-        # placeholder values in case we don't find anything
-        ipv4_address_old = ipv6_address_old = None
-        for match in regex.finditer(res.stdout):
-            if match.group("ipv4_address"):
-                ipv4_address_old = match.group("ipv4_address")
-            if match.group("ipv6_address"):
-                ipv6_address_old = match.group("ipv6_address")
+        ipv4_address_old, ipv6_address_old = host.parse_rewrite_interfaces_diff(res.stdout)
+
         host._rewrite_hosts(
             ganeti_node_con,
             instance_con.host,
