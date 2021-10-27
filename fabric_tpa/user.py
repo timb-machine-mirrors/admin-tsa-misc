@@ -142,4 +142,5 @@ def audit_group(con, group):
     hosts = [result["hostname"][0].decode("utf-8")
              for dn, result in con.search_hosts(filter)]
     print("accessible hosts:", *sorted(hosts))
+    print("I: star (*) denotes users with an SSH key")
     print("W: users may access other hosts through other mechanism like exportOptions")
