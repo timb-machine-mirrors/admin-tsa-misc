@@ -48,7 +48,6 @@ from ruamel.yaml import YAML
 
 from . import libvirt
 from . import host
-from .reboot import ShutdownType, shutdown, wait_for_shutdown, DEFAULT_DELAY_SHUTDOWN, DEFAULT_DELAY_DOWN
 
 
 @task(autoprint=True)
@@ -104,6 +103,10 @@ def empty_node(node_con, master_host=None):
 @task
 def stop_instances(node_con, master_host='fsn-node-01.torproject.org'):
     """stop all instances on the given Ganeti node"""
+
+    # this is a local import to fix an import loop with reboot.py
+    from .reboot import ShutdownType, shutdown, wait_for_shutdown, DEFAULT_DELAY_SHUTDOWN, DEFAULT_DELAY_DOWN
+
     master_con = host.find_context(master_host, config=node_con.config)
     logging.info("finding instances running on %s from %s ", node_con.host, master_con.host)
     instances = list(_list_instances(master_con, {
