@@ -36,7 +36,7 @@ except ImportError:
     raise
 # no check required, fabric depends on invoke
 import invoke
-from invoke.exceptions import ResponseNotAccepted, Failure, Exit
+from invoke.exceptions import Failure, Exit
 import paramiko.ssh_exception
 
 try:
@@ -66,7 +66,7 @@ def getmaster(con, hide=True, dry=False):
         master = result.stdout.strip()
         logging.info("ganeti node detected with master %s", master)
         return master
-    raise invoke.exceptions.Failure(result, "%s is not a ganeti node" % con.host)
+    raise Failure(result, "%s is not a ganeti node" % con.host)
 
 
 # troubleshooting:
