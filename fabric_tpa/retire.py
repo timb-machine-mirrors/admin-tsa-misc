@@ -58,12 +58,19 @@ def retire_instance(instance_con, parent_host):
 
 
 @task
-def remove_backups(instance_con, backup_host):
+def remove_backups(instance_con, backup_host, backup_director_host):
     '''delete instance backups from the bacula storage host'''
-    backup_dir = '/srv/backups/bacula/%s/' % instance_con.host
-    backup_con = host.find_context(backup_host, config=instance_con.config)
-    if host.path_exists(backup_con, backup_dir):
-        host.schedule_delete(backup_con, backup_dir, '30 days')
+    for backup_dir in (
+            '/srv/backups/bacula/%s/' % instance_con.host,
+            '/srv/backups/pg/%s/' % instance_con.host.split(".")[0],
+    ):
+        backup_con = host.find_context(backup_host, config=instance_con.config)
+        if host.path_exists(backup_con, backup_dir):
+            host.schedule_delete(backup_con, backup_dir, '30 days')
+
+    con = host.find_context(backup_director_host, config=instance_con.config)
+    command = 'delete client=%s' % instance_con.host
+    host.schedule_job(con, command, '30 days')
 
 
 @task
@@ -82,6 +89,7 @@ def revoke_puppet(instance_con, puppetmaster='root@puppet.torproject.org'):
 def retire_all(instance_con,
                parent_host=None,
                backup_host='bungei.torproject.org',
+               backup_director_host='bacula-director-01.torproject.org',
                puppet_host='root@puppet.torproject.org'):
     '''retire an instance from its parent, backups and puppet'''
     # STEP 1, 3, 4, 5
@@ -98,13 +106,13 @@ def retire_all(instance_con,
         # TODO: destroy actual on-disk data
     # STEP 13
     if backup_host:
-        logging.info('scheduling %s backup disks removal on host %s',
-                     instance_con.host, backup_host)
+        logging.info('scheduling %s backup disks removal on host %s and director %s',
+                     instance_con.host, backup_host, backup_director_host)
         try:
-            remove_backups(instance_con, backup_host)
+            remove_backups(instance_con, backup_host, backup_director_host)
         except invoke.exceptions.Failure as e:
-            logging.error('failed to remove %s backups on host %s: %s',
-                          instance_con.host, backup_host, e)
+            logging.error('failed to remove %s backups on host %s and director %s: %s',
+                          instance_con.host, backup_host, backup_director_host, e)
             return 2
     # STEP 8
     if puppet_host:
