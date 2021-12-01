@@ -493,7 +493,7 @@ def find_instance_ifconfig(
         logging.warning(
             "no IPv6 subnet found on instance %s, skipping IPv6", instance_con.host
         )
-        ipv6_net, ipv6_subnet, ipv6_gateway = None, None
+        ipv6_net, ipv6_subnet, ipv6_gateway = None, None, None
     else:
         ipv6_net, ipv6_subnet = ipv6.split("/")
         ipv6_gateway = facts["IPv6 Gateway"]
