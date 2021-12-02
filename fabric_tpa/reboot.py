@@ -381,7 +381,7 @@ def tcp_ping_host(con, port=22, timeout=1):
         logging.debug("timeout waiting for socket open to %s:%d", con.host, port)
         return False
     except (socket.herror, socket.gaierror) as e:
-        logging.error("address-related error in ping: %s", e)
+        logging.error("connect to %s:%d error: %s", con.host, port, e)
         return False
     except OSError as e:
         logging.debug("connect to %s:%d failed: %s, sleeping", con.host, port, e)
