@@ -102,7 +102,12 @@ def empty_node(node_con, master_host=None):
 
 
 @task
-def stop_instances(node_con, master_host="fsn-node-01.torproject.org"):
+def stop_instances(
+        node_con,
+        master_host="fsn-node-01.torproject.org",
+        delay_shutdown=None,
+        delay_down=None,
+):
     """stop all instances on the given Ganeti node"""
 
     # this is a local import to fix an import loop with reboot.py
@@ -113,6 +118,10 @@ def stop_instances(node_con, master_host="fsn-node-01.torproject.org"):
         DEFAULT_DELAY_SHUTDOWN,
         DEFAULT_DELAY_DOWN,
     )
+    if delay_shutdown is None:
+        delay_shutdown = DEFAULT_DELAY_SHUTDOWN
+    if delay_down is None:
+        delay_down = DEFAULT_DELAY_DOWN
 
     master_con = host.find_context(master_host, config=node_con.config)
     logging.info(
@@ -130,10 +139,6 @@ def stop_instances(node_con, master_host="fsn-node-01.torproject.org"):
     if not len(instances):
         return []
 
-    # FIXME: shouldn't we make this an argument? or per instance?
-    delay_shutdown = DEFAULT_DELAY_SHUTDOWN
-    delay_down = DEFAULT_DELAY_DOWN
-
     # issue shutdown procedures for all instances on the node
     #
     # FIXME: this is cargo-culted from shutdown_and_wait, but we can't
@@ -147,11 +152,13 @@ def stop_instances(node_con, master_host="fsn-node-01.torproject.org"):
     for instance in instances:
         con = host.find_context(instance)
         try:
-            shutdown(con, ShutdownType.reboot, "rebooting ganeti node", delay_shutdown)
+            shutdown(con, ShutdownType.halt, "rebooting parent ganeti node", delay_shutdown)
         except invoke.UnexpectedExit as e:
             raise Exit("unexpected error issuing reboot on %s: %s" % (con.host, e))
         except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
             logging.warning("failed to connect to %s, assuming down: %s", con.host, e)
+
+    logging.info("scheduled reboots with %s delay on %s", delay_shutdown, " ".join(instances))
 
     if delay_shutdown > 0:
         now = datetime.now(timezone.utc)
@@ -165,8 +172,9 @@ def stop_instances(node_con, master_host="fsn-node-01.torproject.org"):
         # NOTE: we convert minutes to seconds here
         time.sleep(delay_shutdown * 60)
 
-    for instance in instance:
+    for instance in instances:
         con = host.find_context(instance)
+        logging.info("waiting for %s to shutdown", con.host)
         if not wait_for_shutdown(con, delay_down):
             logging.warning(
                 "host %s was still up after %d seconds, ignoring",

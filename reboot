@@ -42,7 +42,8 @@ from fabric_tpa.reboot import (DEFAULT_DELAY_DOWN,
                                DEFAULT_DELAY_UP,
                                DEFAULT_DELAY_HOSTS,
                                DEFAULT_DELAY_SHUTDOWN,
-                               shutdown_and_wait)
+                               shutdown_and_wait,
+                               ShutdownType)
 
 
 # TODO: don't use argparse: use Fabric's "Fab" program wrapper. We
@@ -85,6 +86,8 @@ def parse_args(args=sys.argv[1:]):
                         type=int, help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
     parser.add_argument('--reason', default='rebooting for security upgrades',
                         help='reason to give users (default: %(default)s)')
+    parser.add_argument('--kind', default=ShutdownType.reboot,
+                        help='kind of reboot to do (default: %(default)s)')
     return parser.parse_args(args=args)
 
 

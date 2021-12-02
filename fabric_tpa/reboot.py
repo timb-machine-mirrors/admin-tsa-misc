@@ -209,9 +209,9 @@ def shutdown_and_wait(
         else:
             master_con = host.find_context(master, config=con.config)
 
-            # shorter delay, as the node will be empty
-            delay_shutdown = 0
             if ganeti_empty:
+                # shorter delay, as the node will be empty
+                delay_shutdown = 0
                 logging.info(
                     "ganeti node detected, migrating instances from %s", con.host
                 )
@@ -219,11 +219,16 @@ def shutdown_and_wait(
                     raise Exit("failed to empty node %s, aborting" % con.host)
             else:
                 logging.info(
-                    "ganeti node detected, shutting down instances on %s", con.host
+                    "ganeti node detected, shutting down instances on %s with %s min delay",
+                    con.host,
+                    delay_shutdown,
                 )
-                instances = list(ganeti.stop_instances(con, master_con))
+                instances = list(ganeti.stop_instances(con, master_con, delay_shutdown=delay_shutdown))
                 for instance in instances:
                     shutdown_instances.append(instance)
+                # shorter delay, as the node will be empty
+                delay_shutdown = 0
+
 
                 # raise Exit("failed to shutdown all instances on node %s, aborting" % con.host)
     else:
@@ -257,7 +262,7 @@ def shutdown_and_wait(
         then,
         now,
     )
-    if not wait_for_shutdown(con, delay_down):
+    if kind != ShutdownType.cancel and not wait_for_shutdown(con, delay_down):
         raise Exit(
             "host %s was still up after %d seconds, aborting" % (con.host, delay_down)
         )
@@ -273,8 +278,9 @@ def shutdown_and_wait(
         then,
         now,
     )
-    if wait_for_live(con, delay_up=delay_up):
-        logging.info("host %s rebooted", con.host)
+    if kind == ShutdownType.cancel or wait_for_live(con, delay_up=delay_up):
+        if kind != ShutdownType.cancel:
+            logging.info("host %s rebooted", con.host)
         if shutdown_instances:
             logging.info("starting %d instances", len(shutdown_instances))
             if master_con:
