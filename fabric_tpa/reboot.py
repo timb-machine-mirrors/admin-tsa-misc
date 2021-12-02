@@ -197,7 +197,7 @@ def shutdown_and_wait(
     #
     # we made a loop for `ShutdownType.halt` shutdowns in
     # ganeti.stop_instances, maybe it could be reused here...
-    assert kind in (ShutdownType.reboot, ShutdownType.halt)
+    assert kind not in (ShutdownType.wall)
     shutdown_instances = []
     if ganeti_checks:
         try:

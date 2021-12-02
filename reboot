@@ -139,6 +139,7 @@ def main(args):
         logging.info('rebooting host %s', hostname)
         if not shutdown_and_wait(con,
                                  reason=args.reason,
+                                 kind=args.kind,
                                  delay_down=args.delay_down,
                                  delay_up=args.delay_up,
                                  delay_shutdown=delay_shutdown,
