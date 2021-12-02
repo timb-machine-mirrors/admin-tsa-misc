@@ -170,7 +170,9 @@ def shutdown(
     # XXX: error handling?
     # TODO: notify nagios, maybe with https://github.com/tclh123/icinga2-api
     # TODO: notify irc
-    return con.run('shutdown %s +%d "%s"' % (kind, delay, reason))
+    cmd = 'shutdown %s +%d "%s"' % (kind, delay, reason)
+    logging.info("running %s on %s", cmd, con.host)
+    return con.run(cmd)
 
 
 # XXX: this doesn't actually work, figure out why. we use the long
