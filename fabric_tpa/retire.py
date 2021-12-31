@@ -69,7 +69,7 @@ def remove_backups(instance_con, backup_host, backup_director_host):
             host.schedule_delete(backup_con, backup_dir, '30 days')
 
     con = host.find_context(backup_director_host, config=instance_con.config)
-    command = 'delete client=%s' % instance_con.host
+    command = 'echo delete client=%s-fd yes | bconsole' % instance_con.host
     host.schedule_job(con, command, '30 days')
 
 
