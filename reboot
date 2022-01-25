@@ -144,12 +144,12 @@ def main(args):
         #
         # see also:
         # https://github.com/xneelo/hetzner-needrestart/issues/23
-        if (
-                (args.needrestart and not needs_reboot_needsrestart(con))
-                or
-                not needs_reboot_dsa(con)
-        ):
-            if args.force:
+        if args.needrestart:
+            neeeds_reboot = needs_reboot_needsrestart
+        else:
+            needs_reboot = needs_reboot_dsa
+        if not needs_reboot(con):
+           if args.force:
                 logging.warning('rebooting anyways because of --force')
             else:
                 logging.info('host %s does not require a reboot, skipping', hostname)
