@@ -88,6 +88,10 @@ def parse_args(args=sys.argv[1:]):
                         help='reason to give users (default: %(default)s)')
     parser.add_argument('--kind', default=ShutdownType.reboot,
                         help='kind of reboot to do (default: %(default)s)')
+    # feature flag, remove (ie. make default) when we're confident this works
+    # https://gitlab.torproject.org/tpo/tpa/team/-/issues/40428
+    parser.add_argument('--needrestart', action='store_true',
+                        help='use needrestart instead of dsa-* to check for pending reboot')
     return parser.parse_args(args=args)
 
 
@@ -104,6 +108,19 @@ def needs_reboot_dsa(con):
             microcode.stdout.startswith('UNKNOWN')):
         return False
     return True
+
+
+def needs_reboot_needsrestart(con):
+    needsrestart = con.run(
+        "needsrestart --batch",
+        warn=True,
+    )
+    # grep for:
+    # "NEEDRESTART-UCSTA: 1" (no restart)
+    # "NEEDRESTART-SVC: systemd.service" (for systemd.service?, dbus-daemon, qemu-system-x86: restart)
+    # "NEEDRESTART-KSTA: 1" (no restart, or should we ignore unknown?)
+    # see also https://github.com/liske/needrestart/issues/230
+    raise NotImplementedError("no needrestart support yet")
 
 
 def main(args):
@@ -127,7 +144,11 @@ def main(args):
         #
         # see also:
         # https://github.com/xneelo/hetzner-needrestart/issues/23
-        if not needs_reboot_dsa(con):
+        if (
+                (args.needrestart and not needs_reboot_needsrestart(con))
+                or
+                not needs_reboot_dsa(con)
+        ):
             if args.force:
                 logging.warning('rebooting anyways because of --force')
             else:
