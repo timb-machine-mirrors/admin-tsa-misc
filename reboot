@@ -119,7 +119,9 @@ def needs_reboot_needsrestart(con):
     # "NEEDRESTART-UCSTA: 1" (no restart)
     # "NEEDRESTART-SVC: systemd.service" (for systemd.service?, dbus-daemon, qemu-system-x86: restart)
     # "NEEDRESTART-KSTA: 1" (no restart, or should we ignore unknown?)
-    # see also https://github.com/liske/needrestart/issues/230
+    # see also
+    # https://github.com/liske/needrestart/issues/230
+    # https://github.com/xneelo/hetzner-needrestart/issues/23
     raise NotImplementedError("no needrestart support yet")
 
 
@@ -134,16 +136,6 @@ def main(args):
     # split each hostname on comma, like `fab -H` does
     for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
-        # TODO: check if reboot required with needrestart instead of
-        # this?
-        #
-        # needrestart -p is a little dumb though: it marks everything
-        # as CRITICAL, so there's no distinction between requiring a
-        # reboot (microcode, kernel, systemd/dbus/qemu) and a restart
-        # (user-level services)
-        #
-        # see also:
-        # https://github.com/xneelo/hetzner-needrestart/issues/23
         if args.needrestart:
             neeeds_reboot = needs_reboot_needsrestart
         else:
