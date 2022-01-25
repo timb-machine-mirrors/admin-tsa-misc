@@ -91,6 +91,21 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args=args)
 
 
+def needs_reboot_dsa(con):
+    kernel_and_libs = con.run(
+        "/usr/lib/nagios/plugins/dsa-check-running-kernel "
+        " && ! (/usr/lib/nagios/plugins/dsa-check-libs "
+        "       | egrep --color 'systemd|dbus-daemon|qemu-system-x86') ",
+        warn=True,
+    )
+    microcode = con.run("/usr/lib/nagios/plugins/dsa-check-ucode-intel ", warn=True)
+    if kernel_and_libs.ok and (
+            microcode.stdout.startswith('OK') or
+            microcode.stdout.startswith('UNKNOWN')):
+        return False
+    return True
+
+
 def main(args):
     config = Config({
         'run': {
@@ -112,17 +127,7 @@ def main(args):
         #
         # see also:
         # https://github.com/xneelo/hetzner-needrestart/issues/23
-        logging.info('checking if host %s requires a reboot', con.host)
-        kernel_and_libs = con.run(
-            "/usr/lib/nagios/plugins/dsa-check-running-kernel "
-            " && ! (/usr/lib/nagios/plugins/dsa-check-libs "
-            "       | egrep --color 'systemd|dbus-daemon|qemu-system-x86') ",
-            warn=True,
-        )
-        microcode = con.run("/usr/lib/nagios/plugins/dsa-check-ucode-intel ", warn=True)
-        if kernel_and_libs.ok and (
-                microcode.stdout.startswith('OK') or
-                microcode.stdout.startswith('UNKNOWN')):
+        if not needs_reboot_dsa(con):
             if args.force:
                 logging.warning('rebooting anyways because of --force')
             else:
