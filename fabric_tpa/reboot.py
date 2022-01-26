@@ -389,3 +389,35 @@ def tcp_ping_host(con, port=22, timeout=1):
         logging.debug("connect to %s:%d failed: %s, sleeping", con.host, port, e)
         time.sleep(1)
         return False
+
+
+@task
+def needs_reboot_dsa(con):
+    kernel_and_libs = con.run(
+        "/usr/lib/nagios/plugins/dsa-check-running-kernel "
+        " && ! (/usr/lib/nagios/plugins/dsa-check-libs "
+        "       | egrep --color 'systemd|dbus-daemon|qemu-system-x86') ",
+        warn=True,
+    )
+    microcode = con.run("/usr/lib/nagios/plugins/dsa-check-ucode-intel ", warn=True)
+    if kernel_and_libs.ok and (
+            microcode.stdout.startswith('OK') or
+            microcode.stdout.startswith('UNKNOWN')):
+        return False
+    return True
+
+
+@task
+def needs_reboot_needsrestart(con):
+    needsrestart = con.run(
+        "needsrestart --batch",
+        warn=True,
+    )
+    # grep for:
+    # "NEEDRESTART-UCSTA: 1" (no restart)
+    # "NEEDRESTART-SVC: systemd.service" (for systemd.service?, dbus-daemon, qemu-system-x86: restart)
+    # "NEEDRESTART-KSTA: 1" (no restart, or should we ignore unknown?)
+    # see also
+    # https://github.com/liske/needrestart/issues/230
+    # https://github.com/xneelo/hetzner-needrestart/issues/23
+    raise NotImplementedError("no needrestart support yet")
