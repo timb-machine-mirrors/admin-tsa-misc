@@ -408,9 +408,9 @@ def needs_reboot_dsa(con):
 
 
 @task
-def needs_reboot_needsrestart(con):
-    needsrestart = con.run(
-        "needsrestart --batch",
+def needs_reboot_needrestart(con):
+    needrestart = con.run(
+        "needrestart --batch",
         warn=True,
     )
     # grep for:

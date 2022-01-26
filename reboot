@@ -44,7 +44,7 @@ from fabric_tpa.reboot import (
     DEFAULT_DELAY_HOSTS,
     DEFAULT_DELAY_SHUTDOWN,
     needs_reboot_dsa,
-    needs_reboot_needsrestart,
+    needs_reboot_needrestart,
     shutdown_and_wait,
     ShutdownType,
 )
@@ -111,7 +111,7 @@ def main(args):
     for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
         if args.needrestart:
-            neeeds_reboot = needs_reboot_needsrestart
+            neeeds_reboot = needs_reboot_needrestart
         else:
             needs_reboot = needs_reboot_dsa
         if not needs_reboot(con):
