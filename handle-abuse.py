@@ -430,8 +430,10 @@ class RawMessageParser(MessageParserRFC822):
             self.msg["To"] = mailto
             logging.debug("found List-Unsubscribe: %s", mailto)
         else:
+            # try to find a message ID
+            mid_matches = re.findall(r"^Message-ID:\s+<?([^>]+)>?$", content, re.MULTILINE)
             raise RuntimeError(
-                "no known List-Unsubscribe header in raw message"
+                "no known List-Unsubscribe header in raw message, Message-ID: %s" % mid_matches
             )
 
 
