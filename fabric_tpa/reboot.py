@@ -25,6 +25,7 @@ from enum import Enum
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 import logging
+import re
 import socket
 import sys
 import time
@@ -410,14 +411,107 @@ def needs_reboot_dsa(con):
 @task
 def needs_reboot_needrestart(con):
     needrestart = con.run(
-        "needrestart --batch",
+        "needrestart -b",
         warn=True,
     )
+    state = parse_needrestart(needrestart.stdout)
+    if state:
+        logging.warning("reboot required: %s", state)
+    else:
+        logging.info("no reboot required")
+    return state
+
+
+NEEDRESTART_RE = re.compile(r'^NEEDRESTART-(?P<key>[^:]+):\s*(?P<val>.*)$', re.MULTILINE)
+
+
+def parse_needrestart(output):
+    """This parses the given needrestart output and returns the services
+    that we believe will require a reboot.
+
+    This specifically encodes business logic like "apache2 doesn't
+    need a reboot but the kernel, microcode updates, and Ganeti do".
+
+    We explicitely grep for ganeti, even though that's actually wrong:
+    we shouldn't necessarily reboot on Ganeti upgrades, only if the
+    qemu* processes need a reboot. But needrestart doesn't currently
+    distinguish on those, so we're going to be more ... "liberal" (?)
+    and reboot anyways.
+
+    >>> output = "\\n".join([
+    ...   'NEEDRESTART-KCUR: 5.10.0-10-amd64',
+    ...   'NEEDRESTART-KEXP: 5.10.0-11-amd64',
+    ...   'NEEDRESTART-KSTA: 3',
+    ...   'NEEDRESTART-UCSTA: 2',
+    ...   'NEEDRESTART-UCCUR: 0x071a',
+    ...   'NEEDRESTART-UCEXP: 0x071b',
+    ...   'NEEDRESTART-SVC: ganeti.service',
+    ...   'NEEDRESTART-SVC: apache2.service',
+    ... ]) + "\\n"
+    >>> services = parse_needrestart(output)
+    >>> 'kernel' in services
+    True
+    >>> 'microcode' in services
+    True
+    >>> 'ganeti.service' in services
+    True
+    >>> 'apache2.service' in services
+    False
+    >>>
+
+    """
     # grep for:
+    # "NEEDRESTART-KSTA: 1" (no restart, or should we ignore unknown?)
     # "NEEDRESTART-UCSTA: 1" (no restart)
     # "NEEDRESTART-SVC: systemd.service" (for systemd.service?, dbus-daemon, qemu-system-x86: restart)
-    # "NEEDRESTART-KSTA: 1" (no restart, or should we ignore unknown?)
+    # dbus.service
+    # ganeti.service (but just the qemu processes?)
+    #
+    # systemd.service doesn't exist, it's init.scope, not sure how
+    # needrestart sees those
+    #
     # see also
     # https://github.com/liske/needrestart/issues/230
     # https://github.com/xneelo/hetzner-needrestart/issues/23
-    raise NotImplementedError("no needrestart support yet")
+
+    # list of things that make us want a reboot
+    needs_reboot = []
+    # map some weird needrestart keys to a human-readable string
+    needrestart_key_map = {
+        'UCSTA': 'microcode',
+        'KSTA': 'kernel',
+    }
+    needrestart_facts = {}
+    for m in NEEDRESTART_RE.finditer(output):
+        logging.debug("key/val: %s/%s", m.group('key'), m.group('val'))
+        needrestart_facts[m.group('key')] = m.group('val')
+        if m.group('key') in ('UCSTA', 'KSTA'):
+            state = int(m.group('val').strip())
+            if state != 1:
+                needs_reboot.append(needrestart_key_map.get(m.group('key')))
+            else:
+                logging.debug(
+                    '%s state %d does not require a reboot',
+                    needrestart_key_map.get(m.group('key')),
+                    state,
+                )
+        elif m.group('key') == 'SVC':
+            if m.group('val').strip() in ('ganeti.service', ):
+                needs_reboot.append(m.group('val'))
+            else:
+                logging.debug('ignoring service %s, does not require a reboot', m.group('val'))
+    assert needrestart_facts
+    logging.debug('facts: %r', needrestart_facts)
+    if needrestart_facts.get('KCUR'):
+        logging.info(
+            "current kernel: %s, expected: %s",
+            needrestart_facts.get('KCUR'),
+            needrestart_facts.get('KEXP'),
+        )
+    if needrestart_facts.get('UCCUR'):
+        logging.info(
+            "current microcode: %s, expected: %s",
+            needrestart_facts.get('UCCUR'),
+            needrestart_facts.get('UCEXP'),
+        )
+    return needs_reboot
