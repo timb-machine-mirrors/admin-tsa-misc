@@ -111,11 +111,11 @@ def main(args):
     for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
         if args.needrestart:
-            neeeds_reboot = needs_reboot_needrestart
+            needs_reboot = needs_reboot_needrestart
         else:
             needs_reboot = needs_reboot_dsa
         if not needs_reboot(con):
-           if args.force:
+            if args.force:
                 logging.warning('rebooting anyways because of --force')
             else:
                 logging.info('host %s does not require a reboot, skipping', hostname)
