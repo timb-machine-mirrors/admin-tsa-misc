@@ -110,6 +110,7 @@ def main(args):
     # split each hostname on comma, like `fab -H` does
     for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
+        logging.info("checking if host %s needs a reboot", hostname)
         if args.needrestart:
             needs_reboot = needs_reboot_needrestart
         else:
@@ -118,7 +119,7 @@ def main(args):
             if args.force:
                 logging.warning('rebooting anyways because of --force')
             else:
-                logging.info('host %s does not require a reboot, skipping', hostname)
+                logging.info('host %s does not need a reboot, skipping', hostname)
                 continue
         if first:
             first = False
