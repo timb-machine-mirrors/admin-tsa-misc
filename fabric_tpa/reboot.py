@@ -231,8 +231,6 @@ def shutdown_and_wait(
                     shutdown_instances.append(instance)
                 # shorter delay, as the node will be empty
                 delay_shutdown = 0
-
-
                 # raise Exit("failed to shutdown all instances on node %s, aborting" % con.host)
     else:
         logging.warning("not checking if %s is a Ganeti node, as requested", con.host)
