@@ -43,8 +43,7 @@ from fabric_tpa.reboot import (
     DEFAULT_DELAY_UP,
     DEFAULT_DELAY_HOSTS,
     DEFAULT_DELAY_SHUTDOWN,
-    needs_reboot_dsa,
-    needs_reboot_needrestart,
+    needs_reboot,
     shutdown_and_wait,
     ShutdownType,
 )
@@ -92,10 +91,6 @@ def parse_args(args=sys.argv[1:]):
                         help='reason to give users (default: %(default)s)')
     parser.add_argument('--kind', default=ShutdownType.reboot,
                         help='kind of reboot to do (default: %(default)s)')
-    # feature flag, remove (ie. make default) when we're confident this works
-    # https://gitlab.torproject.org/tpo/tpa/team/-/issues/40428
-    parser.add_argument('--needrestart', action='store_true',
-                        help='use needrestart instead of dsa-* to check for pending reboot')
     return parser.parse_args(args=args)
 
 
@@ -111,10 +106,6 @@ def main(args):
     for hostname in [x for h in args.hosts for x in h.split(',')]:
         con = host.find_context(hostname, config=config)
         logging.info("checking if host %s needs a reboot", hostname)
-        if args.needrestart:
-            needs_reboot = needs_reboot_needrestart
-        else:
-            needs_reboot = needs_reboot_dsa
         if not needs_reboot(con):
             if args.force:
                 logging.warning('rebooting anyways because of --force')

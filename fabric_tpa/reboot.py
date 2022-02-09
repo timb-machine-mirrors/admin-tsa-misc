@@ -29,6 +29,7 @@ import re
 import socket
 import sys
 import time
+import warnings
 
 try:
     from fabric import task
@@ -392,6 +393,10 @@ def tcp_ping_host(con, port=22, timeout=1):
 
 @task
 def needs_reboot_dsa(con):
+    warnings.warn(
+        "needs_reboot_dsa is deprecated and may be removed in the future, use needs_reboot_needsrestart instead",
+        DeprecationWarning,
+    )
     kernel_and_libs = con.run(
         "/usr/lib/nagios/plugins/dsa-check-running-kernel "
         " && ! (/usr/lib/nagios/plugins/dsa-check-libs "
@@ -407,7 +412,7 @@ def needs_reboot_dsa(con):
 
 
 @task
-def needs_reboot_needrestart(con):
+def needs_reboot(con):
     needrestart = con.run(
         "needrestart -b",
         warn=True,
