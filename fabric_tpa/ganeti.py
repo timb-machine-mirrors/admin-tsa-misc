@@ -158,7 +158,7 @@ def stop_instances(
         except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
             logging.warning("failed to connect to %s, assuming down: %s", con.host, e)
 
-    logging.info("scheduled reboots with %s delay on %s", delay_shutdown, " ".join(instances))
+    logging.info("scheduled reboots with %s minute delay on %s", delay_shutdown, " ".join(instances))
 
     if delay_shutdown > 0:
         now = datetime.now(timezone.utc)
