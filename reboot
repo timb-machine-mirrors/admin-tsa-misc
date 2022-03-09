@@ -133,6 +133,8 @@ def main(args):
             break
 
         logging.info('done with host %s', hostname)
+        # raise the bell so we bring attention to this window
+        print('\a')
     # TODO: rebalance ganeti cluster if nodes were migrated
 
 
