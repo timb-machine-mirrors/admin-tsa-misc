@@ -126,8 +126,9 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
         # failed to connect to the host
         except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
             try:
-                paramiko_exc = con.client.save_exception
-            except:
+                paramiko_exc = con.client._transport.saved_exception
+            except Exception as e:
+                logging.exception(e)
                 paramiko_exc = None
             logging.warning("paramiko exc: %r", paramiko_exc)
             if "key cannot be used for signing" in str(paramiko_exc):
