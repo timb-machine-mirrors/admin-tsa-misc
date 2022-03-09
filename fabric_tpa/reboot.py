@@ -125,9 +125,16 @@ def wait_for_live(con, delay_up=DEFAULT_DELAY_UP):
             wait_for_shutdown(con, wait_confirm=1)
         # failed to connect to the host
         except (OSError, paramiko.ssh_exception.SSHException, EOFError) as e:
-            logging.error(
-                "host %s cannot be reached by fabric, sleeping: %s", con.host, e
-            )
+            if "key cannot be used for signing" in str(e):
+                logging.warning(
+                    "cannot find a valid SSH key anymore, is your cryptographic token plugged in?"
+                )
+                print('\a')
+                input("pay attention to your cryptographic token and press enter")
+            else:
+                logging.error(
+                    "host %s cannot be reached by fabric, sleeping: %s", con.host, e
+                )
         else:
             # command was issued, but failed
             if res.failed:
