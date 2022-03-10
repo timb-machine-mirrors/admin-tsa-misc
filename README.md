@@ -7,12 +7,12 @@ anywhere else.
 
 Here are the known objects here:
 
- * `fabric_tpa`: our growing pile of code built around Fabric,
+ * `fabric_tpa`: our growing pile of code built around [Fabric](https://www.fabfile.org/),
    typically a library for other tools in the top level directory, but
    many functions can be called directly, see `fab -l` after
    installing fabric
 
- * `fabric.yml`, `fabfile.py`: config files for Fabric
+ * `fabric.yml`, `fabfile.py`: configuration files for Fabric
 
  * `find-crontabs.py`: a prototype experimenting with mitogen as a
    Fabric replacement
@@ -20,9 +20,9 @@ Here are the known objects here:
  * `ganeti`: a bunch of tools for managing Ganeti clusters
 
  * `handle-abuse.py`: pipe an abuse message from Hetzner in there to
-   unsubscribe users from CiviCRM (among, hopefully, other things)
+   unsubscribe users from [CiviCRM](https://crm.torproject.org) (among, hopefully, other things)
 
- * `install`: fabric-based installer
+ * `install`: Fabric-based installer
 
  * `installer`: a lot of legacy installers, some of which are still in
    use
