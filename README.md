@@ -14,7 +14,7 @@ Here are the known objects here:
 
  * `fabric.yml`, `fabfile.py`: configuration files for Fabric
 
- * `find-crontabs.py`: a prototype experimenting with mitogen as a
+ * `find-crontabs.py`: a prototype experimenting with [Mitogen](https://mitogen.networkgenomics.com/) as a
    Fabric replacement
 
  * `ganeti`: a bunch of tools for managing Ganeti clusters
