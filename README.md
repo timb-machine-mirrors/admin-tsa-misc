@@ -1,6 +1,6 @@
 # TPA miscellaneous scripts
 
-A mostly random collection of sysadmin scripts we can't seem to fit
+A mostly random collection of sysadmin scripts that can't seem to fit
 anywhere else.
 
 ## Project inventory
