@@ -35,4 +35,5 @@ known objects here:
  * `retire`: a script to (partially) retire a server, built with
    Fabric
 
-This README deserves a better life.
+This README file should probably be expanded to cover a little more
+about the history of this project, its authors, and possible fate(s).
