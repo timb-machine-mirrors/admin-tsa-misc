@@ -1,8 +1,11 @@
+# TPA miscellaneous scripts
+
 A mostly random collection of sysadmin scripts we can't seem to fit
 anywhere else.
 
-This is where our custom installer and batch jobs live. Here's the
-known objects here:
+## Project inventory
+
+Here are the known objects here:
 
  * `fabric_tpa`: our growing pile of code built around Fabric,
    typically a library for other tools in the top level directory, but
@@ -35,5 +38,10 @@ known objects here:
  * `retire`: a script to (partially) retire a server, built with
    Fabric
 
+## Caveats
+
 This README file should probably be expanded to cover a little more
 about the history of this project, its authors, and possible fate(s).
+
+In particular, we might want to move all the Fabric-related Python
+code to its own repository, with CI and all that jazz.
