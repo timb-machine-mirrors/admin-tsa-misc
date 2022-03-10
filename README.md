@@ -1,14 +1,7 @@
 # TPA miscellaneous scripts
 
 A mostly random collection of sysadmin scripts we can't seem to fit
-anywhere else. If you have a small script that is very minimal and
-won't grow much more, and that it's designed to run from your
-workstation (and not the remote servers) it might be a good place for
-it.
-
-If, on the other hand, it's a script that should be run directly on
-servers managed by Puppet, it might be better to deploy that script
-through the `tor-puppet.git` repository.
+anywhere else.
 
 ## Project inventory
 
@@ -44,6 +37,16 @@ Here are the known objects here:
 
  * `retire`: a script to (partially) retire a server, built with
    Fabric
+
+## What belongs here
+
+If you have a small script that is very minimal and won't grow much
+more, and that it's designed to run from your workstation (and not the
+remote servers) it might be a good place for it.
+
+If, on the other hand, it's a script that should be run directly on
+servers managed by Puppet, it might be better to deploy that script
+through the `tor-puppet.git` repository.
 
 ## Caveats
 
