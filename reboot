@@ -22,6 +22,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function, unicode_literals
 
 import argparse
+from datetime import datetime, timedelta, timezone
 import logging
 import time
 import sys
@@ -117,6 +118,12 @@ def main(args):
         else:
             logging.info('sleeping %d seconds before rebooting %s',
                          args.delay_hosts, hostname)
+            now = datetime.now(timezone.utc)
+            logging.info(
+                'now is %s, it is safe to interrupt this program until %s',
+                now,
+                now + timedelta(minutes=args.delay_hosts)
+            )
             time.sleep(args.delay_hosts)
         delay_shutdown = args.delay_shutdown
 
