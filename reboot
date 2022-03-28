@@ -122,7 +122,7 @@ def main(args):
             logging.info(
                 'now is %s, it is safe to interrupt this program until %s',
                 now,
-                now + timedelta(minutes=args.delay_hosts)
+                now + timedelta(minutes=args.delay_hosts),
             )
             time.sleep(args.delay_hosts)
         delay_shutdown = args.delay_shutdown
