@@ -7,20 +7,20 @@ anywhere else.
 
 Here are the known objects here:
 
- * `fabric_tpa`: our growing pile of code built around [Fabric](https://www.fabfile.org/),
+ * `fabric_tpa`: our growing pile of code built around [Fabric][],
    typically a library for other tools in the top level directory, but
    many functions can be called directly, see `fab -l` after
    installing fabric
 
  * `fabric.yml`, `fabfile.py`: configuration files for Fabric
 
- * `find-crontabs.py`: a prototype experimenting with [Mitogen](https://mitogen.networkgenomics.com/) as a
+ * `find-crontabs.py`: a prototype experimenting with [Mitogen][] as a
    Fabric replacement
 
  * `ganeti`: a bunch of tools for managing Ganeti clusters
 
  * `handle-abuse.py`: pipe an abuse message from Hetzner in there to
-   unsubscribe users from [CiviCRM](https://crm.torproject.org) (among, hopefully, other things)
+   unsubscribe users from [CiviCRM][] (among, hopefully, other things)
 
  * `install`: Fabric-based installer
 
@@ -37,6 +37,10 @@ Here are the known objects here:
 
  * `retire`: a script to (partially) retire a server, built with
    Fabric
+
+[Fabric]: https://www.fabfile.org/
+[Mitogen]: https://mitogen.networkgenomics.com/
+[CiviCRM]: https://crm.torproject.org
 
 ## What belongs here
 
