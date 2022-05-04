@@ -617,7 +617,17 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     res = con.run('. /tmp/fai/disk_var.sh && mkdir -p /target && mount "$ROOT_PARTITION" /target ; mkdir -p /target/boot && mount "${BOOT_PARTITION:-$BOOT_DEVICE}" /target/boot', warn=True)  # noqa: E501
     if res.failed:
-        logging.warning("failed to mount partitions, assuming FAI did it")
+        logging.warning("failed to mount partitions, double-checking it is a separate filesystem")
+        # we check for the lost+found directory, which is not the
+        # best
+        #
+        # another way to do this check would be to check if the inode
+        # number of /target and /target/boot are the same (if they are
+        # on the same filesystem, it would be different), but that's a
+        # little error-prone
+        if con.run('test -d /target/boot/lost+found', warn=True).failed:
+            logging.error("/target/boot not mounted correctly, aborting install")
+            return False
 
     logging.info('STEP 4: setting up grml-debootstrap')
     logging.info('uploading package list %s', package_list)
