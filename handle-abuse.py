@@ -2,6 +2,10 @@
 # coding: utf-8
 
 """handle abuse reports from Hetzner"""
+
+# Similar tools:
+# https://github.com/LGUG2Z/unsubscan
+
 # Copyright (C) 2016 Antoine Beaupré <anarcat@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
