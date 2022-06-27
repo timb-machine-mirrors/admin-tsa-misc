@@ -200,6 +200,7 @@ def shutdown_and_wait(
     delay_up=DEFAULT_DELAY_UP,
     ganeti_checks=True,
     ganeti_empty=True,
+    ganeti_migrate_back=False,
 ):
     """shutdown the machine and possibly wait for the box to return"""
     # TODO: support pooling multiple connexions here.
@@ -209,6 +210,7 @@ def shutdown_and_wait(
     # ganeti.stop_instances, maybe it could be reused here...
     assert kind not in (ShutdownType.wall)
     shutdown_instances = []
+    migrated_instances = []
     if ganeti_checks:
         try:
             master = ganeti.getmaster(con)
@@ -224,6 +226,15 @@ def shutdown_and_wait(
                 delay_shutdown = 0
                 logging.info(
                     "ganeti node detected, migrating instances from %s", con.host
+                )
+                migrated_instances = list(
+                    ganeti._list_instances(
+                        master_con,
+                        {
+                            "pnode": con.host,
+                            "admin_state": "up",
+                        },
+                    )
                 )
                 if not ganeti.empty_node(con, master_con):
                     raise Exit("failed to empty node %s, aborting" % con.host)
@@ -298,6 +309,15 @@ def shutdown_and_wait(
                 )
             else:
                 raise Exit("no master_con instance?")
+        if ganeti_migrate_back and migrated_instances:
+            logging.info("migrating back %d instances", len(migrated_instances))
+            if master_con:
+                for instance in migrated_instances:
+                    master_con.run(
+                        "gnt-instance migrate -f %s" % instance,
+                    )
+            else:
+                raise Exit("no master_con instance?!")
         return True
     else:
         raise Exit("could not check uptime on %s, assuming reboot failed" % con.host)
