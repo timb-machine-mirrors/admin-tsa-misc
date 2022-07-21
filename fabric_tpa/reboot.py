@@ -281,43 +281,48 @@ def shutdown_and_wait(
     except (EOFError, OSError, paramiko.ssh_exception.SSHException) as e:
         logging.warning("failed to connect to %s, assuming down: %s", con.host, e)
 
-    # XXX: use a state machine to follow where we are?
-    if delay_shutdown > 0:
+    # this whole block will wait for the host to go down, then return,
+    # so it is relevant only if we're not doing a "cancel"
+    if kind == ShutdownType.cancel:
+        logging.info("shutdown was just a cancel, not waiting for shutdown and proceeding immediately")
+    else:
+        # XXX: use a state machine to follow where we are?
+        if delay_shutdown > 0:
+            now = datetime.now(timezone.utc)
+            then = now + timedelta(minutes=delay_shutdown)
+            logging.info(
+                "waiting %d minutes for reboot to happen, at %s (now is %s)",
+                delay_shutdown,
+                then,
+                now,
+            )
+            # NOTE: we convert minutes to seconds here
+            time.sleep(delay_shutdown * 60)
+
         now = datetime.now(timezone.utc)
-        then = now + timedelta(minutes=delay_shutdown)
+        then = now + timedelta(seconds=delay_down)
         logging.info(
-            "waiting %d minutes for reboot to happen, at %s (now is %s)",
-            delay_shutdown,
+            "host shutting down, waiting up to %d seconds for confirmation, at %s (now is %s)",  # noqa: E501
+            delay_down,
             then,
             now,
         )
-        # NOTE: we convert minutes to seconds here
-        time.sleep(delay_shutdown * 60)
+        if not wait_for_shutdown(con, delay_down):
+            raise Exit(
+                "host %s was still up after %d seconds, aborting" % (con.host, delay_down)
+            )
+        if kind == ShutdownType.halt:
+            logging.info("host %s shutdown", con.host)
+            return True
 
-    now = datetime.now(timezone.utc)
-    then = now + timedelta(seconds=delay_down)
-    logging.info(
-        "host shutting down, waiting up to %d seconds for confirmation, at %s (now is %s)",  # noqa: E501
-        delay_down,
-        then,
-        now,
-    )
-    if kind != ShutdownType.cancel and not wait_for_shutdown(con, delay_down):
-        raise Exit(
-            "host %s was still up after %d seconds, aborting" % (con.host, delay_down)
+        now = datetime.now(timezone.utc)
+        then = now + timedelta(seconds=delay_up)
+        logging.info(
+            "host down, waiting %d seconds for host to go up, at %s (now is %s)",
+            delay_up,
+            then,
+            now,
         )
-    if kind == ShutdownType.halt:
-        logging.info("host %s shutdown", con.host)
-        return True
-
-    now = datetime.now(timezone.utc)
-    then = now + timedelta(seconds=delay_up)
-    logging.info(
-        "host down, waiting %d seconds for host to go up, at %s (now is %s)",
-        delay_up,
-        then,
-        now,
-    )
     if kind == ShutdownType.cancel or wait_for_live(con, delay_up=delay_up):
         if kind != ShutdownType.cancel:
             logging.info("host %s rebooted", con.host)
