@@ -169,6 +169,27 @@ class ShutdownType(str, Enum):
         """
         return self.value
 
+    @classmethod
+    def validator(cls, value):
+        """return either the key or value of this enum
+
+        Used by the argparse ``type`` validator to check the --kind
+        argument.
+        """
+        # this tries flags like -c/-h/-r etc
+        try:
+            return cls(value)
+        except ValueError:
+            pass
+        # if that fails, try the actual attribute, which, in Enum, is
+        # accessed like a dictionnary. this tries flags like "cancel"
+        # or "halt" or "reboot"
+        try:
+            return cls[value]
+        except KeyError as e:
+            # argparse expects ValueError so correct that
+            raise ValueError(e)
+
 
 @task
 def shutdown(

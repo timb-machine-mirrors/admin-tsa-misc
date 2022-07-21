@@ -94,7 +94,7 @@ def parse_args(args=sys.argv[1:]):
                         type=int, help='delay, in minutes, passed to the shutdown command (default: %(default)s minutes)')  # noqa: E501
     parser.add_argument('--reason', default='rebooting for security upgrades',
                         help='reason to give users (default: %(default)s)')
-    parser.add_argument('--kind', default=ShutdownType.reboot,
+    parser.add_argument('--kind', default=ShutdownType.reboot, type=ShutdownType.validator,
                         help='kind of reboot to do (default: %(default)s)')
     return parser.parse_args(args=args)
 
