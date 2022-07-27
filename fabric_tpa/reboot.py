@@ -424,6 +424,10 @@ def tcp_ping_host(con, port=22, timeout=1):
     since it's commonly available on all our hosts). The *timeout*
     argument determines how long we wait for a response (default: one
     second).
+
+    TODO: maybe reuse https://github.com/networktocode/netutils
+    https://netutils.readthedocs.io/en/latest/netutils/ping/index.html#netutils.ping.tcp_ping
+
     """
 
     try:
