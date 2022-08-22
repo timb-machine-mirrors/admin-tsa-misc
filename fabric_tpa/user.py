@@ -144,3 +144,31 @@ def audit_group(con, group):
     print("accessible hosts:", *sorted(hosts))
     print("I: star (*) denotes users with an SSH key")
     print("W: users may access other hosts through other mechanism like exportOptions")
+
+@task
+def list_gaps(con):
+    """list gaps in the UID or GID allocations"""
+    con = LdapContext().bind()
+    filter = "(|(objectClass=debianAccount)(objectClass=debianGroup))"
+
+    users = []
+    groups = []
+    for _, result in con.search_users(filter):
+        uid = result.get("uid")
+        gid = result.get("gid")
+        if uid is not None: # a user
+            users.append(int(result.get("uidNumber")[0].decode("utf-8")))
+        if gid is not None: # a group
+            groups.append(int(result.get("gidNumber")[0].decode("utf-8")))
+
+    prev_user = None
+    for user in sorted(users):
+        if prev_user is not None and user - prev_user > 1:
+            print("gap between %d and %d" % (prev_user, user))
+        prev_user = user
+
+    prev_group = None
+    for group in sorted(groups):
+        if prev_group is not None and group - prev_group > 1:
+            print("gap between %d and %d" % (prev_group, group))
+        prev_group = group
