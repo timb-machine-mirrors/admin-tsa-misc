@@ -164,11 +164,11 @@ def list_gaps(con):
     prev_user = None
     for user in sorted(users):
         if prev_user is not None and user - prev_user > 1:
-            print("gap between %d and %d" % (prev_user, user))
+            print("gap between uid %d and %d" % (prev_user, user))
         prev_user = user
 
     prev_group = None
     for group in sorted(groups):
         if prev_group is not None and group - prev_group > 1:
-            print("gap between %d and %d" % (prev_group, group))
+            print("gap between gid %d and %d" % (prev_group, group))
         prev_group = group
