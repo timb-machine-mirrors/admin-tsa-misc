@@ -145,6 +145,7 @@ def audit_group(con, group):
     print("I: star (*) denotes users with an SSH key")
     print("W: users may access other hosts through other mechanism like exportOptions")
 
+
 @task
 def list_gaps(con):
     """list gaps in the UID or GID allocations"""
@@ -156,9 +157,9 @@ def list_gaps(con):
     for _, result in con.search_users(filter):
         uid = result.get("uid")
         gid = result.get("gid")
-        if uid is not None: # a user
+        if uid is not None:  # a user
             users.append(int(result.get("uidNumber")[0].decode("utf-8")))
-        if gid is not None: # a group
+        if gid is not None:  # a group
             groups.append(int(result.get("gidNumber")[0].decode("utf-8")))
 
     prev_user = None
