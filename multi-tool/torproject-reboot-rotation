@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e
-set -u
-
-HOSTS=$(ssh alberti.torproject.org 'ldapsearch -h db.torproject.org -x -ZZ -b dc=torproject,dc=org -LLL "(&(hostname=*.torproject.org)(rebootPolicy=rotation))" hostname | awk "\$1 == \"hostname:\" {print \$2}" | sort -R')
-
-d=$(dirname $(readlink -f $0))
-WAITINTERVAL=30 "$d/torproject-reboot-many" $HOSTS

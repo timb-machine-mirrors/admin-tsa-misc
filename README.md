@@ -27,13 +27,8 @@ Here are the known objects here:
  * `installer`: a lot of legacy installers, some of which are still in
    use
 
- * `multi-tool`: legacy, should be replaced by `cumin` or the `reboot`
-   fabric script
-
  * `reboot`: a script to reboot or halt servers reliably, built with
    Fabric
-
- * `reboot-guest`, `reboot-host`: legacy reboot scripts
 
  * `retire`: a script to (partially) retire a server, built with
    Fabric
