@@ -28,13 +28,6 @@ import time
 import sys
 
 
-try:
-    from fabric import Config
-except ImportError:
-    sys.stderr.write('cannot find fabric, install with `apt install python3-fabric`')  # noqa: E501
-    raise
-
-
 # get the safe_open hack
 import fabric_tpa  # noqa: F401
 
@@ -82,8 +75,6 @@ def parse_args(args=sys.argv[1:]):
     # "manual" seems to be the default policy
     parser.add_argument('--hosts', '-H', nargs='+',
                         help="host(s) to reboot, can be comma-separated")
-    parser.add_argument('--dryrun', '-n', action='store_true',
-                        help='do not reboot servers (but do migrate)')
     parser.add_argument('--delay-down', default=DEFAULT_DELAY_DOWN, type=int,
                         help='how long to wait for host to shutdown (default: %(default)s seconds)')  # noqa: E501
     parser.add_argument('--delay-up', default=DEFAULT_DELAY_UP, type=int,
@@ -100,16 +91,10 @@ def parse_args(args=sys.argv[1:]):
 
 
 def main(args):
-    config = Config({
-        'run': {
-            'dry': args.dryrun,
-        }
-    })
-
     first = True
     # split each hostname on comma, like `fab -H` does
     for hostname in [x for h in args.hosts for x in h.split(',')]:
-        con = host.find_context(hostname, config=config)
+        con = host.find_context(hostname)
         logging.info("checking if host %s needs a reboot", hostname)
         if not needs_reboot(con):
             if args.force:
