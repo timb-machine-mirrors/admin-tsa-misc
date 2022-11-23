@@ -148,7 +148,10 @@ def audit_group(con, group):
 
 @task
 def list_gaps(con):
-    """list gaps in the UID or GID allocations"""
+    """list gaps in the UID or GID allocations
+
+    TODO: this could also be done with https://github.com/gierens/ranges
+    """
     con = LdapContext().bind()
     filter = "(|(objectClass=debianAccount)(objectClass=debianGroup))"
 
