@@ -461,6 +461,12 @@ def process_file(stream):
 
 
 def parse_abuse_message(content):
+    """
+
+    An alternate implementation of this might be
+
+    https://fluflbounce.readthedocs.io/
+    """
     try:
         msg_abuse = Parser(policy=email.policy.default + email.policy.strict).parsestr(
             content
