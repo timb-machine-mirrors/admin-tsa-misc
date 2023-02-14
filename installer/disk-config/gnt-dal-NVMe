@@ -1,0 +1,46 @@
+# disk configuration for the gnt-dal cluster
+#
+# this configures a /boot+RAID+LUKS+LVM stack on top of the first two
+# SSD drives, with a 30G root and 1G swap.
+#
+# No configuration is done on the subsequent disks.
+#
+# Documentation on this file format is available in the setup-storage(8) manpage.
+
+# configure a 512m tmpfs
+#
+# see https://gitlab.torproject.org/tpo/tpa/team/-/issues/33387 for a
+# discussion
+disk_config tmpfs
+tmpfs   /tmp    512MiB       defaults
+
+disk_config nvme0n1 disklabel:gpt bootable:2 align-at:1M
+# BIOS EFI partition (/boot/efi)
+p=efi  /boot/efi 512MiB  vfat    rw
+# /boot, in RAID-1 below
+p=boot -       512MiB  -       -
+# rest is RAID+LUKS+LVM
+p=     -       0-      -       -
+
+disk_config nvme1n1 sameas:nvme0n1
+
+disk_config raid fstabkey:uuid
+raid1   /boot   nvme0n1p2,nvme1n1p2     ext4    rw,noatime,errors=remount-ro
+# LUKS+LVM defined below
+raid1   -       nvme0n1p3,nvme1n1p3     -       -
+
+# FAI defaults to -c aes-xts-plain64 -s 256
+disk_config cryptsetup
+# used by LVM below
+luks    -       /dev/md1        -       -
+
+disk_config lvm fstabkey:uuid
+vg      vg_system md1
+vg_system-root    /       30G     ext4    rw
+# setup a generous swap partition, but not as big as the RAM, as we
+# have as much RAM as the system disk here (!!)
+vg_system-swap    swap    RAM:10%      swap    sw
+# the rest of the space (400GB) is unallocated
+
+# TODO: we have another set of NVMe (2x1.6TB) and SSD drives
+# (6x1.92TB) that are not configured here
