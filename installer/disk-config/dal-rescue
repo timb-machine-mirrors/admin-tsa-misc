@@ -1,0 +1,35 @@
+# disk configuration for an APU rescue system
+#
+# this configures a /boot+RAID+LUKS stack on top of the SD card and a
+# M.2 disk. only a part of the M.2 disk is configured, leaving the
+# remaining for a /srv
+#
+# Documentation on this file format is available in the setup-storage(8) manpage.
+
+# configure a 50m tmpfs
+#
+# see https://gitlab.torproject.org/tpo/tpa/team/-/issues/33387 for a
+# discussion
+disk_config tmpfs
+tmpfs   /tmp    50MiB       defaults
+
+disk_config mmcblk0 disklabel:gpt bootable:2 align-at:1M
+# BIOS EFI partition (/boot/efi)
+p=efi  /boot/efi 512MiB  vfat    rw
+# /boot, in RAID-1 below
+p=boot -       512MiB  -       -
+# rest is RAID+LUKS+LVM
+p=     -       0-      -       -
+
+disk_config sda sameas:mmcblk0
+
+disk_config raid fstabkey:uuid
+raid1   /boot   mmcblk0p2,sda2     ext4    rw,noatime,errors=remount-ro
+# LUKS+LVM defined below
+raid1   -       mmcblk0p3,sda3     -       -
+
+# FAI defaults to -c aes-xts-plain64 -s 256
+disk_config cryptsetup
+# used by LVM below
+luks    /       /dev/md1        ext4       rw
+# we do not configure swap
