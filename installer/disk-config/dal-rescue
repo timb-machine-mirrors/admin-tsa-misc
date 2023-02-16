@@ -13,15 +13,18 @@
 disk_config tmpfs
 tmpfs   /tmp    50MiB       defaults
 
-disk_config mmcblk0 disklabel:gpt bootable:2 align-at:1M
+disk_config mmcblk0 disklabel:gpt fstabkey:uuid bootable:2 align-at:1M
 # BIOS EFI partition (/boot/efi)
-p=efi  /boot/efi 512MiB  vfat    rw
+primary  /boot/efi 100MiB  vfat    rw
 # /boot, in RAID-1 below
-p=boot -       512MiB  -       -
-# rest is RAID+LUKS+LVM
-p=     -       0-      -       -
+primary  -       200MiB  -       -
+# rest is RAID+LUKS
+primary  -       0-      -       -
 
-disk_config sda sameas:mmcblk0
+disk_config sda disklabel:gpt fstabkey:uuid bootable:2 align-at:1M
+primary  - 100MiB vfat  -
+primary  - 200MiB - -
+primary - 0- - -
 
 disk_config raid fstabkey:uuid
 raid1   /boot   mmcblk0p2,sda2     ext4    rw,noatime,errors=remount-ro
