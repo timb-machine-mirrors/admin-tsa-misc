@@ -309,11 +309,20 @@ def rewrite_interfaces(con,
                        ipv4_address, ipv4_subnet, ipv4_gateway,
                        ipv6_address, ipv6_subnet, ipv6_gateway,
                        path='/etc/network/interfaces'):
-    '''write an /etc/network/interfaces file
+    '''rewrite an /etc/network/interfaces file
 
-    This writes the given ifconfig namedtuple into the given
-    interfaces(5) file, keeping a backup (uses rewrite-file).
+    This writes the given IPv4 and IPv6 addresses to the given
+    interfaces(5) file, keeping a backup in interfaces.bak (it reuses
+    the rewrite-file task).
+
+    It will also include a header to source the interfaces.d directory
+    and a loopback interfaces.
+
+    It hardcodes the `eth0` interface.
     '''
+    # this is basically a stub for the rewrite_interfaces_ifconfig
+    # file so it can be called as a fabric task.
+    #
     # TODO: do SLAAC based on ipv6_net?
     ipconf = ifconfig(ipv4_address, ipv4_subnet, ipv4_gateway,
                       ipv6_address, ipv6_subnet, ipv6_gateway)
@@ -321,6 +330,17 @@ def rewrite_interfaces(con,
 
 
 def rewrite_interfaces_ifconfig(con, ipconf, path='/etc/network/interfaces'):
+    '''write an /etc/network/interfaces file
+
+    This writes the given ifconfig namedtuple into the given
+    interfaces(5) file, keeping a backup in .bak (it reuses the
+    rewrite-file task).
+
+    It will also include a header to source the interfaces.d directory
+    and a loopback interfaces.
+
+    It hardcodes the `eth0` interface.
+    '''
     content = f'''# This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
