@@ -94,7 +94,6 @@ if __name__ == '__main__':
     except Exception as e:
         import traceback
         import pdb
-        import sys
         traceback.print_exc()
         pdb.post_mortem()
         sys.exit(1)
