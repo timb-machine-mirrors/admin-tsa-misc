@@ -23,6 +23,7 @@ from __future__ import print_function, unicode_literals
 from collections import namedtuple
 from contextlib import contextmanager
 import io
+import ipaddress
 import logging
 import os.path
 from pathlib import Path
@@ -556,7 +557,14 @@ def install_hetzner_robot(con,
                           package_list,
                           post_scripts_dir,
                           boot_disk='/dev/nvme0n1',
-                          mirror="https://deb.debian.org/debian/"):
+                          mirror="https://deb.debian.org/debian/",
+                          ipv4_address=None,
+                          ipv4_subnet="24",
+                          ipv4_gateway=None,
+                          ipv6_address=None,
+                          ipv6_subnet="24",
+                          ipv6_gateway=None
+                          ):
     '''install a new hetzner server
 
     As an exception, the `--hosts` (`-H`) argument *must* be the IP
@@ -765,13 +773,25 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     con.run('cat /target/etc/crypttab')
 
-    logging.info("STEP 7: verify /target/etc/network/interfaces")
-    # XXX: error handling?
-    con.run('cat /target/etc/network/interfaces')
-    # TODO: setup interfaces correctly
+    if ipv4_address:
+        logging.info("STEP 7: writing /target/etc/network/interfaces")
+        ipconf = ifconfig(ipv4_address, ipv4_subnet, ipv4_gateway, ipv6_address, ipv6_subnet, ipv6_gateway)
+        rewrite_interfaces_ifconfig(con, ipconf, '/target/etc/network/interfaces')
+        con.run('cat /target/etc/network/interfaces', warn=True)
 
-    # not necessary?
-    logging.info("STEP 8: rebuild initramfs and grub (already done above)")
+        logging.info("STEP X: configuring dropbear-initramfs in grub")
+        ipv4_netmask = str(ipaddress.IPv4Address(f'{ipv4_address}/{ipv4_gateway}').netmask)
+        grub_dropbear = f'''# for dropbear-initramfs because we don't have dhcp
+    GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_netmask}::eth0:off"'''.encode('ascii')
+        write_to_file(con, '/target/etc/default/grub.d/local-ipaddress.cfg', grub_dropbear)
+    else:
+        logging.info("STEP 7: verify /target/etc/network/interfaces")
+        con.run('cat /target/etc/network/interfaces', warn=True)
+
+    logging.info("STEP 8: rebuild initramfs and grub")
+    con.run('chroot /target update-initramfs -u')
+    con.run('chroot /target update-grub')
+
     logging.info("STEP 9: unmount everything")
     # XXX: error handling?
     con.run('umount /target/dev /target/proc /target/sys || true')
