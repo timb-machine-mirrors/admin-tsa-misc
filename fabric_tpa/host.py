@@ -748,8 +748,6 @@ def install_hetzner_robot(con,
         con.run(installer)
     except Exception as e:
         logging.error('installer failed: %s', e)
-    # XXX: error handling?
-    con.run('umount /target/run/udev /target/run || true')
 
     # TODO: extract the resulting SSH keys and inject in a local
     # known_hosts for further bootstrapping. e.g.:
@@ -794,6 +792,7 @@ def install_hetzner_robot(con,
 
     logging.info("STEP 9: unmount everything")
     # XXX: error handling?
+    con.run('umount /target/run/udev /target/run || true')
     con.run('umount /target/dev /target/proc /target/sys || true')
     con.run('umount /target/boot /target || true')
     con.run('rmdir /target')
