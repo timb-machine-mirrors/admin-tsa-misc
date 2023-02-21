@@ -341,7 +341,7 @@ def rewrite_interfaces_ifconfig(con, ipconf, path='/etc/network/interfaces'):
 
     It hardcodes the `eth0` interface.
     '''
-    content = f'''# This file describes the network interfaces available on your system
+    content = '''# This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
 source /etc/network/interfaces.d/*
