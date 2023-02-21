@@ -763,6 +763,14 @@ def install_hetzner_robot(con,
             "    chroot /target dropbearkey -y -f $key;    "
             "done")
 
+    logging.info("configuring grub serial console")
+    grub_serial = b'''# enable kernel's serial console on port 1 (or 0, if you count from there)
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty0 console=ttyS1,115200n8"
+# same with grub itself
+GRUB_TERMINAL="serial console"
+GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"'''
+    write_to_file(con, '/target/etc/default/grub.d/serial.cfg', grub_serial)
+
     logging.info('STEP 5: locking down /target/etc/luks')
     # XXX: error handling?
     con.run('chmod 0 /target/etc/luks/')
