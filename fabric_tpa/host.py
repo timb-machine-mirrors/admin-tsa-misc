@@ -691,6 +691,14 @@ def install_hetzner_robot(con,
         mount -t tmpfs tgt-run /target/run && \
         mkdir /target/run/udev && \
         mount -o bind /run/udev /target/run/udev''')
+
+    if con.run('mount -t efivarfs efivarfs /target/sys/firmware/efi/efivars', warn=True).failed:
+        logging.warning("cannot mount efivarfs, EFI support missing?")
+    else:
+        con.run('''. /tmp/fai/disk_var.sh && \
+            [ -e $ESP_DEVICE ] && \
+            mkdir -p /target/boot/efi && mount $ESP_DEVICE /target/boot/efi''')
+
     # TODO: do we really need grml-deboostrap here? why not just use
     # plain debootstrap?
     #
