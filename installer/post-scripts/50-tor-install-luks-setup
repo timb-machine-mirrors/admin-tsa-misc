@@ -39,14 +39,23 @@ if [ -z "$USE_HETZNER_NETWORK_HACK" ] ; then
     fi
 fi
 
-echo "I: setting up LUKS boot on $MNTPOINT..."
+MNT_DEV=$(findmnt -o SOURCE -l -n $MNTPOINT)
+echo "I: setting up LUKS boot on $MNTPOINT ($MNT_DEV)..."
 
-VGNAME=$(lvs --noheadings -o vg_name $(findmnt -o SOURCE -l -n $MNTPOINT) | sed 's/^ *//')
-PVDEV=$(pvs --noheadings -o pv_name --select vg_name=$VGNAME)
-UUID=$(blkid -s UUID -o value $(cryptsetup status $PVDEV | sed -n '/device:/{s/.*: *//;p}'))
-PVNAME=$(basename "$PVDEV")
+if lvs --noheadings -o vg_name "$MNT_DEV"; then
+    # LVM case
+    VGNAME=$(lvs --noheadings -o vg_name "$MNT_DEV" | sed 's/^ *//')
+    PVDEV=$(pvs --noheadings -o pv_name --select vg_name=$VGNAME)
+    UUID=$(blkid -s UUID -o value $(cryptsetup status $PVDEV | sed -n '/device:/{s/.*: *//;p}'))
+    PVNAME=$(basename "$PVDEV")
 
-echo "I: UUID: $UUID, VG: $VGNAME PV: $PVDEV"
+    echo "I: discovered UUID $UUID through LVM, VG: $VGNAME PV: $PVDEV PVNAME: $PVNAME"
+else
+    UUID=$(blkid -s UUID -o value $(cryptsetup status "$MNT_DEV" | sed -n '/device:/{s/.*: *//;p}'))
+    PVNAME=$(basename "$MNT_DEV")
+
+    echo "I: discovered UUID $UUID without LVM, PVNAME: $PVNAME"
+fi
 
 if ! [ -f $AUTHKEYS_SOURCE ] || ! [ -s $AUTHKEYS_SOURCE ]; then
     echo "$AUTHKEYS_SOURCE missing or empty" >&2
