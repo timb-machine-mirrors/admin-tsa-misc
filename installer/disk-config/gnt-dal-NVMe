@@ -16,6 +16,7 @@ tmpfs   /tmp    512MiB       defaults
 
 disk_config nvme0n1 disklabel:gpt fstabkey:uuid bootable:2 align-at:1M
 # BIOS EFI partition (/boot/efi)
+primary -       8MiB    -       -
 primary  /boot/efi 512MiB  vfat    rw
 # /boot, in RAID-1 below
 primary  -       512MiB  -       -
