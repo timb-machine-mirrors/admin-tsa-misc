@@ -772,8 +772,9 @@ GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=
     write_to_file(con, '/target/etc/default/grub.d/serial.cfg', grub_serial)
 
     logging.info('STEP 5: locking down /target/etc/luks')
-    # XXX: error handling?
-    con.run('chmod 0 /target/etc/luks/')
+    # already handled in 50-tor-install-luks-setup
+    if con.run('chmod 0 /target/etc/luks/', warn=True).failed:
+        logging.warning("failed to lock down /target/etc/luks, probably harmless because it should have been done in an earlier hook")
 
     logging.info("STEP 6: verify /target/etc/crypttab")
     # XXX: error handling?
