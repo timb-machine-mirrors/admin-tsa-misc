@@ -763,6 +763,22 @@ def install_hetzner_robot(con,
             "    chroot /target dropbearkey -y -f $key;    "
             "done")
 
+    # okay, this is officially a mess
+    #
+    # we should not be remounting here. instead those should be hooks
+    # that run in grml-debootstrap. *buuut* those don't have access to
+    # the information that's passed around here, like the IP address
+    # and so on.
+    #
+    # the proper way to go is probably to stop using grml-debootstrap
+    # and do the mounting and grub install ourselves, since we end up
+    # doing it anyways in the hooks.
+    #
+    # remounting /target seems necessary here otherwise the `chmod 0`
+    # below fails
+    logging.info("remounting /target read-write")
+    con.run("mount -o remount,rw /target")
+
     logging.info("configuring grub serial console")
     grub_serial = b'''# enable kernel's serial console on port 1 (or 0, if you count from there)
 GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty0 console=ttyS1,115200n8"
@@ -795,7 +811,10 @@ GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_
         logging.info("STEP 7: verify /target/etc/network/interfaces")
         con.run('cat /target/etc/network/interfaces', warn=True)
 
+    # necessary because we changed the serial config too
     logging.info("STEP 8: rebuild initramfs and grub")
+    con.run('. /tmp/fai/disk_var.sh && mount "${BOOT_PARTITION:-$BOOT_DEVICE}" /target/boot')
+    con.run('for fs in dev proc run sys  ; do mount -o bind /$fs /target/$fs; done')
     con.run('chroot /target update-initramfs -u')
     con.run('chroot /target update-grub')
 
