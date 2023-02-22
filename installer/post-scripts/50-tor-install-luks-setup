@@ -155,9 +155,9 @@ if [ -d /tmp/fai ]; then
     LUKS_PASSPHRASE=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 30)
 
     mkdir -p $MNTPOINT/etc/luks/
-    chmod 0 $MNTPOINT/etc/luks/
     cp /tmp/fai/crypt_dev_* "$MNTPOINT/etc/luks/"
     chmod 0 $MNTPOINT/etc/luks/*
+    chmod 0 $MNTPOINT/etc/luks/
 
     for keyfile in /tmp/fai/crypt_dev_*; do
         keyname=$(basename $keyfile)
