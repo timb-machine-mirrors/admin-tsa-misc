@@ -787,9 +787,9 @@ GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=
         con.run('cat /target/etc/network/interfaces', warn=True)
 
         logging.info("STEP X: configuring dropbear-initramfs in grub")
-        ipv4_netmask = str(ipaddress.IPv4Address(f'{ipv4_address}/{ipv4_gateway}').netmask)
+        ipv4_netmask = str(ipaddress.IPv4Interface(f'{ipv4_address}/{ipv4_subnet}').netmask)
         grub_dropbear = f'''# for dropbear-initramfs because we don't have dhcp
-    GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_netmask}::eth0:off"'''.encode('ascii')
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_netmask}::eth0:off"'''.encode('ascii')
         write_to_file(con, '/target/etc/default/grub.d/local-ipaddress.cfg', grub_dropbear)
     else:
         logging.info("STEP 7: verify /target/etc/network/interfaces")
