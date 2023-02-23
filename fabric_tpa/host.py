@@ -307,8 +307,8 @@ def _rewrite_file(con, path, content):
 
 @task
 def rewrite_interfaces(con,
-                       ipv4_address, ipv4_subnet, ipv4_gateway,
-                       ipv6_address, ipv6_subnet, ipv6_gateway,
+                       ipv4_address, ipv4_subnet, ipv4_gateway=None,
+                       ipv6_address=None, ipv6_subnet=None, ipv6_gateway=None,
                        path='/etc/network/interfaces'):
     '''rewrite an /etc/network/interfaces file
 
@@ -361,17 +361,18 @@ auto eth0
 iface eth0 inet6 static
     accept_ra 0
     address {ipconf.ipv6}/{ipconf.ipv6_subnet}
-    gateway {ipconf.ipv6_gateway}
 '''
+        if ipconf.ipv6_gateway:
+            content += f"    gateway {ipconf.ipv6_gateway}\n"
 
     content += f'''
 # IPv4 configuration
 # after IPv6 to avoir race conditions in accept_ra
 iface eth0 inet static
     address {ipconf.ipv4}/{ipconf.ipv4_subnet}
-    gateway {ipconf.ipv4_gateway}
 '''
-
+    if ipconf.ipv4_gateway:
+        content += f"    gateway {ipconf.ipv4_gateway}\n"-0-
     logging.debug('generated %s: %s', path, content)
     return _rewrite_file(con, path, content)
 
