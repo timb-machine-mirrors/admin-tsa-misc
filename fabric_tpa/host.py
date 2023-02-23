@@ -789,7 +789,7 @@ def install_hetzner_robot(con,
 
     logging.info("configuring grub serial console")
     grub_serial = b'''# enable kernel's serial console on port 1 (or 0, if you count from there)
-GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty0 console=ttyS1,115200n8"
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty0 console=ttyS0,115200n8"
 # same with grub itself
 GRUB_TERMINAL="serial console"
 GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"'''
