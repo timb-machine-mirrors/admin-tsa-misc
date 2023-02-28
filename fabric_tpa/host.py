@@ -696,11 +696,8 @@ def install_hetzner_robot(con,
         mkdir /target/run/udev && \
         mount -o bind /run/udev /target/run/udev''')
 
-    if con.run('mount -t efivarfs efivarfs /target/sys/firmware/efi/efivars', warn=True).failed:
-        logging.warning("cannot mount efivarfs, EFI support missing?")
-    else:
-        con.run('''. /tmp/fai/disk_var.sh && \
-            [ -e $ESP_DEVICE ] && \
+    con.run('''. /tmp/fai/disk_var.sh && \
+            [ -e $ESP_DEVICE ] && [ -d /sys/firmware/efi ] && \
             mkdir -p /target/boot/efi && mount $ESP_DEVICE /target/boot/efi''')
 
     # TODO: do we really need grml-deboostrap here? why not just use
@@ -823,9 +820,11 @@ GRUB_SERIAL_COMMAND="serial --speed=115200 --unit={console_idx} --word=8 --parit
         grub_dropbear = f'''# for dropbear-initramfs because we don't have dhcp
 GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_netmask}::eth0:off"'''.encode('ascii')
         write_to_file(con, '/target/etc/default/grub.d/local-ipaddress.cfg', grub_dropbear)
-    else:
-        logging.info("STEP 7: verify /target/etc/network/interfaces")
-        con.run('cat /target/etc/network/interfaces', warn=True)
+    logging.info("STEP 7: verify /target/etc/network/interfaces")
+    con.run('cat /target/etc/network/interfaces', warn=True)
+
+    logging.info("grub configurations in /target/etc/default/grub.d/*.cfg")
+    con.run('cat /target/etc/default/grub.d/*.cfg', warn=True)
 
     # necessary because we changed the serial config too
     logging.info("STEP 8: rebuild initramfs and grub")
@@ -834,6 +833,9 @@ GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_
     con.run('chroot /target update-initramfs -u')
     con.run('chroot /target update-grub')
 
+    if con.run('[ -d /sys/firmware/efi ]', warn=True).failed:
+        logging.warning("this system has EFI support, this installer doesn't, try to fix it by hand")
+        return False
     logging.info("STEP 9: unmount everything")
     # XXX: error handling?
     con.run('umount /target/run/udev /target/run || true')

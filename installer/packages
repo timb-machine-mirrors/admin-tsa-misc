@@ -40,7 +40,8 @@ cryptsetup
 cryptsetup-initramfs
 dbus
 git
-grub-pc
+# this needs to be grub-pc if we don't have EFI support
+grub-efi
 initramfs-tools
 isc-dhcp-client
 less
