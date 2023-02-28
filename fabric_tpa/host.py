@@ -566,7 +566,8 @@ def install_hetzner_robot(con,
                           ipv4_gateway=None,
                           ipv6_address=None,
                           ipv6_subnet="24",
-                          ipv6_gateway=None
+                          ipv6_gateway=None,
+                          console_idx=0,
                           ):
     '''install a new hetzner server
 
@@ -795,12 +796,12 @@ def install_hetzner_robot(con,
     con.run("mount -o remount,rw /target")
 
     logging.info("configuring grub serial console")
-    grub_serial = b'''# enable kernel's serial console on port 1 (or 0, if you count from there)
-GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty0 console=ttyS0,115200n8"
+    grub_serial = f'''# enable kernel's serial console on port 1 (or 0, if you count from there)
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty0 console=ttyS{console_idx},115200n8"
 # same with grub itself
 GRUB_TERMINAL="serial console"
-GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"'''
-    write_to_file(con, '/target/etc/default/grub.d/serial.cfg', grub_serial)
+GRUB_SERIAL_COMMAND="serial --speed=115200 --unit={console_idx} --word=8 --parity=no --stop=1"'''
+    write_to_file(con, '/target/etc/default/grub.d/serial.cfg', grub_serial.encode('ascii'))
 
     logging.info('STEP 5: locking down /target/etc/luks')
     # already handled in 50-tor-install-luks-setup
