@@ -736,6 +736,10 @@ def install_hetzner_robot(con,
     # grep for udevadm)
     # 3. support creating an ISO, building RAID arrays, filesystems
     # 4. interactive mode
+    #
+    # another thing from mikap @grml, this is how they do second RAID
+    # disks:
+    # https://github.com/sipwise/deployment-iso/blob/1b1e54b822b8af6b6c691993eae9d6589ed8b483/templates/scripts/includes/deployment.sh#L2175
     logging.info('STEP 4: installing system with grml-debootstrap')
     installer = '''. /tmp/fai/disk_var.sh && \
         AUTOINSTALL=y grml-debootstrap \
