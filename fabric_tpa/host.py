@@ -374,7 +374,7 @@ iface eth0 inet static
     address {ipconf.ipv4}/{ipconf.ipv4_subnet}
 '''
     if ipconf.ipv4_gateway:
-        content += f"    gateway {ipconf.ipv4_gateway}\n"-0-
+        content += f"    gateway {ipconf.ipv4_gateway}\n"
     logging.debug('generated %s: %s', path, content)
     return _rewrite_file(con, path, content)
 
