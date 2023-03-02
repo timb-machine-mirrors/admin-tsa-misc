@@ -696,10 +696,6 @@ def install_hetzner_robot(con,
         mkdir /target/run/udev && \
         mount -o bind /run/udev /target/run/udev''')
 
-    con.run('''. /tmp/fai/disk_var.sh && \
-            [ -e $ESP_DEVICE ] && [ -d /sys/firmware/efi ] && \
-            mkdir -p /target/boot/efi && mount $ESP_DEVICE /target/boot/efi''')
-
     # TODO: do we really need grml-deboostrap here? why not just use
     # plain debootstrap?
     #
@@ -741,7 +737,7 @@ def install_hetzner_robot(con,
     logging.info('STEP 4: installing system with grml-debootstrap')
     installer = '''. /tmp/fai/disk_var.sh && \
         AUTOINSTALL=y grml-debootstrap \
-            --grub "%s" \
+            --efi $ESP_DEVICE \
             --target /target \
             --hostname `hostname` \
             --release bullseye \
@@ -751,7 +747,6 @@ def install_hetzner_robot(con,
             --nopassword \
             --remove-configs \
             --defaultinterfaces''' % (
-            boot_disk,
             mirror,
             package_list_remote,
             post_scripts_dir_remote,
@@ -828,20 +823,33 @@ GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_
 
     # necessary because we changed the serial config too
     logging.info("STEP 8: rebuild initramfs and grub")
-    con.run('. /tmp/fai/disk_var.sh && mount "${BOOT_PARTITION:-$BOOT_DEVICE}" /target/boot')
+    if con.run('. /tmp/fai/disk_var.sh && mount "${BOOT_PARTITION:-$BOOT_DEVICE}" /target/boot', warn=True).failed:
+        logging.warning('/boot already mounted? ignoring error')
+
     con.run('for fs in dev proc run sys  ; do mount -o bind /$fs /target/$fs; done')
+    con.run('''. /tmp/fai/disk_var.sh && \
+            [ -e $ESP_DEVICE ] && [ -d /sys/firmware/efi ] && \
+            mkdir -p /target/boot/efi && mount $ESP_DEVICE /target/boot/efi &&
+            mount -t efivarfs efivarfs /target/sys/firmware/efi/efivars''')
+
+    # XXX: we have it in packages, but grml-debootstrap seems to
+    # reinstall grub-pc, so this shouldn't be necessary, but it is
+    con.run('chroot /target apt install grub-efi')
     con.run('chroot /target update-initramfs -u')
     con.run('chroot /target update-grub')
 
+    # reinstall grub
+    con.run('''. /tmp/fai/disk_var.sh && \
+            for DEVICE in $PHYSICAL_BOOT_DEVICES ; do chroot /target grub-install $DEVICE ; done''')
     if con.run('[ -d /sys/firmware/efi ]', warn=True).failed:
         logging.warning("this system has EFI support, this installer doesn't, try to fix it by hand")
         return False
     logging.info("STEP 9: unmount everything")
     # XXX: error handling?
-    con.run('umount /target/run/udev /target/run || true')
-    con.run('umount /target/dev /target/proc /target/sys || true')
-    con.run('umount /target/boot /target || true')
-    con.run('rmdir /target')
+    con.run('umount /target/sys/firmware/efi/efivars /target/run/udev', warn=True)
+    con.run('for fs in dev proc run sys  ; do mount -o bind /$fs /target/$fs; done', warn=True)
+    con.run('umount /target/boot/efi /target/boot /target', warn=True)
+    con.run('rmdir /target', warn=True)
 
     logging.info("STEP 10: close volume groups, LUKS and stop RAID")
     # XXX: error handling?
