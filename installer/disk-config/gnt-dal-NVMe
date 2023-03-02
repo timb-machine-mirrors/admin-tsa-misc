@@ -35,7 +35,7 @@ raid1   /boot   nvme0n1p2,nvme1n1p2     ext4    rw,noatime,errors=remount-ro
 # LUKS+LVM defined below
 raid1   -       nvme0n1p3,nvme1n1p3     -       -
 
-# FAI defaults to -c aes-xts-plain64 -s 256
+# FAI defaults to cryptsetup which defaults to -c aes-xts-plain64 -s 256
 disk_config cryptsetup
 # used by LVM below
 luks    -       /dev/md1        -       -
@@ -48,5 +48,38 @@ vg_system-root    /       30G     ext4    rw
 vg_system-swap    swap    RAM:10%      swap    sw
 # the rest of the space (400GB) is unallocated
 
-# TODO: we have another set of NVMe (2x1.6TB) and SSD drives
-# (6x1.92TB) that are not configured here
+# WARNING: the following configurations are untested and should be
+# checked that they match the configuration in the "New gnt-dal node"
+# procedure in howto/ganeti.
+
+disk_config sda disklabel:gpt
+primary - 1.92TB - -
+
+disk_config sdb sameas:sda
+disk_config sdc sameas:sda
+disk_config sdd sameas:sda
+disk_config sde sameas:sda
+disk_config sdf sameas:sda
+
+disk_config raid fstabkey:uuid
+raid10 - sda1,sdb1,sdc1,sdd1,sde1,sdf1 - -
+
+disk_config cryptsetup
+luks - /dev/md2 - -
+
+disk_config lvm
+vg vg_ganeti md2
+
+disk_config nvme2n1 disklabel:gpt
+primary - 1.92TB - -
+
+disk_config nvme3n1 sameas:nvme2n1
+
+disk_config raid
+raid1 - nvme2n1p1,nvme3n1p1 - -
+
+disk_config cryptsetup
+luks - /dev/md3 - -
+
+disk_config lvm
+vg vg_ganeti_nvme md3
