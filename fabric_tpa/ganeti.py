@@ -293,7 +293,18 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     disks = data["Disks"]
     disk0 = disks[0]
     assert "disk/0" in disk0
-    disk_path = disk0["on primary"].split(" ")[0]
+    logging.debug("disk/0: %s", dict(disk0))
+    if disk0.get("on primary") is not None:
+        disk_path = disk0["on primary"].split(" ")[0]
+    else:
+        for child in disk0["child devices"]:
+            logging.debug("child: %s", dict(child))
+            disk_path = child["on primary"].split(" ")[0]
+            if disk_path.endswith('_data'):
+                break
+        else:
+            logging.error("could not find child device")
+            return False
     ifconfig = find_instance_ifconfig(instance_con, ganeti_master_con, instance_info)
     # this succeeds even if already stopped
     stop(instance_con, ganeti_master_con)
