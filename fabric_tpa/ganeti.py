@@ -322,8 +322,21 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
         res = host.rewrite_interfaces_ifconfig(
             ganeti_node_con, ifconfig, path="/mnt/etc/network/interfaces"
         )
-
         ipv4_address_old, ipv6_address_old = host.parse_rewrite_interfaces_diff(res.stdout)
+
+        if ipv4_address_old is None:
+            logging.warning("could not find old IP address, looking in interfaces.d")
+            try:
+                ganeti_node_con.sftp().file("/mnt/etc/network/interfaces.d/eth0")
+            except IOError:
+                logging.warning("/mnt/etc/network/interfaces.d/eth0 missing")
+            else:
+                res = host._diff_file(ganeti_node_con, "/mnt/etc/network/interfaces.d/eth0", "/mnt/etc/network/interfaces")
+                ipv4_address_old, ipv6_address_old = host.parse_rewrite_interfaces_diff(res.stdout)
+                try:
+                    ganeti_node_con.sftp().remove("/mnt/etc/network/interfaces.d/eth0")
+                except Exception as e:
+                    logging.warning("failed to remove old /mnt/etc/network/interfaces.d/eth0 file: %s", e)
 
         host._rewrite_hosts(
             ganeti_node_con,
