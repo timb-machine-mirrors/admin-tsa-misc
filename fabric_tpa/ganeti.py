@@ -357,7 +357,7 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     # STEP 10. functional tests: change your `/etc/hosts` to point to the new
     #     server and see if everything still kind of works
     #
-    cmd = 'printf "%s %s\\n%s %s\\n" >> /etc/hosts' % (
+    cmd = 'printf "%s %s\\n%s %s\\n" | sudo tee -a /etc/hosts' % (
         ifconfig.ipv4,
         instance_con.host,
         ifconfig.ipv6,
