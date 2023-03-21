@@ -293,22 +293,24 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     disks = data["Disks"]
     disk0 = disks[0]
     assert "disk/0" in disk0
-    logging.debug("disk/0: %s", dict(disk0))
-    if disk0.get("on primary") is not None:
-        disk_path = disk0["on primary"].split(" ")[0]
+    assert "child devices" in disk0
+    # we inspect the "child devices" field, because the main "on
+    # primary" fields are only active when the VM is started or, more
+    # specifically when disks are "activated", which is not the case
+    # when the VM is stopped, which we're about to do here.
+    for child in disk0["child devices"]:
+        logging.debug("child: %s", dict(child))
+        disk_path = child["on primary"].split(" ")[0]
+        if disk_path.endswith('_data'):
+            break
     else:
-        for child in disk0["child devices"]:
-            logging.debug("child: %s", dict(child))
-            disk_path = child["on primary"].split(" ")[0]
-            if disk_path.endswith('_data'):
-                break
-        else:
-            logging.error("could not find child device")
-            return False
+        logging.error("could not find child device")
+        return False
     ifconfig = find_instance_ifconfig(instance_con, ganeti_master_con, instance_info)
     # this succeeds even if already stopped
     stop(instance_con, ganeti_master_con)
     need_kpartx_deactivate = False
+    logging.info("mounting %s over /mnt on host %s", disk_path, ganeti_master_con.host)
     with host.mount_then_umount(ganeti_node_con, disk_path, "/mnt", warn=True) as res:
         if res.failed:
             logging.warning("cannot mount partition directly: %s", res.stderr)
