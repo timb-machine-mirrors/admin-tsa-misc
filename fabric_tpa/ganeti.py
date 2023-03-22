@@ -550,7 +550,7 @@ def copy_disks(libvirt_con, ganeti_con, target_dir, disks):
         if disk["filename"].endswith("-swap"):
             logging.info("skipping swap file %s", disk["filename"])
             continue
-        command = "rsync -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (
+        command = "rsync --copy-devices --copy-links -e 'ssh -i /etc/ssh/ssh_host_ed25519_key' -P root@%s:%s %s" % (
             libvirt_con.host,
             path,
             target_dir,
@@ -705,6 +705,10 @@ def libvirt_import(
         i += 1
 
     inventory["memory_human"] = naturalsize(inventory["memory"], gnu=True)
+    instance_name = instance_con.host
+    if not instance_name.endswith(".torproject.org"):
+        # normalize VM name:
+        instance_name += ".torproject.org"
     command = f"""gnt-instance add -t plain \
     --net 0:ip=pool,network={network_name} \
     --no-name-check \
@@ -714,7 +718,7 @@ def libvirt_import(
     {disk_spec} \
     --backend-parameters \
     memory={inventory['memory_human']},vcpus={inventory['cpu']} \
-    {instance_con.host}"""
+    {instance_name}"""
     logging.debug("command: %s", command)
     if adopt:
         logging.info("launching adopted instance...")
