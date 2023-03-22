@@ -60,11 +60,10 @@ def shutdown(instance_con, parent_host):
 @task
 def undefine(instance_con, parent_host):
     '''remove instance configuration file'''
-    try:
-        res = virsh(parent_host, "undefine '%s'" % instance_con.host,
-                    config=instance_con.config)
-    except invoke.exceptions.UnexpectedExit as e:
-        err = str(e.result.stderr)
+    res = virsh(parent_host, "undefine '%s'" % instance_con.host,
+                config=instance_con.config)
+    if res.failed:
+        err = str(res.stderr)
         if ('failed to get domain' in err and
                 'Domain not found: no domain with matching name' in err):
             logging.warning('instance %s not found on %s assuming retired: %s',
@@ -115,7 +114,7 @@ def virsh(con, command, hide=None, dry=None, config=None):
     '''run an arbitrary virsh command'''
     con = host.find_context(con, config=config)
     # XXX: error handling?
-    return con.run('virsh %s' % command, hide=hide, dry=dry)
+    return con.run('virsh %s' % command, hide=hide, dry=dry, warn=True)
 
 
 @task

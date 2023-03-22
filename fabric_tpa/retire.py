@@ -52,6 +52,7 @@ def retire_instance(instance_con, parent_host):
     try:
         master_con = ganeti.getmaster(host_con)
     except invoke.exceptions.Failure:
+        logging.info("exception while fetching ganeti master, falling back to libvirt")
         libvirt.retire(instance_con, host_con)
     else:
         ganeti.retire(instance_con, master_con)
