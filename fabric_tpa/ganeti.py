@@ -293,19 +293,22 @@ def renumber_instance(instance_con, ganeti_node, dostart=True):
     disks = data["Disks"]
     disk0 = disks[0]
     assert "disk/0" in disk0
-    assert "child devices" in disk0
-    # we inspect the "child devices" field, because the main "on
-    # primary" fields are only active when the VM is started or, more
-    # specifically when disks are "activated", which is not the case
-    # when the VM is stopped, which we're about to do here.
-    for child in disk0["child devices"]:
-        logging.debug("child: %s", dict(child))
-        disk_path = child["on primary"].split(" ")[0]
-        if disk_path.endswith('_data'):
-            break
+    if "child devices" in disk0:
+        # we inspect the "child devices" field, because the main "on
+        # primary" fields are only active when the VM is started or, more
+        # specifically when disks are "activated", which is not the case
+        # when the VM is stopped, which we're about to do here.
+        for child in disk0["child devices"]:
+            logging.debug("child: %s", dict(child))
+            disk_path = child["on primary"].split(" ")[0]
+            if disk_path.endswith('_data'):
+                break
+        else:
+            logging.error("could not find child device")
+            return False
     else:
-        logging.error("could not find child device")
-        return False
+        # "plain" template fallback
+        disk_path = disk0["on primary"].split(" ")[0]
     ifconfig = find_instance_ifconfig(instance_con, ganeti_master_con, instance_info)
     # this succeeds even if already stopped
     stop(instance_con, ganeti_master_con)
