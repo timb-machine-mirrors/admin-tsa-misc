@@ -408,7 +408,7 @@ def _rewrite_hosts(con, fqdn, ipv4_address, ipv6_address=None, path='/etc/hosts'
     if con.config.run.dry:
         logging.info('skipping hosts file rewriting in dry run')
         return
-    logging.info('rewriting host file %s on %s', path, con)
+    logging.info('rewriting host file %s on %s', path, con.host)
     with con.sftp().file(path, mode='ab+') as fp:
         rewrite_hosts_file(fp,
                            fqdn.encode('ascii'),
