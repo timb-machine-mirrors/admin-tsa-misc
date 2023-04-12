@@ -751,11 +751,7 @@ def install_hetzner_robot(con,
             package_list_remote,
             post_scripts_dir_remote,
         )
-    try:
-        # XXX: error handling?
-        con.run(installer)
-    except Exception as e:
-        logging.error('installer failed: %s', e)
+    con.run(installer)
 
     # TODO: extract the resulting SSH keys and inject in a local
     # known_hosts for further bootstrapping. e.g.:
