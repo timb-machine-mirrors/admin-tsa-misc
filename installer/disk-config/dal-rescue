@@ -21,7 +21,15 @@ primary  -       300MiB  -       -
 # sda3, rest is RAID+LUKS
 primary  -       0-      -       -
 
-disk_config sda sameas:mmcblk0
+disk_config sda disklabel:gpt-bios bootable:2 align-at:1M
+# sda1, BIOS grub second stage
+primary -       8MiB    -       -
+# sda2, /boot, in RAID-1 below
+primary  -       300MiB  -       -
+# sda3, RAID+LUKS with a size that should match exactly the above sda3
+primary  -       3484MiB     -       -
+# sda4, for /srv
+primary  /srv    0-    ext4    rw
 
 disk_config raid fstabkey:uuid
 raid1   /boot   mmcblk0p2,sda2     ext4    rw,noatime,errors=remount-ro
