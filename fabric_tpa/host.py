@@ -637,6 +637,8 @@ def install_hetzner_robot(con,
     # XXX: error handling?
     con.run('apt upgrade -yy')
 
+    has_efi = not con.run('[ -d /sys/firmware/efi ]', warn=True).failed
+
     command = "setup-storage -f '%s' -X" % fai_disk_config_remote
     logging.info('launching %s', command)
     # XXX: error handling?
@@ -737,7 +739,6 @@ def install_hetzner_robot(con,
     logging.info('STEP 4: installing system with grml-debootstrap')
     installer = '''. /tmp/fai/disk_var.sh && \
         AUTOINSTALL=y grml-debootstrap \
-            --efi $ESP_DEVICE \
             --target /target \
             --hostname `hostname` \
             --release bullseye \
@@ -751,6 +752,8 @@ def install_hetzner_robot(con,
             package_list_remote,
             post_scripts_dir_remote,
         )
+    if has_efi:
+        installer += " --efi '$ESP_DEVICE'"
     con.run(installer)
 
     # TODO: extract the resulting SSH keys and inject in a local
@@ -823,26 +826,25 @@ GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX ip={ipv4_address}::{ipv4_gateway}:{ipv4_
         logging.warning('/boot already mounted? ignoring error')
 
     con.run('for fs in dev proc run sys  ; do mount -o bind /$fs /target/$fs; done')
-    con.run('''. /tmp/fai/disk_var.sh && \
-            [ -e $ESP_DEVICE ] && [ -d /sys/firmware/efi ] && \
+    if has_efi:
+        con.run('''. /tmp/fai/disk_var.sh && \
             mkdir -p /target/boot/efi && mount $ESP_DEVICE /target/boot/efi &&
             mount -t efivarfs efivarfs /target/sys/firmware/efi/efivars''')
 
-    # XXX: we have it in packages, but grml-debootstrap seems to
-    # reinstall grub-pc, so this shouldn't be necessary, but it is
-    con.run('chroot /target apt install grub-efi')
+        # XXX: we have it in packages, but grml-debootstrap seems to
+        # reinstall grub-pc, so this shouldn't be necessary, but it is
+        con.run('chroot /target apt install grub-efi')
+
     con.run('chroot /target update-initramfs -u')
     con.run('chroot /target update-grub')
 
     # reinstall grub
     con.run('''. /tmp/fai/disk_var.sh && \
             for DEVICE in $PHYSICAL_BOOT_DEVICES ; do chroot /target grub-install $DEVICE ; done''')
-    if con.run('[ -d /sys/firmware/efi ]', warn=True).failed:
-        logging.warning("this system has EFI support, this installer doesn't, try to fix it by hand")
-        return False
     logging.info("STEP 9: unmount everything")
-    # XXX: error handling?
-    con.run('umount /target/sys/firmware/efi/efivars /target/run/udev', warn=True)
+    if has_efi:
+        con.run('umount /target/sys/firmware/efi/efivars', warn=True)
+    con.run('umount /target/run/udev', warn=True)
     con.run('for fs in dev proc run sys  ; do mount -o bind /$fs /target/$fs; done', warn=True)
     con.run('umount /target/boot/efi /target/boot /target', warn=True)
     con.run('rmdir /target', warn=True)
