@@ -145,7 +145,8 @@ def main():
     )
     args = parser.parse_args()
     safe = True
-    os.environ["LANG"] = os.environ["LC_ALL"] = "C.UTF-8"  # to get consistent error messages
+    # get error messages from cryptsetup in english so we can parse them
+    os.environ["LANG"] = os.environ["LC_MESSAGES"] = os.environ["LC_ALL"] = "C.UTF-8"
     for device in args.devices or find_crypt_devices():
         try:
             version, types = audit_luks_disk("/dev/%s" % device)
