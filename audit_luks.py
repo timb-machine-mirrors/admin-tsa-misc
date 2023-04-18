@@ -166,13 +166,14 @@ def main():
         nargs="*",
     )
     args = parser.parse_args()
+
     safe = True
     for device in args.devices or find_crypt_devices():
         try:
             version, types = audit_luks_disk(device)
         except subprocess.CalledProcessError as e:
             sys.exit(e.returncode)
-        if set(types) != {"argon2id"}:
+        if args.convert and set(types) != {"argon2id"}:
             while convert_kdf(device):
                 logging.info("redoing audit")
                 version, types = audit_luks_disk(device)
