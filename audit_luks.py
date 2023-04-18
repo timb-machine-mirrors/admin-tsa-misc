@@ -64,15 +64,17 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
     return (version, tuple(types))
 
 
-def find_crypt_devices() -> Iterator[str]:
+def find_crypt_devices() -> tuple[str, ...]:
     ret = subprocess.run(
         ["lsblk", "--json"],
         stdout=subprocess.PIPE,
         check=True,
     )
-    devices = json.loads(ret.stdout)
-    for device in devices.get("blockdevices", []):
-        yield from find_crypt_device(device)
+    devices = set()
+    for lsblk_device in json.loads(ret.stdout).get("blockdevices", []):
+        for device in find_crypt_device(lsblk_device):
+            devices.add(device)
+    return tuple(devices)
 
 
 def find_crypt_device(device: dict) -> Iterator[str]:
