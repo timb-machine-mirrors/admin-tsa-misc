@@ -11,14 +11,14 @@ import argparse
 import json
 import logging
 import os
+import re
 import shlex
 import subprocess
-import sys
 from typing import Iterator
 
 
 def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
-    command = ["cryptsetup", "luksDump", "--dump-json-metadata", path]
+    command = ["cryptsetup", "luksDump", "--debug-json", path]
     logging.debug("running command %s", shlex.join(command))
     ret = subprocess.run(
         command,
@@ -27,7 +27,7 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
     )
     if ret.returncode != 0:
         logging.warning(ret.stderr.decode("utf-8").strip())
-        if b"--dump-json-metadata: unknown option" in ret.stderr:
+        if b"--debug-json: unknown option" in ret.stderr:
             raise NotImplementedError("cryptsetup does not support JSON output, aborting")
         if b"Dump operation is not supported for this device type." in ret.stderr:
             logging.warning(
@@ -40,7 +40,13 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
             ret.check_returncode()
     logging.info("device %s is using LUKS2", path)
     logging.debug("stdout: %r", ret.stdout)
-    luks_header = json.loads(ret.stdout)
+    m = re.search(rb"^# ({.*})LUKS header information$", ret.stdout, re.MULTILINE | re.DOTALL)
+    assert m, "cannot find JSON in cryptsetup output, aborting"
+    json_blob = m.group(1)
+    m = re.search(rb"^Version:\s+(\d+)", ret.stdout, re.MULTILINE)
+    assert m, "cannot find Version field in cryptsetup output, aborting"
+    version = int(m.group(1))
+    luks_header = json.loads(json_blob)
     logging.debug("JSON: %r", luks_header)
     # assert len(luks_header.get('keyslots', {})) > 1, "no keyslots??"
     types = []
@@ -56,7 +62,7 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
         else:
             logging.info("keyslot %d KDF: %s", int(i), KDF)
         types.append(KDF)
-    return (2, tuple(types))
+    return (version, tuple(types))
 
 
 def find_crypt_devices() -> Iterator[str]:
@@ -148,12 +154,7 @@ def main():
     # get error messages from cryptsetup in english so we can parse them
     os.environ["LANG"] = os.environ["LC_MESSAGES"] = os.environ["LC_ALL"] = "C.UTF-8"
     for device in args.devices or find_crypt_devices():
-        try:
-            version, types = audit_luks_disk("/dev/%s" % device)
-        except NotImplementedError as e:
-            logging.exception("failed to parse cryptsetup output: %s", e)
-            logging.error("try upgrading to cryptsetup 2.4 or later")
-            sys.exit(1)
+        version, types = audit_luks_disk("/dev/%s" % device)
         if set(types) != {"argon2id"}:
             while convert_kdf("/dev/%s" % device):
                 logging.info("redoing audit")
