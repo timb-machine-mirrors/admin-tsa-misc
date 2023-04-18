@@ -152,7 +152,7 @@ def main():
     args = parser.parse_args()
     safe = True
     # get error messages from cryptsetup in english so we can parse them
-    os.environ["LANG"] = os.environ["LC_MESSAGES"] = os.environ["LC_ALL"] = "C.UTF-8"
+    os.environ["LANGUAGE"] = os.environ["LANG"] = os.environ["LC_MESSAGES"] = os.environ["LC_ALL"] = "C.UTF-8"
     for device in args.devices or find_crypt_devices():
         version, types = audit_luks_disk("/dev/%s" % device)
         if set(types) != {"argon2id"}:
