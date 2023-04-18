@@ -10,7 +10,6 @@ those require the devices to be unmounted.
 import argparse
 import json
 import logging
-import os
 import re
 import shlex
 import subprocess
@@ -24,21 +23,8 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
         command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        check=True,
     )
-    if ret.returncode != 0:
-        logging.warning(ret.stderr.decode("utf-8").strip())
-        if b"--debug-json: unknown option" in ret.stderr:
-            raise NotImplementedError("cryptsetup does not support JSON output, aborting")
-        if b"Dump operation is not supported for this device type." in ret.stderr:
-            logging.warning(
-                "disk %s is using LUKS1, convert with `cryptsetup convert %s --type luks2",
-                path,
-                path,
-            )
-            return (1, ())
-        else:
-            ret.check_returncode()
-    logging.info("device %s is using LUKS2", path)
     logging.debug("stdout: %r", ret.stdout)
     m = re.search(rb"^# ({.*})LUKS header information$", ret.stdout, re.MULTILINE | re.DOTALL)
     assert m, "cannot find JSON in cryptsetup output, aborting"
@@ -46,6 +32,7 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
     m = re.search(rb"^Version:\s+(\d+)", ret.stdout, re.MULTILINE)
     assert m, "cannot find Version field in cryptsetup output, aborting"
     version = int(m.group(1))
+    logging.info("device %s is using LUKS %d", path, version)
     luks_header = json.loads(json_blob)
     logging.debug("JSON: %r", luks_header)
     # assert len(luks_header.get('keyslots', {})) > 1, "no keyslots??"
@@ -151,8 +138,6 @@ def main():
     )
     args = parser.parse_args()
     safe = True
-    # get error messages from cryptsetup in english so we can parse them
-    os.environ["LANGUAGE"] = os.environ["LANG"] = os.environ["LC_MESSAGES"] = os.environ["LC_ALL"] = "C.UTF-8"
     for device in args.devices or find_crypt_devices():
         version, types = audit_luks_disk("/dev/%s" % device)
         if set(types) != {"argon2id"}:
