@@ -144,7 +144,7 @@ def main():
     )
     args = parser.parse_args()
     safe = True
-    os.environ["LC_ALL"] = "C.UTF-8"  # to get consistent error messages
+    os.environ["LANG"] = os.environ["LC_ALL"] = "C.UTF-8"  # to get consistent error messages
     for device in args.devices or find_crypt_devices():
         version, types = audit_luks_disk("/dev/%s" % device)
         if set(types) != {"argon2id"}:
