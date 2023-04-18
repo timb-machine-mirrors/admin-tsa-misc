@@ -2,7 +2,10 @@
 
 """Detect outdated cryptographic configuration on LUKS
 partitions. Note that this program will *not* warn on plain text
-partitions."""
+partitions. With --convert it will also try to upgrade the KDF to
+argon2id, but will not attempt to convert LUKS1 to LUKS2 partitions as
+those require the devices to be unmounted.
+"""
 
 import argparse
 import json
@@ -103,6 +106,16 @@ class LoggingAction(argparse.Action):
         setattr(ns, self.dest, self.const or values)
 
 
+def convert_kdf(device):
+    logging.info("converting keyslots to argon2id in %s...", device)
+    try:
+        subprocess.check_call(['cryptsetup', 'luksConvertKey', device, '--pbkdf', 'argon2id'])
+    except subprocess.CalledProcessError as e:
+        logging.warning("failed to convert to argon2id, cryptsetup failed with code %d", e.returncode)
+        return False
+    return True
+
+
 def main():
     logging.basicConfig(format="%(levelname)s: %(message)s", level="INFO")
     parser = argparse.ArgumentParser(epilog=__doc__)
@@ -121,6 +134,11 @@ def main():
         help="enable debugging messages",
     )
     parser.add_argument(
+        "--convert",
+        action="store_true",
+        help="convert the KDF inline for LUKS2 partitions",
+    )
+    parser.add_argument(
         "devices",
         help="devices to inspect, default to autodetect",
         nargs="*",
@@ -130,6 +148,12 @@ def main():
     os.environ["LC_ALL"] = "C.UTF-8"  # to get consistent error messages
     for device in args.devices or find_crypt_devices():
         version, types = audit_luks_disk("/dev/%s" % device)
+        if set(types) != {"argon2id"}:
+            while convert_kdf("/dev/%s" % device):
+                logging.info("redoing audit")
+                version, types = audit_luks_disk("/dev/%s" % device)
+                if set(types) == {"argon2id"}:
+                    break
         if version == 1 or set(types) != {"argon2id"}:
             safe = False
     if safe:
