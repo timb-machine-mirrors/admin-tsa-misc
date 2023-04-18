@@ -13,20 +13,31 @@ import logging
 import re
 import shlex
 import subprocess
+import sys
 from typing import Iterator
 
 
 def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
     command = ["cryptsetup", "luksDump", "--debug-json", path]
     logging.debug("running command %s", shlex.join(command))
-    ret = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
+    try:
+        ret = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logging.error(
+            "cryptsetup failed with error code %d: %s",
+            e.returncode,
+            ret.stderr.decode("utf-8"),
+        )
+        raise e
     logging.debug("stdout: %r", ret.stdout)
-    m = re.search(rb"^# ({.*})LUKS header information$", ret.stdout, re.MULTILINE | re.DOTALL)
+    m = re.search(
+        rb"^# ({.*})LUKS header information$", ret.stdout, re.MULTILINE | re.DOTALL
+    )
     assert m, "cannot find JSON in cryptsetup output, aborting"
     json_blob = m.group(1)
     m = re.search(rb"^Version:\s+(\d+)", ret.stdout, re.MULTILINE)
@@ -102,9 +113,14 @@ class LoggingAction(argparse.Action):
 def convert_kdf(device):
     logging.info("converting keyslots to argon2id in %s...", device)
     try:
-        subprocess.check_call(['cryptsetup', 'luksConvertKey', device, '--pbkdf', 'argon2id'])
+        subprocess.check_call(
+            ["cryptsetup", "luksConvertKey", device, "--pbkdf", "argon2id"]
+        )
     except subprocess.CalledProcessError as e:
-        logging.warning("failed to convert to argon2id, cryptsetup failed with code %d", e.returncode)
+        logging.warning(
+            "failed to convert to argon2id, cryptsetup failed with code %d",
+            e.returncode,
+        )
         return False
     return True
 
@@ -139,7 +155,10 @@ def main():
     args = parser.parse_args()
     safe = True
     for device in args.devices or find_crypt_devices():
-        version, types = audit_luks_disk("/dev/%s" % device)
+        try:
+            version, types = audit_luks_disk("/dev/%s" % device)
+        except subprocess.CalledProcessError as e:
+            sys.exit(e.returncode)
         if set(types) != {"argon2id"}:
             while convert_kdf("/dev/%s" % device):
                 logging.info("redoing audit")
