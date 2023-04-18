@@ -10,6 +10,7 @@ those require the devices to be unmounted.
 import argparse
 import json
 import logging
+from pathlib import Path
 import re
 import shlex
 import subprocess
@@ -77,7 +78,19 @@ def find_crypt_devices() -> Iterator[str]:
 def find_crypt_device(device: dict) -> Iterator[str]:
     for children in device.get("children", []):
         if children["type"] == "crypt":
-            yield device["name"]
+            for prefix in ("/dev", "/dev/mapper"):
+                path = Path(prefix, device["name"])
+                if path.exists():
+                    break
+            else:
+                logging.warning(
+                    "device %s has an encrypted child but we could not find a device node in /dev/%s or /dev/mapper/%s",
+                    device,
+                    device,
+                    device,
+                )
+                continue
+            yield path.as_posix()
         yield from find_crypt_device(children)
 
 
@@ -156,13 +169,13 @@ def main():
     safe = True
     for device in args.devices or find_crypt_devices():
         try:
-            version, types = audit_luks_disk("/dev/%s" % device)
+            version, types = audit_luks_disk(device)
         except subprocess.CalledProcessError as e:
             sys.exit(e.returncode)
         if set(types) != {"argon2id"}:
-            while convert_kdf("/dev/%s" % device):
+            while convert_kdf(device):
                 logging.info("redoing audit")
-                version, types = audit_luks_disk("/dev/%s" % device)
+                version, types = audit_luks_disk(device)
                 if set(types) == {"argon2id"}:
                     break
         if version == 1 or set(types) != {"argon2id"}:
