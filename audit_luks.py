@@ -13,6 +13,7 @@ import logging
 import os
 import shlex
 import subprocess
+import sys
 from typing import Iterator
 
 
@@ -146,7 +147,12 @@ def main():
     safe = True
     os.environ["LANG"] = os.environ["LC_ALL"] = "C.UTF-8"  # to get consistent error messages
     for device in args.devices or find_crypt_devices():
-        version, types = audit_luks_disk("/dev/%s" % device)
+        try:
+            version, types = audit_luks_disk("/dev/%s" % device)
+        except NotImplementedError as e:
+            logging.exception("failed to parse cryptsetup output: %s", e)
+            logging.error("try upgrading to cryptsetup 2.4 or later")
+            sys.exit(1)
         if set(types) != {"argon2id"}:
             while convert_kdf("/dev/%s" % device):
                 logging.info("redoing audit")
