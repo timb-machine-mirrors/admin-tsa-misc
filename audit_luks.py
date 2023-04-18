@@ -15,7 +15,7 @@ import re
 import shlex
 import subprocess
 import sys
-from typing import Iterator
+from typing import Iterator, Sequence
 
 
 def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
@@ -138,6 +138,27 @@ def convert_kdf(device):
     return True
 
 
+def find_and_fix_devices(devices: Sequence[str], convert: bool):
+    safe = True
+    for device in devices:
+        try:
+            version, types = audit_luks_disk(device)
+        except subprocess.CalledProcessError as e:
+            sys.exit(e.returncode)
+        if convert and set(types) != {"argon2id"}:
+            while convert_kdf(device):
+                logging.info("redoing audit")
+                version, types = audit_luks_disk(device)
+                if set(types) == {"argon2id"}:
+                    break
+        if version == 1 or set(types) != {"argon2id"}:
+            safe = False
+    if safe:
+        logging.info("all is well, no LUKS1 or non-argon2id encryption found")
+    else:
+        logging.warning("LUKS1 or non-argon2id encryption found")
+
+
 def main():
     logging.basicConfig(format="%(levelname)s: %(message)s", level="INFO")
     parser = argparse.ArgumentParser(epilog=__doc__)
@@ -166,25 +187,7 @@ def main():
         nargs="*",
     )
     args = parser.parse_args()
-
-    safe = True
-    for device in args.devices or find_crypt_devices():
-        try:
-            version, types = audit_luks_disk(device)
-        except subprocess.CalledProcessError as e:
-            sys.exit(e.returncode)
-        if args.convert and set(types) != {"argon2id"}:
-            while convert_kdf(device):
-                logging.info("redoing audit")
-                version, types = audit_luks_disk(device)
-                if set(types) == {"argon2id"}:
-                    break
-        if version == 1 or set(types) != {"argon2id"}:
-            safe = False
-    if safe:
-        logging.info("all is well, no LUKS1 or non-argon2id encryption found")
-    else:
-        logging.warning("LUKS1 or non-argon2id encryption found")
+    find_and_fix_devices(args.devices or find_crypt_devices(), args.convert)
 
 
 if __name__ == "__main__":
