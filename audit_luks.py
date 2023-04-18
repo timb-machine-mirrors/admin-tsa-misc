@@ -190,12 +190,33 @@ def main():
         help="convert the KDF inline for LUKS2 partitions",
     )
     parser.add_argument(
+        "--hosts", "-H", nargs="*", help="remote hosts to check with mitogen"
+    )
+    parser.add_argument(
         "devices",
         help="devices to inspect, default to autodetect",
         nargs="*",
     )
     args = parser.parse_args()
-    find_and_fix_devices(args.devices or find_crypt_devices(), args.convert)
+    if args.hosts:
+        import mitogen
+        import mitogen.utils
+
+        broker = mitogen.master.Broker()
+        router = mitogen.master.Router(broker)
+        with router:
+            for host in args.hosts:
+                logging.info("checking host %s", host)
+                context = router.ssh(hostname=host, python_path="python3")
+                if args.devices:
+                    devices = args.devices
+                else:
+                    logging.info("inventory on host %s", host)
+                    devices = context.call(find_crypt_devices)
+                logging.info("checking disks on host %s", host)
+                context.call(find_and_fix_devices, devices, args.convert)
+    else:
+        find_and_fix_devices(args.devices or find_crypt_devices(), args.convert)
 
 
 if __name__ == "__main__":
