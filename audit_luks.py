@@ -36,15 +36,21 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
         )
         raise e
     logging.debug("stdout: %r", ret.stdout)
+
+    m = re.search(rb"^Version:\s+(\d+)", ret.stdout, re.MULTILINE)
+    assert m, "cannot find Version field in cryptsetup output, aborting"
+    version = int(m.group(1))
+    logging.info("device %s is using LUKS %d", path, version)
+
+    if version == 1:
+        return (1, ("PBKDF", ))
+
     m = re.search(
         rb"^# ({.*})LUKS header information$", ret.stdout, re.MULTILINE | re.DOTALL
     )
     assert m, "cannot find JSON in cryptsetup output, aborting"
     json_blob = m.group(1)
-    m = re.search(rb"^Version:\s+(\d+)", ret.stdout, re.MULTILINE)
-    assert m, "cannot find Version field in cryptsetup output, aborting"
-    version = int(m.group(1))
-    logging.info("device %s is using LUKS %d", path, version)
+
     luks_header = json.loads(json_blob)
     logging.debug("JSON: %r", luks_header)
     # assert len(luks_header.get('keyslots', {})) > 1, "no keyslots??"
