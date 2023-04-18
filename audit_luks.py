@@ -26,10 +26,9 @@ def audit_luks_disk(path: str) -> tuple[int, tuple[str, ...]]:
     )
     if ret.returncode != 0:
         logging.warning(ret.stderr.decode("utf-8").strip())
-        if (
-            b"--dump-json-metadata: unknown option" in ret.stderr
-            or b"Dump operation is not supported for this device type." in ret.stderr
-        ):
+        if b"--dump-json-metadata: unknown option" in ret.stderr:
+            raise NotImplementedError("cryptsetup does not support JSON output, aborting")
+        if b"Dump operation is not supported for this device type." in ret.stderr:
             logging.warning(
                 "disk %s is using LUKS1, convert with `cryptsetup convert %s --type luks2",
                 path,
